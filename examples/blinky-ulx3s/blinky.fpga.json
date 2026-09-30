@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "system": "fpga",
+  "artifact_kind": "fpga_contract",
+  "name": "blinky",
+  "description": "Counter on the eight LEDs of a ULX3S (ECP5 LFE5U-85F)",
+  "device": {"profile": "ecp5-lfe5u-85f-cabga381", "ref": "U1"},
+  "top": "blinky",
+  "sources": [{"path": "rtl/blinky.v", "language": "verilog"}],
+  "clocks": [{"port": "clk_25mhz", "frequency_mhz": 25}],
+  "pins": [
+    {"port": "clk_25mhz", "package_pin": "G2", "io_standard": "LVCMOS33"},
+    {"port": "led[0]", "package_pin": "B2", "io_standard": "LVCMOS33"},
+    {"port": "led[1]", "package_pin": "C2", "io_standard": "LVCMOS33"},
+    {"port": "led[2]", "package_pin": "C1", "io_standard": "LVCMOS33"},
+    {"port": "led[3]", "package_pin": "D2", "io_standard": "LVCMOS33"},
+    {"port": "led[4]", "package_pin": "D1", "io_standard": "LVCMOS33"},
+    {"port": "led[5]", "package_pin": "E2", "io_standard": "LVCMOS33"},
+    {"port": "led[6]", "package_pin": "E1", "io_standard": "LVCMOS33"},
+    {"port": "led[7]", "package_pin": "H3", "io_standard": "LVCMOS33"}
+  ],
+  "build": {
+    "dir": "build",
+    "constraints": "blinky.fpga.lpf",
+    "bitstream": "build/blinky.bit",
+    "parameters": {"WIDTH": 26}
+  },
+  "simulations": [
+    {
+      "id": "count",
+      "runner": "iverilog",
+      "top": "blinky_tb",
+      "sources": [{"path": "tb/blinky_tb.v", "language": "verilog"}],
+      "expect": ["PASS: blinky counts"],
+      "forbid": ["FAIL"]
+    }
+  ],
+  "formal": [
+    {"id": "increment", "top": "blinky", "mode": "prove", "depth": 4, "parameters": {"WIDTH": 8}}
+  ],
+  "programmer": {"board": "ulx3s"}
+}

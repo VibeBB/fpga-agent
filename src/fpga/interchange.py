@@ -1,0 +1,87 @@
+"""Sibling interchange: the circuit connectivity export the FPGA agent
+consumes and the pin map export the circuit agent consumes back. Both are
+plain JSON files; no sibling code is imported.
+
+electrical-circuit-agent writes one ``<design>.firmware.json``
+(``circuit_firmware_connectivity``) listing every programmable device it
+knows about; an FPGA appears there under its reference designator exactly
+like an MCU, so both firmware-agent and fpga-agent read the same export.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class _Strict(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class CircuitDevicePin(_Strict):
+    pin: str = Field(min_length=1)
+    function: str | None = None
+    net: str | None = None
+    signal_class: str | None = None
+    voltage_v: float | None = Field(default=None, ge=0)
+
+
+class CircuitDevice(_Strict):
+    ref: str
+    lib_id: str
+    value: str | None = None
+    footprint: str
+    pins: list[CircuitDevicePin]
+
+
+class CircuitConnectivity(_Strict):
+    """``<design>.firmware.json`` written by electrical-circuit-agent."""
+
+    schema_version: Literal[1]
+    system: Literal["circuit"]
+    artifact_kind: Literal["circuit_firmware_connectivity"]
+    design: str
+    source: Literal["brief", "netlist"]
+    brief_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    netlist_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    mcus: list[CircuitDevice] = Field(min_length=1)
+
+    def device(self, ref: str) -> CircuitDevice | None:
+        return next((m for m in self.mcus if m.ref == ref), None)
+
+
+class PinmapEntry(_Strict):
+    port: str
+    package_pin: str
+    net: str | None
+    io_standard: str | None
+    pull: str | None
+
+
+class FpgaPinmap(_Strict):
+    """``<name>.fpga-pinmap.json`` exported for electrical-circuit-agent."""
+
+    schema_version: Literal[1] = 1
+    system: Literal["fpga"] = "fpga"
+    artifact_kind: Literal["fpga_pinmap"] = "fpga_pinmap"
+    design: str
+    contract_sha256: str
+    device_ref: str
+    device_profile: str
+    part: str
+    package: str
+    io_voltage_max_v: float
+    pins: list[PinmapEntry]
+    free_pins: list[str]
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def load_circuit(path: Path) -> CircuitConnectivity:
+    return CircuitConnectivity.model_validate(json.loads(path.read_text(encoding="utf-8")))

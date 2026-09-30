@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "system": "circuit",
+  "artifact_kind": "circuit_firmware_connectivity",
+  "design": "icebreaker",
+  "source": "brief",
+  "brief_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "netlist_sha256": null,
+  "mcus": [
+    {
+      "ref": "U1",
+      "lib_id": "FPGA_Lattice:ICE40UP5K-SG48ITR",
+      "value": "iCE40UP5K",
+      "footprint": "Package_DFN_QFN:QFN-48-1EP_7x7mm_P0.5mm_EP5.6x5.6mm",
+      "pins": [
+        {"pin": "35", "net": "CLK_12M", "signal_class": "clock", "voltage_v": 3.3},
+        {"pin": "6", "net": "UART_RX", "signal_class": "signal", "voltage_v": 3.3},
+        {"pin": "9", "net": "UART_TX", "signal_class": "signal", "voltage_v": 3.3},
+        {"pin": "11", "net": "LED_R_N", "signal_class": "signal", "voltage_v": 3.3},
+        {"pin": "14", "net": "FLASH_MISO", "signal_class": "signal", "voltage_v": 3.3},
+        {"pin": "15", "net": "FLASH_SCK", "signal_class": "signal", "voltage_v": 3.3},
+        {"pin": "16", "net": "FLASH_SS_N", "signal_class": "signal", "voltage_v": 3.3},
+        {"pin": "17", "net": "FLASH_MOSI", "signal_class": "signal", "voltage_v": 3.3},
+        {"pin": "5", "net": "+3V3", "signal_class": "power", "voltage_v": 3.3}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "system": "fpga",
+  "artifact_kind": "fpga_contract",
+  "name": "uart-echo",
+  "description": "UART echo at 115200 baud on the iCEBreaker (iCE40UP5K) built on the Colibri UART",
+  "device": {"profile": "ice40-up5k-sg48", "ref": "U1"},
+  "top": "uart_echo",
+  "libraries": [
+    {
+      "name": "colibri",
+      "root": "../../third_party/colibri",
+      "language": "vhdl",
+      "files": [
+        "src/io/uart/uart_rx.vhdl",
+        "src/io/uart/uart_tx.vhdl",
+        "src/io/uart/uart.vhdl"
+      ],
+      "license": "CERN-OHL-W-2.0",
+      "source_url": "https://gitlab.com/colibri-cern/colibri",
+      "revision": "3fa784121ccea86d9e65b2e0dc08d2a3327f5f2f"
+    }
+  ],
+  "sources": [
+    {"path": "rtl/pulse_stretch.vhdl", "language": "vhdl"},
+    {"path": "rtl/uart_echo.vhdl", "language": "vhdl"}
+  ],
+  "clocks": [{"port": "clk", "frequency_mhz": 12}],
+  "pins": [
+    {"port": "clk", "package_pin": "35", "net": "CLK_12M"},
+    {"port": "rx", "package_pin": "6", "net": "UART_RX", "pull": "up"},
+    {"port": "tx", "package_pin": "9", "net": "UART_TX"},
+    {"port": "ledr_n", "package_pin": "11", "net": "LED_R_N"}
+  ],
+  "build": {
+    "dir": "build",
+    "constraints": "uart-echo.fpga.pcf",
+    "bitstream": "build/uart-echo.bin",
+    "vhdl_standard": "08"
+  },
+  "simulations": [
+    {
+      "id": "echo",
+      "runner": "nvc",
+      "top": "uart_echo_tb",
+      "sources": [{"path": "tb/uart_echo_tb.vhdl", "language": "vhdl"}],
+      "expect": ["PASS: echoed 0x41"],
+      "forbid": ["mismatch", "Failure"],
+      "waveform": true,
+      "stop_time": "200us"
+    }
+  ],
+  "formal": [
+    {
+      "id": "pulse_stretch",
+      "top": "pulse_stretch",
+      "mode": "prove",
+      "depth": 8,
+      "parameters": {"g_CYCLES": 5}
+    }
+  ],
+  "circuit": {"connectivity": "circuit/icebreaker.firmware.json"},
+  "programmer": {"board": "ice40_generic"}
+}

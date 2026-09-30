@@ -1,0 +1,335 @@
+{
+  "schema_version": 1,
+  "system": "fpga",
+  "artifact_kind": "fpga_device",
+  "id": "ice40-up5k-sg48",
+  "vendor": "Lattice",
+  "family": "ice40",
+  "part": "iCE40UP5K",
+  "package": "SG48",
+  "boards": [
+    "iCEBreaker",
+    "UPduino v3"
+  ],
+  "source": "Project IceStorm chipdb-5k.txt (OSS CAD Suite 2026-09-30)",
+  "nextpnr_args": [
+    "--up5k",
+    "--package",
+    "sg48"
+  ],
+  "pack_args": [],
+  "io_voltage_max_v": 3.465,
+  "io_standards": [],
+  "resources": {
+    "ICESTORM_LC": "logic",
+    "ICESTORM_RAM": "ram",
+    "ICESTORM_SPRAM": "ram",
+    "ICESTORM_DSP": "dsp",
+    "SB_IO": "io",
+    "SB_GB": "clock",
+    "ICESTORM_PLL": "pll",
+    "ICESTORM_HFOSC": "other",
+    "ICESTORM_LFOSC": "other",
+    "SB_I2C": "other",
+    "SB_SPI": "other",
+    "SB_LEDDA_IP": "other",
+    "SB_RGBA_DRV": "other",
+    "SB_WARMBOOT": "other",
+    "IO_I3C": "other"
+  },
+  "pins": [
+    {
+      "name": "2",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "3",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "4",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "6",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "9",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "10",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "11",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "12",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "13",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "14",
+      "bank": null,
+      "functions": [
+        "SPI_SO"
+      ],
+      "caution": "config",
+      "clock": false
+    },
+    {
+      "name": "15",
+      "bank": null,
+      "functions": [
+        "SPI_SCK"
+      ],
+      "caution": "config",
+      "clock": false
+    },
+    {
+      "name": "16",
+      "bank": null,
+      "functions": [
+        "SPI_SS"
+      ],
+      "caution": "config",
+      "clock": false
+    },
+    {
+      "name": "17",
+      "bank": null,
+      "functions": [
+        "SPI_SI"
+      ],
+      "caution": "config",
+      "clock": false
+    },
+    {
+      "name": "18",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "19",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "20",
+      "bank": null,
+      "functions": [
+        "GBIN"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "21",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "23",
+      "bank": null,
+      "functions": [
+        "GBIN"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "25",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "26",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "27",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "28",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "31",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "32",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "34",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "35",
+      "bank": null,
+      "functions": [
+        "GBIN"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "36",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "37",
+      "bank": null,
+      "functions": [
+        "GBIN"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "38",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "39",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "40",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "41",
+      "bank": null,
+      "functions": [
+        "GBIN"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "42",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "43",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "44",
+      "bank": null,
+      "functions": [
+        "GBIN"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "45",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "46",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "47",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "48",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    }
+  ]
+}
