@@ -1,5 +1,32 @@
 {
+  "digest": "sha256:f9e396cbdb3eeb2724bd2f89606483b0def656ff74f571a5f919430924ac1caa",
+  "dockerfile": "docker/fpga-tools.Dockerfile",
   "image": "ghcr.io/vibebb/fpga-tools",
-  "digest": null,
-  "tag": null
+  "published_at": "2026-09-30T23:35:32Z",
+  "tag": "d6aa918bd45ecc2f2cdc20d34f0b3c30af6f484a-tools",
+  "tools": {
+    "boolector": "boolector --version: 3.2.4",
+    "ecppack": "ecppack --help: Error: input file is mandatory.",
+    "fpga-agent": "python -c import importlib.metadata as m; print(m.version('fpga-agent')): 0.1.0",
+    "ghdl": "ghdl --version: GHDL 7.0.0-dev (6.0.0.r515.g6ea214092.dirty) [Dunoon edition]",
+    "ghdl-yosys-plugin": "yosys -m ghdl -p help ghdl -q: /opt/oss-cad-suite/bin/yosys",
+    "gowin_pack": "gowin_pack -h: /opt/oss-cad-suite/lib/python3.11/site-packages/apycula/bitmatrix.py:60: UserWarning: Numpy is not available, performance will be degraded.",
+    "icepack": "icepack -h: /opt/oss-cad-suite/bin/icepack",
+    "iverilog": "iverilog -V: Icarus Verilog version 14.0 (devel) (s20260301-500-g2e81fcccb-dirty)",
+    "nextpnr-ecp5": "nextpnr-ecp5 --version: \"nextpnr-ecp5\" -- Next Generation Place and Route (Version nextpnr-0.11.1-40-geb4f15c3)",
+    "nextpnr-himbaechel": "nextpnr-himbaechel --version: \"nextpnr-himbaechel\" -- Next Generation Place and Route (Version nextpnr-0.11.1-40-geb4f15c3)",
+    "nextpnr-ice40": "nextpnr-ice40 --version: \"nextpnr-ice40\" -- Next Generation Place and Route (Version nextpnr-0.11.1-40-geb4f15c3)",
+    "nvc": "nvc --version: nvc 1.23.0 (1.23.0.r0.gcba10a2) (Using LLVM 21.1.8)",
+    "openFPGALoader": "openFPGALoader -V: openFPGALoader v1.1.1",
+    "python": "python --version: Python 3.12.14",
+    "sby": "sby --help: usage: sby [options] [<jobname>.sby [tasknames] | <dirname>]",
+    "uv": "uv --version: uv 0.12.21 (x86_64-unknown-linux-musl)",
+    "verilator": "verilator --version: Verilator 5.053 devel rev v5.052-258-ga419e9157 (mod)",
+    "vvp": "vvp -V: Icarus Verilog runtime version 14.0 (devel) (s20260301-500-g2e81fcccb-dirty)",
+    "yices-smt2": "yices-smt2 --version: Yices 2.7.0",
+    "yosys": "yosys --version: Yosys 0.69+158 (git sha1 a1a0ad7d4-dirty, Release, Clang /usr/bin/clang++ 21.1.8)",
+    "yosys-smtbmc": "yosys-smtbmc --help: yosys-smtbmc [options] <yosys_smt2_output>",
+    "z3": "z3 --version: Z3 version 4.15.5 - 64 bit"
+  },
+  "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/36791362470"
 }
