@@ -1,0 +1,7 @@
+{
+  "fpga_tools": {
+    "image": "ghcr.io/vibebb/fpga-tools",
+    "digest": null,
+    "tag": null
+  }
+}
