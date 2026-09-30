@@ -9,6 +9,7 @@
 - [ADR-0005](adr/ADR-0005-host-only-programming.md) — host-only, hash-confirmed programming
 - [ADR-0006](adr/ADR-0006-circuit-fpga-interchange.md) — circuit/FPGA interchange artifacts
 - [ADR-0007](adr/ADR-0007-coverage-gate.md) — line-coverage gate in CI
+- [ADR-0008](adr/ADR-0008-published-image-digest-lock.md) — published image digest lock
 
 ## Skills
 
@@ -19,3 +20,8 @@ The workflow and field references live in the plugin skills:
 [verification](../plugins/fpga/skills/fpga-verification/SKILL.md),
 [external libraries](../plugins/fpga/skills/fpga-external-libraries/SKILL.md),
 [sibling cooperation](../plugins/fpga/skills/fpga-sibling-cooperation/SKILL.md).
+
+## Maintenance
+
+Review [dependency update candidates](dependency-updates.md) before changing
+upstream pins or regenerating `uv.lock`.
