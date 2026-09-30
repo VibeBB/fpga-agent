@@ -49,7 +49,8 @@ def test_mcp_tools_registered_without_program() -> None:
     assert mcp_server.dispatch("fpga_program", {})["verdict"] == "fail"
 
 
-def test_mcp_dispatch_validate(ulx3s: Path) -> None:
+def test_mcp_dispatch_validate(ulx3s: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENHANDS_PROJECT_DIR", str(ulx3s.parents[2]))
     payload = mcp_server.dispatch("fpga_validate", {"contract_path": str(ulx3s)})
     assert payload["verdict"] == "pass"
     assert payload["profile"] == "ecp5-lfe5u-85f-cabga381"
@@ -145,34 +146,37 @@ def test_protect_generated_allows(payload: object) -> None:
 
 
 @pytest.mark.parametrize(
-    "command",
+    ("script", "command"),
     [
-        "openFPGALoader -b ulx3s build/blinky.bit",
-        "sudo iceprog build/a.bin",
-        "cd x && ecpprog a.bit",
-        "fpga program a.fpga.json --confirm-sha256 abc",
-        "python -m fpga program a.fpga.json --confirm-sha256 abc",
-        "python3 plugins/fpga/scripts/fpga_launcher.py program a.fpga.json --confirm-sha256 x",
-        "git push --force origin feature",
-        "git reset --hard HEAD",
-        "rm -rf /",
+        ("deny_programming.py", "openFPGALoader -b ulx3s build/blinky.bit"),
+        ("deny_programming.py", "sudo iceprog build/a.bin"),
+        ("deny_programming.py", "cd x && ecpprog a.bit"),
+        ("deny_programming.py", "fpga program a.fpga.json --confirm-sha256 abc"),
+        ("deny_programming.py", "python -m fpga program a.fpga.json --confirm-sha256 abc"),
+        (
+            "deny_programming.py",
+            "python3 plugins/fpga/scripts/fpga_launcher.py program a.fpga.json --confirm-sha256 x",
+        ),
+        ("safety_rail.py", "git push --force origin feature"),
+        ("safety_rail.py", "git reset --hard HEAD"),
+        ("safety_rail.py", "rm -rf /"),
     ],
 )
-def test_safety_rail_denies(command: str) -> None:
-    assert _hook("safety_rail.py", _terminal(command)).returncode == 2
+def test_safety_rail_denies(script: str, command: str) -> None:
+    assert _hook(script, _terminal(command)).returncode == 2
 
 
 @pytest.mark.parametrize(
-    "command",
+    ("script", "command"),
     [
-        "fpga program a.fpga.json --confirm-sha256 abc --dry-run",
-        "fpga gates a.fpga.json",
-        "echo openFPGALoader",
-        "yosys -p 'synth_ice40' a.v",
+        ("deny_programming.py", "fpga program a.fpga.json --confirm-sha256 abc --dry-run"),
+        ("safety_rail.py", "fpga gates a.fpga.json"),
+        ("safety_rail.py", "echo openFPGALoader"),
+        ("safety_rail.py", "yosys -p 'synth_ice40' a.v"),
     ],
 )
-def test_safety_rail_allows(command: str) -> None:
-    assert _hook("safety_rail.py", _terminal(command)).returncode == 0
+def test_safety_rail_allows(script: str, command: str) -> None:
+    assert _hook(script, _terminal(command)).returncode == 0
 
 
 def test_report_status_lists_failures(tmp_path: Path) -> None:

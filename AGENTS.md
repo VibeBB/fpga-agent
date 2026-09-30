@@ -28,7 +28,7 @@ sibling in the VibeBB OpenHands plugin family.
   tools are pinned by version and sha256 and listed in
   `THIRD_PARTY_NOTICES.md`.
 - Programming hardware is host-only and human-confirmed; it is never a
-  gate, never an MCP tool, and the safety rail denies it for agents.
+  gate or MCP tool; the `deny-programming` hook denies it for agents.
 - New dependencies or tools need an ADR under `docs/adr/`.
 
 ## Voice and commit policy

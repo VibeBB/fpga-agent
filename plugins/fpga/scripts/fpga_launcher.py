@@ -36,6 +36,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any, cast
 
 _MODULES = {"mcp_server": "fpga.mcp_server"}
 _CONTAINER_SRC = "/plugin-src"
@@ -48,6 +49,8 @@ _CONTAINER_ENV = {
     "XDG_CONFIG_HOME": "/tmp/.config",
 }
 _LOCK_KEY = "fpga_tools"
+_INSPECT_TIMEOUT_S = 30
+_PULL_TIMEOUT_S = 900
 
 
 def _homes() -> list[Path]:
@@ -101,8 +104,12 @@ def _lock_entry_ref(lock_path: Path, key: str | None) -> str | None:
         data = json.loads(lock_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
+    data = cast(dict[str, Any], data)
     entry = data.get(key) if key else data
-    if not isinstance(entry, dict) or not entry.get("image"):
+    if not isinstance(entry, dict):
+        return None
+    entry = cast(dict[str, Any], entry)
+    if not entry.get("image"):
         return None
     if entry.get("digest"):
         return f"{entry['image']}@{entry['digest']}"
@@ -130,12 +137,16 @@ def _ensure_image(ref: str, *, pull: bool) -> None:
     docker = shutil.which("docker")
     if docker is None:
         raise RuntimeError(f"docker not found on PATH (tools image {ref} is pinned)")
-    inspect = subprocess.run(
-        [docker, "image", "inspect", ref],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-    )
+    try:
+        inspect = subprocess.run(
+            [docker, "image", "inspect", ref],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            timeout=_INSPECT_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"docker image inspect timed out after {_INSPECT_TIMEOUT_S}s") from exc
     if inspect.returncode == 0:
         return
     if not pull:
@@ -143,7 +154,15 @@ def _ensure_image(ref: str, *, pull: bool) -> None:
             f"fpga tools image {ref} not pulled locally; run 'fpga_launcher.py prewarm' to fetch it"
         )
     print(f"fpga_launcher: pulling tools image {ref}", file=sys.stderr)
-    pulled = subprocess.run([docker, "pull", ref], check=False, stdout=subprocess.DEVNULL)
+    try:
+        pulled = subprocess.run(
+            [docker, "pull", ref],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            timeout=_PULL_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"docker pull timed out after {_PULL_TIMEOUT_S}s") from exc
     if pulled.returncode != 0:
         raise RuntimeError(f"fpga tools image {ref} not present locally and pull failed")
 

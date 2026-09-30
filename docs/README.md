@@ -8,6 +8,7 @@
 - [ADR-0004](adr/ADR-0004-external-hdl-libraries-colibri.md) — external HDL libraries and Colibri
 - [ADR-0005](adr/ADR-0005-host-only-programming.md) — host-only, hash-confirmed programming
 - [ADR-0006](adr/ADR-0006-circuit-fpga-interchange.md) — circuit/FPGA interchange artifacts
+- [ADR-0007](adr/ADR-0007-coverage-gate.md) — line-coverage gate in CI
 
 ## Skills
 
