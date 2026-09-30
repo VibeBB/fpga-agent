@@ -1,0 +1,12 @@
+{
+  "name": "fpga",
+  "version": "0.1.0",
+  "description": "OpenHands plugin for FPGA development (HDL/RTL, simulation, formal verification, synthesis, place-and-route, bitstream) gated by deterministic open-source toolchain checks",
+  "author": {
+    "name": "VibeBB",
+    "url": "https://github.com/VibeBB/fpga-agent"
+  },
+  "license": "BSD-3-Clause",
+  "repository": "https://github.com/VibeBB/fpga-agent",
+  "entry_command": "doctor"
+}
