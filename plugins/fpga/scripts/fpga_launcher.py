@@ -104,6 +104,8 @@ def _lock_entry_ref(lock_path: Path, key: str | None) -> str | None:
         data = json.loads(lock_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
+    if not isinstance(data, dict):
+        return None
     data = cast(dict[str, Any], data)
     entry = data.get(key) if key else data
     if not isinstance(entry, dict):

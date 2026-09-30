@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from fpga.workspace import reject_symlinks, workspace_path, workspace_root
+from fpga.workspace import workspace_path, workspace_root
 
 
 def test_workspace_root_uses_project_directory(
@@ -39,13 +39,3 @@ def test_workspace_path_rejects_symlink_escape(tmp_path: Path) -> None:
     (tmp_path / "linked").symlink_to(outside, target_is_directory=True)
     with pytest.raises(ValueError, match="workspace path contains a symlink"):
         workspace_path("linked/contract.fpga.json", tmp_path)
-
-
-def test_reject_symlinks_rejects_symlink_inside_directory(tmp_path: Path) -> None:
-    outside = tmp_path.parent / f"{tmp_path.name}-outside-file"
-    outside.write_text("outside", encoding="utf-8")
-    generated = tmp_path / "generated"
-    generated.mkdir()
-    (generated / "linked").symlink_to(outside)
-    with pytest.raises(ValueError, match="generated output path is a symlink"):
-        reject_symlinks(generated)

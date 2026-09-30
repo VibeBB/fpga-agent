@@ -32,12 +32,3 @@ def workspace_path(value: str | Path, root: Path | None = None) -> Path:
     if resolved != base and base not in resolved.parents:
         raise ValueError(f"path is outside the workspace: {value}")
     return resolved
-
-
-def reject_symlinks(path: Path) -> None:
-    if path.is_symlink():
-        raise ValueError(f"generated output path is a symlink: {path}")
-    if path.is_dir():
-        for child in path.rglob("*"):
-            if child.is_symlink():
-                raise ValueError(f"generated output path is a symlink: {child}")
