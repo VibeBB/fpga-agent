@@ -18,6 +18,7 @@ from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 
 from . import __version__, service
+from .workspace import workspace_path
 
 server: Server = Server(f"fpga-mcp/{__version__}")
 
@@ -135,12 +136,12 @@ def _str(arguments: dict[str, object], key: str) -> str:
 
 
 def _contract(arguments: dict[str, object]) -> Path:
-    return Path(_str(arguments, "contract_path"))
+    return workspace_path(_str(arguments, "contract_path"))
 
 
 def _opt_path(arguments: dict[str, object], key: str) -> Path | None:
     value = arguments.get(key)
-    return Path(value) if isinstance(value, str) and value else None
+    return workspace_path(value) if isinstance(value, str) and value else None
 
 
 def _opt_str(arguments: dict[str, object], key: str) -> str | None:
@@ -207,12 +208,26 @@ def dispatch(name: str, arguments: dict[str, object]) -> service.Json:
 
 
 @server.call_tool()
-async def call_tool(name: str, arguments: dict[str, object]) -> list[types.ContentBlock]:
+async def call_tool(name: str, arguments: dict[str, object]) -> types.CallToolResult:
+    is_error = False
     try:
         payload = await asyncio.to_thread(dispatch, name, arguments or {})
+        if name not in TOOLS:
+            payload["error_type"] = "unknown_tool"
+            is_error = True
     except Exception as exc:  # fail-closed transport
-        payload = {"verdict": "fail", "detail": f"{name} error: {exc}"}
-    return [types.TextContent(type="text", text=json.dumps(payload, ensure_ascii=False, indent=2))]
+        payload = {
+            "verdict": "fail",
+            "detail": f"{name} error: {exc}",
+            "error_type": type(exc).__name__,
+        }
+        is_error = True
+    return types.CallToolResult(
+        content=[
+            types.TextContent(type="text", text=json.dumps(payload, ensure_ascii=False, indent=2))
+        ],
+        isError=is_error,
+    )
 
 
 async def _run() -> None:

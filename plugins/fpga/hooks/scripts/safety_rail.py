@@ -7,9 +7,7 @@ operations against the root or home tree, device writes, power commands, and
 the git operations this repository's working agreement forbids (force push
 without --force-with-lease, pushes to main/master, reset --hard, clean -f,
 checkout/restore path restores, stash drop/clear, `git add .`, commit
---amend/--no-verify), and FPGA board programming: programmer executables
-and `fpga program` without `--dry-run` are for a human on the host, never
-for the agent. Everything else passes, including unparseable commands:
+--amend/--no-verify). Everything else passes, including unparseable commands:
 the rail only denies what it positively recognizes, it never blocks on
 ambiguity.
 """
@@ -60,19 +58,6 @@ BLOCKED_COMMANDS = {
     "kexec",
 }
 POWER_TARGETS = {"poweroff", "reboot", "halt", "suspend", "hibernate", "kexec"}
-PROGRAMMERS = {
-    "openFPGALoader",
-    "openfpgaloader",
-    "iceprog",
-    "ecpprog",
-    "ecpdap",
-    "fujprog",
-    "dfu-util",
-    "programmer_cli",
-    "vivado_lab",
-    "quartus_pgm",
-}
-FPGA_ENTRY_POINTS = {"fpga", "fpga_launcher.py"}
 
 
 def _command_name(token: str) -> str:
@@ -178,21 +163,7 @@ def _denied_segment(segment: list[str]) -> str | None:
         return "kill -1 targets every process on the box"
     if name == "git":
         return _denied_git(args)
-    if name in PROGRAMMERS:
-        return f"{name} programs hardware; a human runs `fpga program` on the host"
-    if _fpga_program(name, args) and "--dry-run" not in args:
-        return "fpga program writes to hardware; only a human may run it (use --dry-run)"
     return None
-
-
-def _fpga_program(name: str, args: list[str]) -> bool:
-    if name in FPGA_ENTRY_POINTS:
-        return bool(args) and args[0] == "program"
-    if name.startswith("python") and len(args) >= 3 and args[0] == "-m":
-        return args[1] in ("fpga", "fpga.cli") and args[2] == "program"
-    if name.startswith("python") and len(args) >= 2:
-        return _command_name(args[0]) == "fpga_launcher.py" and args[1] == "program"
-    return False
 
 
 def _denied_redirect(tokens: list[str]) -> str | None:
@@ -228,7 +199,10 @@ def main() -> int:
     except (json.JSONDecodeError, OSError) as exc:
         print(f"invalid hook input: {exc}", file=sys.stderr)
         return 2
-    if not isinstance(payload, dict) or payload.get("tool_name") != "terminal":
+    if not isinstance(payload, dict):
+        return 0
+    payload = cast(dict[str, Any], payload)
+    if payload.get("tool_name") != "terminal":
         return 0
     tool_input = payload.get("tool_input")
     if not isinstance(tool_input, dict):

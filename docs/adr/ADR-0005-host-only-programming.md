@@ -12,9 +12,10 @@
   prints the command.
 - It is not an MCP tool and not a gate. The launcher always runs it on
   the host (the container has no USB access).
-- The `safety-rail` hook denies agents direct programmer executables
+- The `deny-programming` hook denies agents direct programmer executables
   (openFPGALoader, iceprog, ecpprog, fujprog, dfu-util, vendor
-  programmers) and `fpga program` without `--dry-run`.
+  programmers) and `fpga program` without `--dry-run`. The `safety-rail`
+  hook remains responsible for general host and repository safety policy.
 
 ## Consequences
 

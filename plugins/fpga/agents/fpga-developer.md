@@ -32,6 +32,9 @@ hooks:
         - type: command
           name: safety-rail
           command: 'p=$(for c in "${FPGA_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/hooks/scripts/safety_rail.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/safety_rail.py"'
+        - type: command
+          name: deny-programming
+          command: 'p=$(for c in "${FPGA_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/hooks/scripts/deny_programming.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/deny_programming.py"'
   post_tool_use:
     - matcher: inspect_image_with_vision
       hooks:
@@ -64,7 +67,7 @@ Rules:
 - Use external libraries unmodified. If a library needs a change, say so;
   modified CERN-OHL-W files must be published by whoever ships them.
 - Never program a board. Programming is a human step (`fpga program` on
-  the host) and the safety rail denies programmer commands.
+  the host) and the `deny-programming` hook denies programmer commands.
 
 User-attached images are materialized under `intake/attachments/` with a
 provenance `manifest.jsonl`. A value read off an image (a pin label on a

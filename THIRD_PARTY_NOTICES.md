@@ -28,6 +28,8 @@ Lattice, Gowin) tool or binary.
 | Verilator | 5.053-dev (suite) | LGPL-3.0 or Artistic-2.0 | Verilog lint |
 | openFPGALoader | 1.1.1 (suite) | Apache-2.0 | Host-only programming |
 | NVC | 1.23.0, asset `nvc_1.23.0-1_amd64_ubuntu-26.04.deb`, sha256 `deda7ffc97b04301f0dbf5e16614e0e6537ba8a292d3d11502675a3514ba995a` | GPL-3.0-or-later | VHDL analysis, lint and simulation |
+| coverage | `7.16.2` (dev group) | Apache-2.0 | Test coverage measurement |
+| pytest-cov | `7.1.0` (dev group) | MIT | Pytest coverage integration |
 | pydantic | `>=2` via `uv.lock` | MIT | Contract models |
 | mcp | `>=1.29,<2` via `uv.lock` | MIT | MCP server |
 | openhands-sdk / openhands-tools | `1.50.0` (sdk-check group) | MIT | Plugin-load verification |

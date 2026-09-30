@@ -31,7 +31,7 @@ EXPECTED_SESSION_START_HOOKS = {
     "ensure-llm-profiles",
 }
 EXPECTED_USER_PROMPT_SUBMIT_HOOKS = {"intake-attachments"}
-EXPECTED_PRE_TOOL_USE_HOOKS = {"protect-generated", "safety-rail"}
+EXPECTED_PRE_TOOL_USE_HOOKS = {"deny-programming", "protect-generated", "safety-rail"}
 EXPECTED_STOP_HOOKS = {"report-fpga-status", "intake-attachments"}
 EXPECTED_POST_TOOL_USE_HOOKS = {
     "record-image-observation",
