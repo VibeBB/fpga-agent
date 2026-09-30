@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "system": "fpga",
+  "artifact_kind": "fpga_contract",
+  "name": "blinky",
+  "description": "Counter on the six LEDs of a Sipeed Tang Nano 9K (Gowin GW1NR-9C)",
+  "device": {"profile": "gowin-gw1nr9c-qn88p", "ref": "U1"},
+  "top": "blinky",
+  "sources": [{"path": "rtl/blinky.vhdl", "language": "vhdl"}],
+  "clocks": [{"port": "clk", "frequency_mhz": 27}],
+  "pins": [
+    {"port": "clk", "package_pin": "52", "io_standard": "LVCMOS33"},
+    {"port": "led_n[0]", "package_pin": "10", "io_standard": "LVCMOS18"},
+    {"port": "led_n[1]", "package_pin": "11", "io_standard": "LVCMOS18"},
+    {"port": "led_n[2]", "package_pin": "13", "io_standard": "LVCMOS18"},
+    {"port": "led_n[3]", "package_pin": "14", "io_standard": "LVCMOS18"},
+    {"port": "led_n[4]", "package_pin": "15", "io_standard": "LVCMOS18"},
+    {"port": "led_n[5]", "package_pin": "16", "io_standard": "LVCMOS18"}
+  ],
+  "build": {
+    "dir": "build",
+    "constraints": "blinky.fpga.cst",
+    "bitstream": "build/blinky.fs"
+  },
+  "simulations": [
+    {
+      "id": "count",
+      "runner": "nvc",
+      "top": "blinky_tb",
+      "sources": [{"path": "tb/blinky_tb.vhdl", "language": "vhdl"}],
+      "expect": ["PASS: blinky counts"],
+      "forbid": ["FAIL"],
+      "stop_time": "10us"
+    }
+  ],
+  "formal": [
+    {"id": "increments", "top": "blinky", "mode": "prove", "depth": 4, "parameters": {"g_WIDTH": 8}}
+  ],
+  "programmer": {"board": "tangnano9k"}
+}
