@@ -29,8 +29,10 @@ def _regen(contract: Path) -> None:
     assert service.constraints_payload(contract)["verdict"] == "pass"
 
 
-def test_static_gates_pass(ulx3s: Path, tangnano: Path, uart_echo: Path) -> None:
-    for contract in (ulx3s, tangnano, uart_echo):
+def test_static_gates_pass(
+    ulx3s: Path, tangnano: Path, tangnano20k: Path, tangprimer20k: Path, uart_echo: Path
+) -> None:
+    for contract in (ulx3s, tangnano, tangnano20k, tangprimer20k, uart_echo):
         report = run_gates(contract, contract.parent / "fpga-reports", full=False)
         assert report.verdict == "pass", [c for c in report.checks if c.status == "fail"]
         assert report.scope == "static"
@@ -47,6 +49,7 @@ def test_uart_echo_records_colibri_provenance(uart_echo: Path) -> None:
     [
         ("ulx3s", ['LOCATE COMP "led[0]" SITE "B2";', 'IOBUF PORT "clk_25mhz" IO_TYPE=LVCMOS33;']),
         ("tangnano", ['IO_LOC "clk" 52;', 'IO_PORT "led_n[0]" IO_TYPE=LVCMOS18;']),
+        ("tangprimer20k", ['IO_LOC "clk" H11;', 'IO_LOC "led[3]" N16;']),
     ],
 )
 def test_constraint_projection(

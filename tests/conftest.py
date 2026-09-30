@@ -36,6 +36,18 @@ def tangnano(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
+def tangnano20k(tmp_path: Path) -> Path:
+    """Copy of the Gowin GW2AR-18C Tang Nano 20K blinky example; returns the contract path."""
+    return _copy(tmp_path, "blinky-tangnano20k", "blinky.fpga.json")
+
+
+@pytest.fixture
+def tangprimer20k(tmp_path: Path) -> Path:
+    """Copy of the Gowin GW2A-18C Tang Primer 20K blinky example; returns the contract path."""
+    return _copy(tmp_path, "blinky-tangprimer20k", "blinky.fpga.json")
+
+
+@pytest.fixture
 def uart_echo(tmp_path: Path) -> Path:
     """Copy of the iCEBreaker UART echo example with Colibri linked beside it."""
     if not (COLIBRI / "src" / "io" / "uart" / "uart.vhdl").is_file():

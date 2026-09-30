@@ -22,6 +22,8 @@ triggers:
 | `ecp5-lfe5u-25f-cabga381` | LFE5U-25F CABGA381 | ULX3S (25F) |
 | `ecp5-lfe5u-85f-cabga381` | LFE5U-85F CABGA381 | ULX3S (85F), OrangeCrab 85F |
 | `gowin-gw1nr9c-qn88p` | GW1NR-LV9QN88PC6/I5 | Sipeed Tang Nano 9K |
+| `gowin-gw2ar18c-qn88p` | GW2AR-LV18QN88C8/I7 | Sipeed Tang Nano 20K |
+| `gowin-gw2a18c-pbga256` | GW2A-LV18PG256C8/I7 | Sipeed Tang Primer 20K |
 
 Profiles are extracted from the open device databases (IceStorm, Trellis,
 Apicula) by `scripts/extract_device_profiles.py`, so every listed pin is a
@@ -32,6 +34,11 @@ dedicated clock input, and a `caution` of `config` or `jtag`.
   report carries a warning.
 - Configuration (SPI flash, CDONE/CRESET, PROGRAMN, DONE) and JTAG pins
   fail `fpga.pins` unless the pin lists the caution in `acknowledge`.
+- Gowin profiles carry `synth_args` (`-family gw1n` / `gw2a`) for
+  `synth_gowin`. On the Tang Nano 20K the 27 MHz oscillator reaches pin 4,
+  a PLL input rather than a GCLK pin, so the report notes it; on the
+  Tang Primer 20K, A13/C13 (READY/DONE) drive dock LEDs and need a
+  `config` acknowledgement.
 - ECP5/Gowin I/O standards must be one of the profile's `io_standards`
   and consistent with the board's bank voltage from the schematic.
 - A board not covered by a bundled profile: put `<profile-id>.fpga-device.json` next

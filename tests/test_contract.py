@@ -24,6 +24,8 @@ def test_bundled_profiles() -> None:
         "ecp5-lfe5u-25f-cabga381",
         "ecp5-lfe5u-85f-cabga381",
         "gowin-gw1nr9c-qn88p",
+        "gowin-gw2a18c-pbga256",
+        "gowin-gw2ar18c-qn88p",
         "ice40-up5k-sg48",
     ]
     ice40 = load_profile("ice40-up5k-sg48")
@@ -32,6 +34,15 @@ def test_bundled_profiles() -> None:
     assert clk is not None and clk.clock
     flash = ice40.pin("14")
     assert flash is not None and flash.caution == "config"
+    primer = load_profile("gowin-gw2a18c-pbga256")
+    assert primer.synth_args == ["-family", "gw2a"]
+    gclk = primer.pin("H11")
+    assert gclk is not None and gclk.clock
+    ready = primer.pin("A13")
+    assert ready is not None and ready.caution == "config"
+    nano20k = load_profile("gowin-gw2ar18c-qn88p")
+    tms = nano20k.pin("5")
+    assert tms is not None and tms.caution == "jtag"
     with pytest.raises(ValueError):
         load_profile("no-such-part")
 

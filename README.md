@@ -27,9 +27,10 @@ the design is acceptable:
 | `fpga.utilization` | resources within budget |
 | `fpga.bitstream` | IceStorm / Trellis / Apicula packer output with the family preamble; sha256 recorded |
 
-Supported families: Lattice iCE40 and ECP5, Gowin GW1N. Bundled device
-profiles: `ice40-up5k-sg48`, `ecp5-lfe5u-25f-cabga381`,
-`ecp5-lfe5u-85f-cabga381`, `gowin-gw1nr9c-qn88p`.
+Supported families: Lattice iCE40 and ECP5, Gowin GW1N and GW2A.
+Bundled device profiles: `ice40-up5k-sg48`, `ecp5-lfe5u-25f-cabga381`,
+`ecp5-lfe5u-85f-cabga381`, `gowin-gw1nr9c-qn88p`,
+`gowin-gw2ar18c-qn88p`, `gowin-gw2a18c-pbga256`.
 
 ## Layout
 
@@ -43,6 +44,8 @@ profiles: `ice40-up5k-sg48`, `ecp5-lfe5u-25f-cabga381`,
   linked to a circuit connectivity export.
 - `examples/blinky-ulx3s/` — Verilog on ECP5 85F with an SVA proof.
 - `examples/blinky-tangnano9k/` — VHDL on Gowin GW1NR-9 with a PSL proof.
+- `examples/blinky-tangnano20k/` — Verilog on Gowin GW2AR-18C with an SVA proof.
+- `examples/blinky-tangprimer20k/` — VHDL on Gowin GW2A-18C (PG256) with a PSL proof.
 - `docker/fpga-tools.Dockerfile` — pinned Ubuntu 26.04 toolchain image.
 - `docs/` — ADRs.
 

@@ -131,7 +131,13 @@ def synth_script(contract: FpgaContract, contract_path: Path, profile: DevicePro
         "\n".join(
             [
                 *read,
-                f"{SYNTH[profile.family]} -top {contract.top} -json {out.netlist.as_posix()}",
+                " ".join(
+                    [
+                        SYNTH[profile.family],
+                        *profile.synth_args,
+                        f"-top {contract.top} -json {out.netlist.as_posix()}",
+                    ]
+                ),
                 "stat",
             ]
         )

@@ -30,7 +30,9 @@ def test_doctor_passes() -> None:
     assert service.doctor_payload()["verdict"] == "pass"
 
 
-@pytest.mark.parametrize("example", ["ulx3s", "tangnano", "uart_echo"])
+@pytest.mark.parametrize(
+    "example", ["ulx3s", "tangnano", "tangnano20k", "tangprimer20k", "uart_echo"]
+)
 def test_full_gates_pass(example: str, request: pytest.FixtureRequest) -> None:
     contract: Path = request.getfixturevalue(example)
     report = _full(contract)
