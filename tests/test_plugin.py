@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -187,7 +188,9 @@ def test_report_status_lists_failures(tmp_path: Path) -> None:
     assert "verdict=fail" in context and "fpga.timing" in context
 
 
-def _launch(args: list[str], tmp_path: Path) -> subprocess.CompletedProcess[str]:
+def _launch(
+    args: list[str], tmp_path: Path, plugin_root: Path = PLUGIN
+) -> subprocess.CompletedProcess[str]:
     env = {
         "PATH": "/usr/bin:/bin",
         "HOME": str(tmp_path),
@@ -196,7 +199,7 @@ def _launch(args: list[str], tmp_path: Path) -> subprocess.CompletedProcess[str]
         "PYTHONPATH": ":".join(sys.path),
     }
     return subprocess.run(
-        [sys.executable, str(LAUNCHER), *args],
+        [sys.executable, str(plugin_root / "scripts" / "fpga_launcher.py"), *args],
         capture_output=True,
         text=True,
         env=env,
@@ -205,7 +208,19 @@ def _launch(args: list[str], tmp_path: Path) -> subprocess.CompletedProcess[str]
 
 
 def test_launcher_host_mode_runs_cli(ulx3s: Path, tmp_path: Path) -> None:
-    result = _launch(["validate", str(ulx3s)], tmp_path)
+    plugin_root = tmp_path / "plugins" / "fpga"
+    shutil.copytree(PLUGIN, plugin_root)
+    (plugin_root / "tools-image.json").write_text(
+        json.dumps(
+            {
+                "image": "ghcr.io/vibebb/fpga-tools",
+                "digest": None,
+                "tag": None,
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = _launch(["validate", str(ulx3s)], tmp_path, plugin_root)
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)["verdict"] == "pass"
 
