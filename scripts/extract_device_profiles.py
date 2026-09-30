@@ -187,6 +187,12 @@ def _ecp5_pins(suite: Path, part: str, package: str) -> list[dict[str, Any]]:
     return result
 
 
+def _pin_key(name: str) -> tuple[str, int]:
+    """Sort QFN pins numerically and BGA balls by row letters, then column."""
+    row = name.rstrip("0123456789")
+    return (row, int(name[len(row) :]))
+
+
 def _gowin_pins(suite: Path, chip: str, device: str, package: str) -> list[dict[str, Any]]:
     proc = subprocess.run(
         [
@@ -205,7 +211,7 @@ def _gowin_pins(suite: Path, chip: str, device: str, package: str) -> list[dict[
     )
     pinout: dict[str, list[Any]] = json.loads(proc.stdout)
     result: list[dict[str, Any]] = []
-    for name, (_, functions) in sorted(pinout.items(), key=lambda kv: int(kv[0])):
+    for name, (_, functions) in sorted(pinout.items(), key=lambda kv: _pin_key(kv[0])):
         caution = None
         if any(f in GOWIN_JTAG for f in functions):
             caution = "jtag"
@@ -272,6 +278,7 @@ def profiles(suite: Path) -> list[dict[str, Any]]:
             "source": (
                 f"Project Apicula GW1N-9C chipdb, GW1NR-9C QFN88P (OSS CAD Suite {SUITE_RELEASE})"
             ),
+            "synth_args": ["-family", "gw1n"],
             "nextpnr_args": ["--device", "GW1NR-LV9QN88PC6/I5", "--vopt", "family=GW1N-9C"],
             "pack_args": ["-d", "GW1N-9C"],
             "io_voltage_max_v": VCCIO_MAX_V,
@@ -279,6 +286,47 @@ def profiles(suite: Path) -> list[dict[str, Any]]:
             "resources": GOWIN_RESOURCES,
             "pins": _gowin_pins(suite, "GW1N-9C", "GW1NR-9C", "QFN88P"),
         },
+        *(
+            {
+                **common,
+                "id": profile_id,
+                "vendor": "Gowin",
+                "family": "gowin",
+                "part": part,
+                "package": package,
+                "speed": "C8/I7",
+                "boards": boards,
+                "source": (
+                    f"Project Apicula GW2A-18C chipdb, {device} {apicula_package} "
+                    f"(OSS CAD Suite {SUITE_RELEASE})"
+                ),
+                "synth_args": ["-family", "gw2a"],
+                "nextpnr_args": ["--device", part, "--vopt", "family=GW2A-18C"],
+                "pack_args": ["-d", "GW2A-18C"],
+                "io_voltage_max_v": VCCIO_MAX_V,
+                "io_standards": [*LVCMOS, "LVDS25"],
+                "resources": GOWIN_RESOURCES,
+                "pins": _gowin_pins(suite, "GW2A-18C", device, apicula_package),
+            }
+            for profile_id, part, package, device, apicula_package, boards in (
+                (
+                    "gowin-gw2ar18c-qn88p",
+                    "GW2AR-LV18QN88C8/I7",
+                    "QN88P",
+                    "GW2AR-18C",
+                    "QFN88P",
+                    ["Sipeed Tang Nano 20K"],
+                ),
+                (
+                    "gowin-gw2a18c-pbga256",
+                    "GW2A-LV18PG256C8/I7",
+                    "PG256",
+                    "GW2A-18C",
+                    "PBGA256",
+                    ["Sipeed Tang Primer 20K"],
+                ),
+            )
+        ),
     ]
 
 

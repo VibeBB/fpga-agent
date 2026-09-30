@@ -9,7 +9,7 @@ Vendor suites (Vivado, Quartus, Radiant, Gowin EDA) are proprietary,
 large, license-managed and not redistributable, so they cannot live in
 an image or run unattended in CI. The open flow — Yosys, nextpnr and the
 IceStorm / Trellis / Apicula databases — covers Lattice iCE40 and ECP5
-and Gowin GW1N end to end, to a bitstream. VHDL needs GHDL (synthesis
+and Gowin GW1N / GW2A end to end, to a bitstream. VHDL needs GHDL (synthesis
 front end) and a simulator; NVC is the most complete open VHDL-2008
 simulator.
 

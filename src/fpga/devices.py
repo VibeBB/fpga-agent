@@ -42,6 +42,7 @@ class DeviceProfile(_Strict):
     speed: str | None = None
     boards: list[str] = Field(default_factory=list[str])
     source: str
+    synth_args: list[str] = Field(default_factory=list[str])
     nextpnr_args: list[str]
     pack_args: list[str]
     io_voltage_max_v: float = Field(gt=0)

@@ -1,0 +1,1640 @@
+{
+  "schema_version": 1,
+  "system": "fpga",
+  "artifact_kind": "fpga_device",
+  "id": "gowin-gw2a18c-pbga256",
+  "vendor": "Gowin",
+  "family": "gowin",
+  "part": "GW2A-LV18PG256C8/I7",
+  "package": "PG256",
+  "speed": "C8/I7",
+  "boards": [
+    "Sipeed Tang Primer 20K"
+  ],
+  "source": "Project Apicula GW2A-18C chipdb, GW2A-18C PBGA256 (OSS CAD Suite 2026-09-30)",
+  "synth_args": [
+    "-family",
+    "gw2a"
+  ],
+  "nextpnr_args": [
+    "--device",
+    "GW2A-LV18PG256C8/I7",
+    "--vopt",
+    "family=GW2A-18C"
+  ],
+  "pack_args": [
+    "-d",
+    "GW2A-18C"
+  ],
+  "io_voltage_max_v": 3.465,
+  "io_standards": [
+    "LVCMOS33",
+    "LVCMOS25",
+    "LVCMOS18",
+    "LVCMOS15",
+    "LVCMOS12",
+    "LVDS25"
+  ],
+  "resources": {
+    "LUT4": "logic",
+    "DFF": "logic",
+    "ALU": "logic",
+    "MUX2_LUT5": "logic",
+    "MUX2_LUT6": "logic",
+    "MUX2_LUT7": "logic",
+    "MUX2_LUT8": "logic",
+    "BSRAM": "ram",
+    "RAM16SDP4": "ram",
+    "MULT9X9": "dsp",
+    "MULT18X18": "dsp",
+    "MULT36X36": "dsp",
+    "MULTALU18X18": "dsp",
+    "MULTALU36X18": "dsp",
+    "MULTADDALU18X18": "dsp",
+    "ALU54D": "dsp",
+    "PADD9": "dsp",
+    "PADD18": "dsp",
+    "IOB": "io",
+    "IOLOGICI": "io",
+    "IOLOGICO": "io",
+    "IDES16": "io",
+    "OSER16": "io",
+    "MIPI_IBUF": "io",
+    "MIPI_OBUF": "io",
+    "BUFG": "clock",
+    "DCS": "clock",
+    "DQCE": "clock",
+    "DHCEN": "clock",
+    "CLKDIV": "clock",
+    "CLKDIV2": "clock",
+    "rPLL": "pll",
+    "OSC": "other",
+    "FLASH608K": "other",
+    "GSR": "other",
+    "GND": "other",
+    "VCC": "other"
+  },
+  "pins": [
+    {
+      "name": "A2",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "A3",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "A4",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "A5",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "A6",
+      "bank": null,
+      "functions": [
+        "TDI"
+      ],
+      "caution": "jtag",
+      "clock": false
+    },
+    {
+      "name": "A7",
+      "bank": null,
+      "functions": [
+        "TCK"
+      ],
+      "caution": "jtag",
+      "clock": false
+    },
+    {
+      "name": "A8",
+      "bank": null,
+      "functions": [
+        "GCLKC_6"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "A9",
+      "bank": null,
+      "functions": [
+        "GCLKT_7"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "A10",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "A11",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "A12",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "A13",
+      "bank": null,
+      "functions": [
+        "READY"
+      ],
+      "caution": "config",
+      "clock": false
+    },
+    {
+      "name": "A14",
+      "bank": null,
+      "functions": [
+        "LPLL1_C_FB"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "A15",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "B1",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "B3",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "B4",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "B5",
+      "bank": null,
+      "functions": [
+        "LPLL2_C_FB"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "B6",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "B7",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "B8",
+      "bank": null,
+      "functions": [
+        "TMS"
+      ],
+      "caution": "jtag",
+      "clock": false
+    },
+    {
+      "name": "B9",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "B10",
+      "bank": null,
+      "functions": [
+        "RECONFIG_N"
+      ],
+      "caution": "config",
+      "clock": false
+    },
+    {
+      "name": "B11",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "B12",
+      "bank": null,
+      "functions": [
+        "LPLL1_C_IN"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "B13",
+      "bank": null,
+      "functions": [
+        "LPLL1_T_FB"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "B14",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "B16",
+      "bank": null,
+      "functions": [
+        "MODE1"
+      ],
+      "caution": "config",
+      "clock": false
+    },
+    {
+      "name": "C1",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "C2",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "C4",
+      "bank": null,
+      "functions": [
+        "LPLL2_T_FB"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "C5",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "C6",
+      "bank": null,
+      "functions": [
+        "TDO"
+      ],
+      "caution": "jtag",
+      "clock": false
+    },
+    {
+      "name": "C7",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "C8",
+      "bank": null,
+      "functions": [
+        "GCLKT_6"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "C9",
+      "bank": null,
+      "functions": [
+        "GCLKC_7"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "C10",
+      "bank": null,
+      "functions": [
+        "SCLK"
+      ],
+      "caution": "config",
+      "clock": false
+    },
+    {
+      "name": "C11",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "C12",
+      "bank": null,
+      "functions": [
+        "LPLL1_T_IN"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "C13",
+      "bank": null,
+      "functions": [
+        "DONE"
+      ],
+      "caution": "config",
+      "clock": false
+    },
+    {
+      "name": "C15",
+      "bank": null,
+      "functions": [
+        "MODE2"
+      ],
+      "caution": "config",
+      "clock": false
+    },
+    {
+      "name": "C16",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "D1",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "D2",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "D3",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "D6",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "D7",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "D8",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "D9",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "D10",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "D11",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "D14",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "D15",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "D16",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "E1",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "E2",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "E3",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "E6",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "E7",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "E8",
+      "bank": null,
+      "functions": [
+        "LPLL2_C_IN"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "E9",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "E10",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "E11",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "E14",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "E15",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "E16",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "F1",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "F2",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "F3",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "F4",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "F5",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "F7",
+      "bank": null,
+      "functions": [
+        "LPLL2_T_IN"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "F8",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "F9",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "F10",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "F12",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "F13",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "F14",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "F15",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "F16",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "G1",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "G2",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "G3",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "G4",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "G5",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "G6",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "G11",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "G12",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "G13",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "G14",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "G15",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "G16",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "H1",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "H2",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "H3",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "H4",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "H5",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "H6",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "H11",
+      "bank": null,
+      "functions": [
+        "GCLKT_0"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "H12",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "H13",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "H14",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "H15",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "H16",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "J1",
+      "bank": null,
+      "functions": [
+        "GCLKT_5"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "J2",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "J3",
+      "bank": null,
+      "functions": [
+        "GCLKC_5"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "J4",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "J5",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "J6",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "J11",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "J12",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "J13",
+      "bank": null,
+      "functions": [
+        "GCLKC_0"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "J14",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "J15",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "J16",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "K1",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "K2",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "K3",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "K4",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "K5",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "K6",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "K11",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "K12",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "K13",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "K14",
+      "bank": null,
+      "functions": [
+        "GCLKT_1"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "K15",
+      "bank": null,
+      "functions": [
+        "GCLKC_1"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "K16",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "L1",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "L2",
+      "bank": null,
+      "functions": [
+        "GCLKT_4"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "L3",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "L4",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "L5",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "L8",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "L9",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "L10",
+      "bank": null,
+      "functions": [
+        "MCLK",
+        "D4"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "L12",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "L13",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "L14",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "L15",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "L16",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "M1",
+      "bank": null,
+      "functions": [
+        "GCLKC_4"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "M2",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "M3",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "M6",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "M7",
+      "bank": null,
+      "functions": [
+        "RPLL2_T_FB"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "M8",
+      "bank": null,
+      "functions": [
+        "SO",
+        "D1"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "M9",
+      "bank": null,
+      "functions": [
+        "MCS_N",
+        "D5"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "M10",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "M11",
+      "bank": null,
+      "functions": [
+        "GCLKC_2"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "M14",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "M15",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "M16",
+      "bank": null,
+      "functions": [
+        "MODE0"
+      ],
+      "caution": "config",
+      "clock": false
+    },
+    {
+      "name": "N1",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "N2",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "N3",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "N6",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "N7",
+      "bank": null,
+      "functions": [
+        "RPLL2_C_FB"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "N8",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "N9",
+      "bank": null,
+      "functions": [
+        "SSPI_CS_N",
+        "D0"
+      ],
+      "caution": "config",
+      "clock": false
+    },
+    {
+      "name": "N10",
+      "bank": null,
+      "functions": [
+        "GCLKT_2"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "N11",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "N14",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "N15",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "N16",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "P1",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "P2",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "P4",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "P5",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "P6",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "P7",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "P8",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "P9",
+      "bank": null,
+      "functions": [
+        "DOUT",
+        "WE_N"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "P10",
+      "bank": null,
+      "functions": [
+        "MI",
+        "D7"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "P11",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "P12",
+      "bank": null,
+      "functions": [
+        "RPLL1_T_FB"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "P13",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "P15",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "P16",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "R1",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "R3",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "R4",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "R5",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "R6",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "R7",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "R8",
+      "bank": null,
+      "functions": [
+        "GCLKC_3"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "R9",
+      "bank": null,
+      "functions": [
+        "FASTRD_N",
+        "D3"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "R10",
+      "bank": null,
+      "functions": [
+        "MO",
+        "D6"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "R11",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "R12",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "R13",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "R14",
+      "bank": null,
+      "functions": [
+        "RPLL1_C_IN"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "R16",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "T2",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "T3",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "T4",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "T5",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "T6",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "T7",
+      "bank": null,
+      "functions": [
+        "GCLKT_3"
+      ],
+      "caution": null,
+      "clock": true
+    },
+    {
+      "name": "T8",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "T9",
+      "bank": null,
+      "functions": [
+        "DIN",
+        "CLKHOLD_N"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "T10",
+      "bank": null,
+      "functions": [
+        "SI",
+        "D2"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "T11",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "T12",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "T13",
+      "bank": null,
+      "functions": [
+        "RPLL1_C_FB"
+      ],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "T14",
+      "bank": null,
+      "functions": [],
+      "caution": null,
+      "clock": false
+    },
+    {
+      "name": "T15",
+      "bank": null,
+      "functions": [
+        "RPLL1_T_IN"
+      ],
+      "caution": null,
+      "clock": false
+    }
+  ]
+}
