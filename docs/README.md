@@ -1,0 +1,20 @@
+# fpga-agent documentation
+
+## Architecture decision records
+
+- [ADR-0001](adr/ADR-0001-python-core-json-contracts.md) — Python core, JSON contracts, deterministic gates
+- [ADR-0002](adr/ADR-0002-open-toolchain-image-and-licenses.md) — open-source toolchain, Ubuntu 26.04 image, tool licenses
+- [ADR-0003](adr/ADR-0003-verification-gates.md) — simulation, formal, timing and bitstream gates
+- [ADR-0004](adr/ADR-0004-external-hdl-libraries-colibri.md) — external HDL libraries and Colibri
+- [ADR-0005](adr/ADR-0005-host-only-programming.md) — host-only, hash-confirmed programming
+- [ADR-0006](adr/ADR-0006-circuit-fpga-interchange.md) — circuit/FPGA interchange artifacts
+
+## Skills
+
+The workflow and field references live in the plugin skills:
+[workflow](../plugins/fpga/skills/fpga-workflow/SKILL.md),
+[contract](../plugins/fpga/skills/fpga-contract/SKILL.md),
+[device profiles and pins](../plugins/fpga/skills/fpga-device-pins/SKILL.md),
+[verification](../plugins/fpga/skills/fpga-verification/SKILL.md),
+[external libraries](../plugins/fpga/skills/fpga-external-libraries/SKILL.md),
+[sibling cooperation](../plugins/fpga/skills/fpga-sibling-cooperation/SKILL.md).
