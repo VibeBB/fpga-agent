@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -14,18 +15,31 @@ from scripts.update_image_digest_lock import update_lock
 ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / "docker" / "image-digests.json"
 PIN = ROOT / "plugins" / "fpga" / "tools-image.json"
-
-
-def test_initial_fpga_lock_entry_is_unpinned() -> None:
-    expected = {
-        "fpga_tools": {
-            "image": "ghcr.io/vibebb/fpga-tools",
-            "digest": None,
-            "tag": None,
-        }
+NULL_LOCK = {
+    "fpga_tools": {
+        "image": "ghcr.io/vibebb/fpga-tools",
+        "digest": None,
+        "tag": None,
     }
-    assert json.loads(LOCK.read_text(encoding="utf-8")) == expected
-    assert json.loads(PIN.read_text(encoding="utf-8")) == expected["fpga_tools"]
+}
+
+
+def test_fpga_lock_entry_has_valid_shape() -> None:
+    entries = json.loads(LOCK.read_text(encoding="utf-8"))
+    assert "fpga_tools" in entries
+    lock_entry = entries["fpga_tools"]
+    assert lock_entry["image"] == "ghcr.io/vibebb/fpga-tools"
+    if lock_entry["digest"] is None:
+        assert lock_entry["tag"] is None
+    else:
+        assert isinstance(lock_entry["digest"], str)
+        assert re.fullmatch(r"sha256:[0-9a-f]{64}", lock_entry["digest"])
+        assert isinstance(lock_entry["tag"], str) and lock_entry["tag"]
+
+    pin_entry = json.loads(PIN.read_text(encoding="utf-8"))
+    assert {key: pin_entry[key] for key in ("image", "digest", "tag")} == {
+        key: lock_entry[key] for key in ("image", "digest", "tag")
+    }
 
 
 def test_launcher_ignores_initial_null_lock_entries(
@@ -33,6 +47,15 @@ def test_launcher_ignores_initial_null_lock_entries(
 ) -> None:
     monkeypatch.delenv("FPGA_TOOLS_IMAGE", raising=False)
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    plugin_root = tmp_path / "plugins" / "fpga"
+    plugin_root.mkdir(parents=True)
+    (plugin_root / "tools-image.json").write_text(
+        json.dumps(NULL_LOCK["fpga_tools"]),
+        encoding="utf-8",
+    )
+    repository_lock = tmp_path / "docker" / "image-digests.json"
+    repository_lock.parent.mkdir(parents=True)
+    repository_lock.write_text(json.dumps(NULL_LOCK), encoding="utf-8")
     code = (
         "import importlib.util, json, pathlib, sys; "
         "spec = importlib.util.spec_from_file_location('fpga_launcher', sys.argv[1]); "
@@ -46,7 +69,7 @@ def test_launcher_ignores_initial_null_lock_entries(
             "-c",
             code,
             str(ROOT / "plugins/fpga/scripts/fpga_launcher.py"),
-            str(ROOT / "plugins/fpga"),
+            str(plugin_root),
         ],
         check=False,
         capture_output=True,
@@ -59,14 +82,14 @@ def test_launcher_ignores_initial_null_lock_entries(
 
 def test_print_locked_image_rejects_initial_null_entry(tmp_path: Path) -> None:
     lock = tmp_path / "image-digests.json"
-    lock.write_text(LOCK.read_text(encoding="utf-8"), encoding="utf-8")
+    lock.write_text(json.dumps(NULL_LOCK), encoding="utf-8")
     with pytest.raises(ValueError, match="malformed"):
         locked_image(lock, "fpga_tools")
 
 
 def test_update_initial_null_entry(tmp_path: Path) -> None:
     lock = tmp_path / "image-digests.json"
-    lock.write_text(LOCK.read_text(encoding="utf-8"), encoding="utf-8")
+    lock.write_text(json.dumps(NULL_LOCK), encoding="utf-8")
     digest = "sha256:" + "b" * 64
     changed = update_lock(
         lock,
@@ -89,7 +112,7 @@ def test_update_initial_null_entry(tmp_path: Path) -> None:
 
 def test_update_rejects_wrong_image(tmp_path: Path) -> None:
     lock = tmp_path / "image-digests.json"
-    lock.write_text(LOCK.read_text(encoding="utf-8"), encoding="utf-8")
+    lock.write_text(json.dumps(NULL_LOCK), encoding="utf-8")
     with pytest.raises(ValueError, match="unexpected image"):
         update_lock(
             lock,
