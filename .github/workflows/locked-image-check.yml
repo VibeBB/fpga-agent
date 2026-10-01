@@ -20,48 +20,94 @@ jobs:
     timeout-minutes: 10
     outputs:
       present: ${{ steps.lock.outputs.present }}
+      image: ${{ steps.lock.outputs.image }}
+      digest: ${{ steps.lock.outputs.digest }}
+      attestation: ${{ steps.lock.outputs.attestation }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - id: lock
         run: |
+          set -euo pipefail
           python3 - <<'PY'
           import json
           import os
           import re
           from pathlib import Path
+          from urllib.parse import urlsplit
 
-          path = Path("docker/image-digests.json")
-          if not path.is_file():
-              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-                  output.write("present=false\n")
-              raise SystemExit(0)
-          try:
-              data = json.loads(path.read_text(encoding="utf-8"))
-          except (OSError, json.JSONDecodeError) as exc:
-              raise SystemExit(f"invalid image digest lock: {exc}")
-          entry = data.get("fpga_tools") if isinstance(data, dict) else None
-          if not isinstance(entry, dict) or entry.get("image") != "ghcr.io/vibebb/fpga-tools":
-              raise SystemExit("invalid fpga_tools digest lock entry")
-          digest = entry.get("digest")
-          tag = entry.get("tag")
-          if digest is None and tag is None:
-              present = "false"
-          elif isinstance(digest, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
-              present = "true"
-          elif isinstance(tag, str) and tag:
-              present = "true"
-          else:
-              raise SystemExit("invalid fpga_tools digest lock entry")
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+          lock_path = Path("docker/image-digests.json")
+          present = "false"
+          image = ""
+          digest = ""
+          attestation = ""
+          if lock_path.exists():
+              lock = json.loads(lock_path.read_text(encoding="utf-8"))
+              if not isinstance(lock, dict):
+                  raise SystemExit("image lock must be a JSON object")
+              entry = lock.get("fpga_tools")
+              if not isinstance(entry, dict):
+                  raise SystemExit("image lock must contain a fpga_tools object")
+              if entry.get("image") != "ghcr.io/vibebb/fpga-tools":
+                  raise SystemExit(
+                      "fpga_tools image does not match ghcr.io/vibebb/fpga-tools"
+                  )
+              if "digest" not in entry or "tag" not in entry:
+                  raise SystemExit("fpga_tools lock must contain digest and tag fields")
+              digest = entry["digest"]
+              tag = entry["tag"]
+              if digest is None and tag is None:
+                  if entry.get("attestation") is not None:
+                      raise SystemExit(
+                          "fpga_tools attestation cannot exist without a pinned image"
+                      )
+              else:
+                  if (
+                      not isinstance(digest, str)
+                      or re.fullmatch(r"sha256:[0-9a-f]{64}", digest) is None
+                      or digest == f"sha256:{'0' * 64}"
+                  ):
+                      raise SystemExit("fpga_tools digest must be null or a sha256 digest")
+                  if (
+                      not isinstance(tag, str)
+                      or re.fullmatch(r"[0-9a-f]{40}-tools", tag) is None
+                  ):
+                      raise SystemExit(
+                          "fpga_tools tag must be null or a 40-character tools tag"
+                      )
+                  present = "true"
+                  image = entry["image"]
+                  attestation_value = entry.get("attestation")
+                  if attestation_value is not None:
+                      parsed = (
+                          urlsplit(attestation_value)
+                          if isinstance(attestation_value, str)
+                          else None
+                      )
+                      if (
+                          parsed is None
+                          or parsed.scheme != "https"
+                          or not parsed.netloc
+                          or any(character.isspace() for character in attestation_value)
+                      ):
+                          raise SystemExit("fpga_tools attestation must be an HTTPS URL")
+                      attestation = attestation_value
+              digest = digest if present == "true" else ""
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
               output.write(f"present={present}\n")
+              output.write(f"image={image}\n")
+              output.write(f"digest={digest}\n")
+              output.write(f"attestation={attestation}\n")
           PY
   check:
     needs: check-lock
     if: needs.check-lock.outputs.present == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 30
+    permissions:
+      contents: read
+      attestations: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -71,6 +117,19 @@ jobs:
           python-version: "3.12"
           cache-suffix: locked-image-check
       - run: uv sync --locked
+      - name: Warn that tools image has no attestation metadata
+        if: needs.check-lock.outputs.attestation == ''
+        run: echo "::warning::fpga_tools image lock has no attestation metadata; skipping provenance verification."
+      - name: Verify tools image provenance
+        if: needs.check-lock.outputs.attestation != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ${{ needs.check-lock.outputs.image }}
+          DIGEST: ${{ needs.check-lock.outputs.digest }}
+        run: |
+          gh attestation verify "oci://${IMAGE}@${DIGEST}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/publish-fpga-images.yml"
       - run: uv run python scripts/pull_locked_image.py --entry fpga_tools
       - id: image
         run: echo "ref=$(uv run python scripts/print_locked_image.py --entry fpga_tools)" >> "$GITHUB_OUTPUT"
@@ -96,3 +155,14 @@ jobs:
           sys.exit(0 if report["verdict"] == "pass" else 1)
           PY
           done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: locked-fpga-tools-smoke
+          path: |
+            doctor.json
+            report.json
+            examples/*/out/*.fpga-report.json
+            examples/*/out/*.fpga-report.md
+            examples/*/out/*.log
+          if-no-files-found: ignore

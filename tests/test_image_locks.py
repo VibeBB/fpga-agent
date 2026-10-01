@@ -110,6 +110,28 @@ def test_update_initial_null_entry(tmp_path: Path) -> None:
     assert data["fpga_tools"]["tools"] == {"python": "python --version: Python 3.12.14"}
 
 
+def test_update_lock_records_optional_attestation(tmp_path: Path) -> None:
+    lock = tmp_path / "image-digests.json"
+    lock.write_text(json.dumps(NULL_LOCK), encoding="utf-8")
+    attestation = "https://github.com/VibeBB/fpga-agent/attestations/1"
+
+    assert update_lock(
+        lock,
+        entry="fpga_tools",
+        image="ghcr.io/vibebb/fpga-tools",
+        tag="abc123-tools",
+        digest="sha256:" + "b" * 64,
+        published_at="2026-09-30T00:00:00Z",
+        workflow_run="https://github.com/VibeBB/fpga-agent/actions/runs/1",
+        dockerfile="docker/fpga-tools.Dockerfile",
+        tools={"python": "python --version: Python 3.12.14"},
+        attestation=attestation,
+    )
+    data = json.loads(lock.read_text(encoding="utf-8"))
+    assert data["fpga_tools"]["attestation"] == attestation
+    assert locked_image(lock, "fpga_tools") == ("ghcr.io/vibebb/fpga-tools@sha256:" + "b" * 64)
+
+
 def test_update_rejects_wrong_image(tmp_path: Path) -> None:
     lock = tmp_path / "image-digests.json"
     lock.write_text(json.dumps(NULL_LOCK), encoding="utf-8")

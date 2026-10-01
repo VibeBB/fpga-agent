@@ -30,3 +30,10 @@ but cannot validate their platform-specific asset names or checksums.
 Deferrals and review dates are tracked in
 `scripts/dependency_update_deferrals.json`; a deferred candidate still needs
 an owner to revisit it by the listed date.
+
+The scheduled workflow writes its Markdown and JSON reports under the runner's
+temporary directory, adds the report and run URL to the step summary, and
+exposes outdated and unknown counts. Fetch failures are reported as unknown;
+the tracking issue stays open until both counts are zero. Dependabot groups
+GitHub Actions updates and applies a seven-day cooldown to Actions and Docker
+updates.
