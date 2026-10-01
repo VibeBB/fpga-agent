@@ -26,3 +26,7 @@ The workflow and field references live in the plugin skills:
 
 Review [dependency update candidates](dependency-updates.md) before changing
 upstream pins or regenerating `uv.lock`.
+
+## Research
+
+- [SDK v1.50.1 feature evaluation](research/sdk-v1.50.1-feature-evaluation.md) — OpenHands SDK/tools adoption decisions
