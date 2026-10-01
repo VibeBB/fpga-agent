@@ -1,10 +1,11 @@
 {
   "fpga_tools": {
-    "digest": "sha256:f9e396cbdb3eeb2724bd2f89606483b0def656ff74f571a5f919430924ac1caa",
+    "attestation": "https://github.com/VibeBB/fpga-agent/attestations/51689405",
+    "digest": "sha256:7aaee4912caaf787d5c1b9cfd03f2614fed579a280eb130d6938cfadeb2070f9",
     "dockerfile": "docker/fpga-tools.Dockerfile",
     "image": "ghcr.io/vibebb/fpga-tools",
-    "published_at": "2026-09-30T23:35:32Z",
-    "tag": "d6aa918bd45ecc2f2cdc20d34f0b3c30af6f484a-tools",
+    "published_at": "2026-10-01T03:31:31Z",
+    "tag": "88d01ef582c68ace7632a9cd45ac362c83dfc788-tools",
     "tools": {
       "boolector": "boolector --version: 3.2.4",
       "ecppack": "ecppack --help: Error: input file is mandatory.",
@@ -29,6 +30,6 @@
       "yosys-smtbmc": "yosys-smtbmc --help: yosys-smtbmc [options] <yosys_smt2_output>",
       "z3": "z3 --version: Z3 version 4.15.5 - 64 bit"
     },
-    "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/36791362470"
+    "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/36810493458"
   }
 }
