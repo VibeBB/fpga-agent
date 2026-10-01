@@ -1,12 +1,12 @@
 {
   "fpga_tools": {
-    "attestation": "https://github.com/VibeBB/fpga-agent/attestations/51976379",
-    "digest": "sha256:56df7a59a299f5e2a63d9d56d1fc433c12e847218a13ddad034e585f0cf67643",
+    "attestation": "https://github.com/VibeBB/fpga-agent/attestations/51992560",
+    "digest": "sha256:3ae90973933829bfa9c315ef4fea1ee6e42388675a70f7ecca08757bcfd0af07",
     "dockerfile": "docker/fpga-tools.Dockerfile",
     "image": "ghcr.io/vibebb/fpga-tools",
-    "published_at": "2026-10-01T22:13:51Z",
-    "sbom_attestation": "https://github.com/VibeBB/fpga-agent/attestations/51976869",
-    "tag": "48b0332e7b07eeb7795730f55de23559003ff7c7-tools",
+    "published_at": "2026-10-01T23:26:21Z",
+    "sbom_attestation": "https://github.com/VibeBB/fpga-agent/attestations/51992801",
+    "tag": "a2754b7bdba394b1bd8041637ae2e062efbe6b2f-tools",
     "tools": {
       "boolector": "boolector --version: 3.2.4",
       "ecppack": "ecppack --help: Error: input file is mandatory.",
@@ -24,13 +24,13 @@
       "python": "python --version: Python 3.12.14",
       "sby": "sby --help: usage: sby [options] [<jobname>.sby [tasknames] | <dirname>]",
       "uv": "uv --version: uv 0.12.21 (x86_64-unknown-linux-musl)",
-      "verilator": "verilator --version: Verilator 5.053 devel rev v5.052-258-ga419e9157 (mod)",
+      "verilator": "verilator --version: Verilator 5.053 devel rev v5.052-273-g71c6638cc (mod)",
       "vvp": "vvp -V: Icarus Verilog runtime version 14.0 (devel) (s20260301-500-g2e81fcccb-dirty)",
       "yices-smt2": "yices-smt2 --version: Yices 2.7.0",
-      "yosys": "yosys --version: Yosys 0.69+158 (git sha1 a1a0ad7d4-dirty, Release, Clang /usr/bin/clang++ 21.1.8)",
+      "yosys": "yosys --version: Yosys 0.69+173 (git sha1 53f1cdd34-dirty, Release, Clang /usr/bin/clang++ 21.1.8)",
       "yosys-smtbmc": "yosys-smtbmc --help: yosys-smtbmc [options] <yosys_smt2_output>",
       "z3": "z3 --version: Z3 version 4.15.5 - 64 bit"
     },
-    "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/36933019674"
+    "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/36940163634"
   }
 }
