@@ -25,6 +25,10 @@ Image resolution order (first hit wins):
 Usage: mcp_server | prewarm | <fpga cli args...>. When ``--warn`` is
 present (SessionStart doctor mode), launcher failures print a warning and
 exit 0.
+
+Launcher-side verification uses FPGA_VERIFY_ATTESTATION=auto|require|off.
+It verifies lock provenance before pulls and on every prewarm; normal use
+does not re-verify an image that is already present locally.
 """
 
 from __future__ import annotations
@@ -36,7 +40,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, TypedDict, cast
 
 _MODULES = {"mcp_server": "fpga.mcp_server"}
 _CONTAINER_SRC = "/plugin-src"
@@ -51,6 +55,18 @@ _CONTAINER_ENV = {
 _LOCK_KEY = "fpga_tools"
 _INSPECT_TIMEOUT_S = 30
 _PULL_TIMEOUT_S = 900
+_ATTEST_TIMEOUT_S = 120
+_GH_AUTH_TIMEOUT_S = 15
+_VERIFY_ENV = "FPGA_VERIFY_ATTESTATION"
+_REPOSITORY = "VibeBB/fpga-agent"
+_PUBLISH_FILE = ".github/workflows/publish-fpga-images.yml"
+
+
+class ImagePin(TypedDict):
+    ref: str
+    image: str | None
+    digest: str | None
+    attestation: str | None
 
 
 def _homes() -> list[Path]:
@@ -99,7 +115,7 @@ def resolve_source(plugin_root: Path) -> Path | None:
     return None
 
 
-def _lock_entry_ref(lock_path: Path, key: str | None) -> str | None:
+def _lock_entry_ref(lock_path: Path, key: str | None) -> ImagePin | None:
     try:
         data = json.loads(lock_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
@@ -111,34 +127,146 @@ def _lock_entry_ref(lock_path: Path, key: str | None) -> str | None:
     if not isinstance(entry, dict):
         return None
     entry = cast(dict[str, Any], entry)
-    if not entry.get("image"):
+    image = entry.get("image")
+    if not isinstance(image, str) or not image:
         return None
-    if entry.get("digest"):
-        return f"{entry['image']}@{entry['digest']}"
-    if entry.get("tag"):
-        return f"{entry['image']}:{entry['tag']}"
+    digest = entry.get("digest")
+    digest = digest if isinstance(digest, str) and digest else None
+    tag = entry.get("tag")
+    tag = tag if isinstance(tag, str) and tag else None
+    if digest is None and tag is None:
+        return None
+    attestation = entry.get("attestation")
+    return {
+        "ref": f"{image}@{digest}" if digest else f"{image}:{tag}",
+        "image": image,
+        "digest": digest,
+        "attestation": attestation if isinstance(attestation, str) and attestation else None,
+    }
+
+
+def image_pin(plugin_root: Path) -> ImagePin | None:
+    explicit = os.environ.get("FPGA_TOOLS_IMAGE")
+    if explicit:
+        return {"ref": explicit, "image": None, "digest": None, "attestation": None}
+    pin = _lock_entry_ref(plugin_root / "tools-image.json", None)
+    if pin:
+        return pin
+    repo_dirs = [plugin_root.parent.parent, *_cache_dirs("fpga-agent-*")]
+    for repo_dir in repo_dirs:
+        pin = _lock_entry_ref(repo_dir / "docker" / "image-digests.json", _LOCK_KEY)
+        if pin:
+            return pin
     return None
 
 
 def image_ref(plugin_root: Path) -> str | None:
-    explicit = os.environ.get("FPGA_TOOLS_IMAGE")
-    if explicit:
-        return explicit
-    ref = _lock_entry_ref(plugin_root / "tools-image.json", None)
-    if ref:
-        return ref
-    repo_dirs = [plugin_root.parent.parent, *_cache_dirs("fpga-agent-*")]
-    for repo_dir in repo_dirs:
-        ref = _lock_entry_ref(repo_dir / "docker" / "image-digests.json", _LOCK_KEY)
-        if ref:
-            return ref
-    return None
+    pin = image_pin(plugin_root)
+    return pin["ref"] if pin is not None else None
 
 
-def _ensure_image(ref: str, *, pull: bool) -> None:
+def _attestation_mode() -> str:
+    mode = os.environ.get(_VERIFY_ENV, "auto")
+    if mode not in {"auto", "require", "off"}:
+        raise ValueError(
+            f"{_VERIFY_ENV} must be auto, require, or off (got {mode!r}); "
+            f"usage: {_VERIFY_ENV}=auto|require|off"
+        )
+    return mode
+
+
+def _run_timed(
+    command: list[str],
+    operation: str,
+    timeout: int,
+    **kwargs: Any,
+) -> subprocess.CompletedProcess[str]:
+    try:
+        return cast(
+            subprocess.CompletedProcess[str],
+            subprocess.run(command, timeout=timeout, **kwargs),
+        )
+    except OSError as exc:
+        raise RuntimeError(f"{operation} failed: {exc}") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"{operation} timed out after {timeout}s") from exc
+
+
+def _verify_attestation(pin: ImagePin, *, override: bool) -> None:
+    mode = _attestation_mode()
+    if mode == "off":
+        return
+    reason: str | None = None
+    gh = shutil.which("gh")
+    if override:
+        reason = "tools image override has no lock attestation context"
+    elif not pin["attestation"]:
+        reason = "lock entry has no attestation"
+    elif not pin["image"] or not pin["digest"]:
+        reason = "lock entry has no digest"
+    elif gh is None:
+        reason = "gh is not on PATH"
+    else:
+        try:
+            auth = _run_timed(
+                [gh, "auth", "status"],
+                "gh auth status",
+                _GH_AUTH_TIMEOUT_S,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+        except RuntimeError:
+            reason = "gh auth status failed"
+        else:
+            if auth.returncode != 0:
+                reason = "gh auth status failed"
+    if reason is not None:
+        if mode == "require":
+            raise RuntimeError(f"attestation verification required but {reason}")
+        print(f"fpga_launcher: attestation verification skipped: {reason}", file=sys.stderr)
+        return
+    assert gh is not None
+    assert pin["image"] is not None and pin["digest"] is not None
+    result = _run_timed(
+        [
+            gh,
+            "attestation",
+            "verify",
+            f"oci://{pin['image']}@{pin['digest']}",
+            "--repo",
+            _REPOSITORY,
+            "--signer-workflow",
+            f"{_REPOSITORY}/{_PUBLISH_FILE}",
+        ],
+        "gh attestation verify",
+        _ATTEST_TIMEOUT_S,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"attestation verification failed for {pin['image']}@{pin['digest']}")
+
+
+def _ensure_image(
+    image: ImagePin | str,
+    *,
+    pull: bool,
+    prewarm: bool = False,
+    override: bool = False,
+) -> None:
+    if isinstance(image, str):
+        pin: ImagePin = {"ref": image, "image": None, "digest": None, "attestation": None}
+        override = True
+    else:
+        pin = image
+    ref = pin["ref"]
     docker = shutil.which("docker")
     if docker is None:
         raise RuntimeError(f"docker not found on PATH (tools image {ref} is pinned)")
+    if prewarm:
+        _verify_attestation(pin, override=override)
     try:
         inspect = subprocess.run(
             [docker, "image", "inspect", ref],
@@ -155,6 +283,8 @@ def _ensure_image(ref: str, *, pull: bool) -> None:
         raise RuntimeError(
             f"fpga tools image {ref} not pulled locally; run 'fpga_launcher.py prewarm' to fetch it"
         )
+    if not prewarm:
+        _verify_attestation(pin, override=override)
     print(f"fpga_launcher: pulling tools image {ref}", file=sys.stderr)
     try:
         pulled = subprocess.run(
@@ -220,10 +350,16 @@ def main() -> int:
             file=sys.stderr,
         )
         return 2
+    try:
+        _attestation_mode()
+    except ValueError as exc:
+        print(f"fpga_launcher: {exc}", file=sys.stderr)
+        return 2
     plugin_root = Path(__file__).resolve().parents[1]
     source = resolve_source(plugin_root)
-    ref = None if argv[0] == "program" else image_ref(plugin_root)
-    if ref is None:
+    pin = None if argv[0] == "program" else image_pin(plugin_root)
+    ref = pin["ref"] if pin is not None else None
+    if pin is None or ref is None:
         if argv[0] == "prewarm":
             return _warn_or_die("no fpga tools image pinned; host mode only", argv)
         if source is None:
@@ -236,7 +372,12 @@ def main() -> int:
         os.execvpe(command[0], command, env)
         return 0
     try:
-        _ensure_image(ref, pull="--warn" not in argv)
+        _ensure_image(
+            pin,
+            pull="--warn" not in argv,
+            prewarm=argv[0] == "prewarm",
+            override=bool(os.environ.get("FPGA_TOOLS_IMAGE")),
+        )
     except RuntimeError as exc:
         return _warn_or_die(str(exc), argv)
     if argv[0] == "prewarm":

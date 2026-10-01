@@ -1,3 +1,9 @@
+### SBOM attestations
+
+The tools-image publisher generates an SPDX-2.3 SBOM for the published digest,
+attests it with predicate type `https://spdx.dev/Document/v2.3`, uploads the
+artifact for 30 days, and records its URL in `sbom_attestation`. Locked-image
+checks verify available SBOM attestations and warn when metadata is absent.
 # fpga-agent
 
 VibeBB FPGA plugin for OpenHands (Software Agent SDK). It designs,
