@@ -1,3 +1,9 @@
+## SBOM attestations
+
+The image publish workflow generates an SPDX-2.3 SBOM for the published
+digest, attests it with predicate type `https://spdx.dev/Document/v2.3`,
+uploads the artifact for 30 days, and records its URL as `sbom_attestation`.
+Locked-image checks verify the attestation when present and warn when absent.
 # fpga-tools image
 
 `fpga-tools.Dockerfile` bundles every tool the gates call on Ubuntu 26.04

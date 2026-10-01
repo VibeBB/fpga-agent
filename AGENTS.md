@@ -53,3 +53,5 @@ uv run python scripts/verify_docs.py
 and NVC are on PATH. The `e2e` CI job builds
 `docker/fpga-tools.Dockerfile` and runs those tests plus the full gates
 of every example inside it with `--network none`.
+
+Shared workflows are canonical across the family; change all 11 copies together and update `EXPECTED` in `scripts/check_shared_workflows.py`.

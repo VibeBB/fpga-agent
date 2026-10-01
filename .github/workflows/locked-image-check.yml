@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  attestations: read
 
 concurrency:
   group: locked-image-check
@@ -23,6 +24,7 @@ jobs:
       image: ${{ steps.lock.outputs.image }}
       digest: ${{ steps.lock.outputs.digest }}
       attestation: ${{ steps.lock.outputs.attestation }}
+      sbom_attestation: ${{ steps.sbom.outputs.sbom_attestation }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -100,6 +102,42 @@ jobs:
               output.write(f"digest={digest}\n")
               output.write(f"attestation={attestation}\n")
           PY
+      - id: sbom
+        env:
+          LOCK_PATH: docker/image-digests.json
+          LOCK_ENTRY: fpga_tools
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          import os
+          from pathlib import Path
+          from urllib.parse import urlsplit
+
+          path = Path(os.environ["LOCK_PATH"])
+          entry = None
+          if path.is_file():
+              data = json.loads(path.read_text(encoding="utf-8"))
+              if not isinstance(data, dict):
+                  raise SystemExit("image digest lock must be a JSON object")
+              entry = data.get(os.environ["LOCK_ENTRY"])
+          if entry is not None and not isinstance(entry, dict):
+              raise SystemExit("image lock entry must be an object")
+          sbom_attestation = entry.get("sbom_attestation") if entry else None
+          if entry and entry.get("digest") is None and entry.get("tag") is None:
+              if sbom_attestation is not None:
+                  raise SystemExit("unpublished image entry cannot have an SBOM attestation")
+              sbom_attestation = ""
+          elif sbom_attestation is not None:
+              parsed = urlsplit(sbom_attestation) if isinstance(sbom_attestation, str) else None
+              if (
+                  parsed is None
+                  or parsed.scheme != "https"
+                  or not parsed.netloc
+                  or any(character.isspace() for character in sbom_attestation)
+              ):
+                  raise SystemExit("image lock SBOM attestation must be an HTTPS URL")
+          print(f"sbom_attestation={sbom_attestation or ''}")
+          PY
   check:
     needs: check-lock
     if: needs.check-lock.outputs.present == 'true'
@@ -130,29 +168,60 @@ jobs:
           gh attestation verify "oci://${IMAGE}@${DIGEST}" \
             --repo "$GITHUB_REPOSITORY" \
             --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/publish-fpga-images.yml"
+      - name: Warn when tools image has no SBOM attestation
+        if: needs.check-lock.outputs.sbom_attestation == ''
+        run: echo "::warning::fpga_tools image lock has no SBOM attestation; continuing"
+      - name: Verify tools image SBOM attestation
+        if: needs.check-lock.outputs.sbom_attestation != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ${{ needs.check-lock.outputs.image }}
+          DIGEST: ${{ needs.check-lock.outputs.digest }}
+        run: |
+          gh attestation verify "oci://${IMAGE}@${DIGEST}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/publish-fpga-images.yml" \
+            --predicate-type https://spdx.dev/Document/v2.3
       - run: uv run python scripts/pull_locked_image.py --entry fpga_tools
-      - id: image
-        run: echo "ref=$(uv run python scripts/print_locked_image.py --entry fpga_tools)" >> "$GITHUB_OUTPUT"
       - name: Smoke locked image
         env:
-          IMAGE_REF: ${{ steps.image.outputs.ref }}
+          GH_TOKEN: ${{ github.token }}
+          FPGA_SRC: ${{ github.workspace }}/src
+          OPENHANDS_PROJECT_DIR: ${{ github.workspace }}
+          FPGA_VERIFY_ATTESTATION: ${{ needs.check-lock.outputs.attestation != '' && 'require' || 'auto' }}
         run: |
           set -euo pipefail
-          export FPGA_TOOLS_IMAGE="$IMAGE_REF"
-          export FPGA_SRC="$GITHUB_WORKSPACE/src"
-          export OPENHANDS_PROJECT_DIR="$GITHUB_WORKSPACE"
           python3 scripts/fetch_colibri.py
           launcher=plugins/fpga/scripts/fpga_launcher.py
+          python3 "$launcher" prewarm
           python3 "$launcher" doctor | tee doctor.json
           for contract in examples/*/*.fpga.json; do
-            python3 "$launcher" gates "$contract" > report.json || true
-            python3 - "$contract" report.json <<'PY'
-          import json, sys
-          report = json.load(open(sys.argv[2], encoding="utf-8"))
-          print(sys.argv[1], report["verdict"])
-          for check in report["checks"]:
-              print(f"  {check['id']:28} {check['status']:14} {check['detail'][:200]}")
-          sys.exit(0 if report["verdict"] == "pass" else 1)
+            design=$(basename "$contract" .fpga.json)
+            out="$(dirname "$contract")/out"
+            mkdir -p "$out"
+            stdout="$out/$design.stdout.json"
+            report="$out/$design.fpga-report.json"
+            set +e
+            python3 "$launcher" gates "$contract" > "$stdout"
+            status=$?
+            set -e
+            python3 - "$contract" "$report" "$stdout" "$status" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          contract, report_path, stdout_path = map(Path, sys.argv[1:4])
+          status = int(sys.argv[4])
+          if report_path.is_file():
+              report = json.loads(report_path.read_text(encoding="utf-8"))
+              for check in report["checks"]:
+                  print(f"{check['id']:28} {check['status']:14} {check['detail'][:200]}")
+          else:
+              stdout_text = stdout_path.read_text(encoding="utf-8")
+              print(stdout_text, end="")
+              report = json.loads(stdout_text)
+          if status != 0 or report.get("verdict") != "pass":
+              raise SystemExit(f"{contract.name} launcher gates did not pass")
           PY
           done
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -161,8 +230,8 @@ jobs:
           name: locked-fpga-tools-smoke
           path: |
             doctor.json
-            report.json
             examples/*/out/*.fpga-report.json
             examples/*/out/*.fpga-report.md
+            examples/*/out/*.stdout.json
             examples/*/out/*.log
           if-no-files-found: ignore
