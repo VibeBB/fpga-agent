@@ -1,8 +1,11 @@
 ## SBOM attestations
 
-The image publish workflow generates an SPDX-2.3 SBOM for the published
-digest, attests it with predicate type `https://spdx.dev/Document/v2.3`,
-uploads the artifact for 30 days, and records its URL as `sbom_attestation`.
+The image publish workflow generates and attests a package-level SPDX-2.3 SBOM
+for the published digest with predicate type
+`https://spdx.dev/Document/v2.3`, and records its URL as `sbom_attestation`.
+File entries and relationships involving files are omitted to stay below the
+16 MiB attestation limit. The full Syft SBOM is attached to the workflow run
+as an artifact retained for 90 days.
 Locked-image checks verify the attestation when present and warn when absent.
 # fpga-tools image
 
