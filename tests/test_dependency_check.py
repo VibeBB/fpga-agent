@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from scripts.check_dependency_updates import (
     HTTP_TIMEOUT_SECONDS,
     ROOT,
     SUBPROCESS_TIMEOUT_SECONDS,
+    DependencyDeferral,
     DependencyStatus,
     _github_latest_date_tag,  # pyright: ignore[reportPrivateUsage]
     _github_latest_tag,  # pyright: ignore[reportPrivateUsage]
@@ -96,3 +98,29 @@ def test_main_reports_timeout_as_failure(
     monkeypatch.setattr(check_dependency_updates_module, "check_dependency_updates", timed_out)
     assert main([]) == 1
     assert "dependency update check failed" in capsys.readouterr().err
+
+
+def test_main_reports_unknown_count_in_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def failed_fetch(_repo_root: Path) -> list[DependencyStatus]:
+        return [
+            DependencyStatus(
+                "pypi",
+                "example",
+                "1.0.0",
+                "?",
+                "pyproject.toml",
+                False,
+                fetch_failed=True,
+            )
+        ]
+
+    def no_deferrals(_root: Path) -> list[DependencyDeferral]:
+        return []
+
+    monkeypatch.setattr(check_dependency_updates_module, "check_dependency_updates", failed_fetch)
+    monkeypatch.setattr(check_dependency_updates_module, "load_deferrals", no_deferrals)
+    report = tmp_path / "report.json"
+    assert main(["--repo-root", str(tmp_path), "--json", str(report)]) == 0
+    assert json.loads(report.read_text(encoding="utf-8"))["unknown_count"] == 1

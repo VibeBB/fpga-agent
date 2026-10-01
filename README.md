@@ -82,6 +82,10 @@ current contract and the bitstream on disk still has the reported hash.
 
 ## Development
 
+The workflow-lint check runs actionlint and zizmor. Releases verify CI,
+workflow lint, and a remote plugin install smoke test before creating a
+release.
+
 ```bash
 uv run ruff check . && uv run ruff format --check .
 uv run pyright

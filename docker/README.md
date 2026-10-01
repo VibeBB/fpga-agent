@@ -18,3 +18,8 @@ from the published image; do not record a local build digest. The build runs
 the ULX3S example's full gates offline as a smoke test. External HDL such as
 Colibri is not in the image; fetch it into the workspace with
 `scripts/fetch_colibri.py` before running the gates.
+
+Each published image receives GitHub build provenance. The lock records its
+attestation URL, and locked-image checks verify it against this repository's
+publisher workflow when present. Existing pins without attestation metadata
+continue with a warning until the next publish.

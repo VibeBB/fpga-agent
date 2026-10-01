@@ -142,8 +142,9 @@ jobs:
               done
               started=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
               retry gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$branch"
+              retry gh workflow run workflow-lint.yml --repo "$GITHUB_REPOSITORY" --ref "$branch"
               failed=0
-              for wf in ci.yml; do
+              for wf in ci.yml workflow-lint.yml; do
                 run_id=""
                 for _ in $(seq 1 30); do
                   sleep 10
@@ -210,8 +211,30 @@ jobs:
     with:
       ref: ${{ needs.bump-version.outputs.sha }}
 
+  install-smoke:
+    needs: bump-version
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.bump-version.outputs.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.12"
+          cache-suffix: release-install-smoke
+      - name: Sync dependencies
+        run: uv sync --locked --group sdk-check
+      - name: Smoke-test remote install
+        env:
+          REF: ${{ needs.bump-version.outputs.sha }}
+        run: >
+          uv run --group sdk-check python scripts/smoke_install_plugin.py
+          --repo VibeBB/fpga-agent --ref "$REF" --repo-path plugins/fpga
+
   release:
-    needs: [bump-version, verify]
+    needs: [bump-version, verify, install-smoke]
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:

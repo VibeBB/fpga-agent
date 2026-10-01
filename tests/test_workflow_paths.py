@@ -77,6 +77,7 @@ def test_main_failure_workflow_names_existing_workflows() -> None:
         "Dependency update check",
         "Release",
         "PR branch cleanup",
+        "Workflow lint",
     ):
         assert f'"{workflow}"' in text
 
@@ -87,5 +88,8 @@ def test_release_reuses_ci_and_packages_fpga_assets() -> None:
     assert "plugins/fpga/.plugin/plugin.json" in text
     assert 'zip -r "../dist/fpga-plugin-v${VERSION}.zip" fpga' in text
     assert 'zip -r "dist/fpga-examples-v${VERSION}.zip" examples' in text
-    assert "workflow-lint.yml" not in text
-    assert "smoke_install_plugin.py" not in text
+    assert "workflow-lint.yml" in text
+    assert "smoke_install_plugin.py" in text
+    assert "install-smoke" in text
+    assert "--repo VibeBB/fpga-agent" in text
+    assert "--repo-path plugins/fpga" in text

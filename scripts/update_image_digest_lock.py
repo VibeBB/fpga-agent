@@ -62,6 +62,7 @@ def update_lock(
     workflow_run: str,
     dockerfile: str,
     tools: dict[str, str],
+    attestation: str | None = None,
 ) -> bool:
     if entry not in _ENTRIES:
         raise ValueError(f"unknown image lock entry: {entry}")
@@ -78,11 +79,13 @@ def update_lock(
         raise ValueError("published_at must be ISO-8601") from exc
     if not workflow_run or not dockerfile:
         raise ValueError("workflow_run and dockerfile must not be empty")
+    if attestation is not None and not attestation:
+        raise ValueError("attestation must not be empty")
     if not tools or any(not key or not value for key, value in tools.items()):
         raise ValueError("tools must contain non-empty string values")
     payload = _load(path)
     before = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    payload[entry] = {
+    image_entry: dict[str, Any] = {
         "digest": digest,
         "dockerfile": dockerfile,
         "image": image,
@@ -91,6 +94,9 @@ def update_lock(
         "tools": dict(sorted(tools.items())),
         "workflow_run": workflow_run,
     }
+    if attestation is not None:
+        image_entry["attestation"] = attestation
+    payload[entry] = image_entry
     after = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     if before == after:
         return False
@@ -109,6 +115,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--published-at", required=True)
     parser.add_argument("--workflow-run", required=True)
     parser.add_argument("--dockerfile", required=True)
+    parser.add_argument("--attestation")
     parser.add_argument("--tools-json", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
@@ -128,6 +135,7 @@ def main(argv: list[str] | None = None) -> int:
             workflow_run=args.workflow_run,
             dockerfile=args.dockerfile,
             tools=cast(dict[str, str], value),
+            attestation=args.attestation,
         )
     except (OSError, UnicodeDecodeError, ValueError, json.JSONDecodeError) as exc:
         print(f"FAIL: {exc}")

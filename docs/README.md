@@ -10,6 +10,7 @@
 - [ADR-0006](adr/ADR-0006-circuit-fpga-interchange.md) — circuit/FPGA interchange artifacts
 - [ADR-0007](adr/ADR-0007-coverage-gate.md) — line-coverage gate in CI
 - [ADR-0008](adr/ADR-0008-published-image-digest-lock.md) — published image digest lock
+- [ADR-0009](adr/ADR-0009-attest-published-tools-images.md) — attest published tools images
 
 ## Skills
 
