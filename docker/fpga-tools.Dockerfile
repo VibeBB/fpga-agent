@@ -14,6 +14,10 @@ ARG NVC_VERSION=1.23.0
 ARG NVC_ASSET=nvc_1.23.0-1_amd64_ubuntu-26.04.deb
 ARG NVC_SHA256=deda7ffc97b04301f0dbf5e16614e0e6537ba8a292d3d11502675a3514ba995a
 
+# Fail the build when the left side of a verification pipe (curl|sha256sum)
+# breaks instead of silently passing the right side.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python
 # The suite's bin/ is appended (never `source environment`) so the fpga
