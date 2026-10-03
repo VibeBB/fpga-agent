@@ -57,6 +57,33 @@ msgpack, setuptools — never invoked; dependencies install via `uv` and
 the shipped venv is pip-less) is stripped in the `uv python install`
 layer, so the publish gate stays clean without `.trivyignore` waivers.
 
+The first publish-gate run against the pushed digest (2026-10-03)
+surfaced 9 HIGH findings — 6 unique CVEs — all inside the
+OSS CAD Suite's vendored `python2.7`/`python3.11` site-packages
+(`Flask` 2.1.2, `Werkzeug` 2.3.7, `pip` 19.2.3, `setuptools` 41.2.0 and
+65.5.0). The pinned release (`OSS_CAD_SUITE_RELEASE=2026-10-01`) is the
+newest upstream build, so no in-repo upgrade can clear them and nothing
+in the image invokes Flask/Werkzeug or the vendored pip/setuptools; the
+IDs carry `.trivyignore` waivers expiring 2027-01-03 and are re-evaluated
+on every suite bump (see `scripts/dependency_update_deferrals.json`).
+fpga-tools is the only published image — there is no second image left
+unscanned.
+
+The weekly audit runs Lynis as container root (`--user 0`) with the
+committed `docker/lynis-container.prf` profile, which skips tests that
+are inapplicable inside a container (kernel/systemd/mounts/storage/
+network/PAM/accounting are governed by the runtime flags below, not the
+image fs). The profile keeps the Hardening Index and suggestion list to
+image-actionable items; remaining suggestions are fixed in the
+Dockerfile (`UMASK 027` in login.defs) or silenced only with a
+documented reason.
+
+`fpga_launcher.py` applies the runtime-hardening flags the container
+profile defers to: `--network none`, `--user uid:gid`,
+`--cap-drop ALL`, `--security-opt no-new-privileges`. A `--read-only`
+root filesystem stays an optional hardening for callers that supply
+tmpfs for tools that need scratch space.
+
 ## CI runner network auditing
 
 CI and image-publishing jobs use `step-security/harden-runner` in audit-only mode. It observes network egress without blocking requests; per-run insights are available in the GitHub Actions job summary.

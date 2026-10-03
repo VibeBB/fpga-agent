@@ -98,4 +98,8 @@ RUN python -m fpga doctor \
     && python -m fpga gates /tmp/smoke/blinky.fpga.json >/tmp/smoke.json \
     && rm -rf /tmp/smoke /tmp/smoke.json /tmp/fpga-pycache
 
+# Tighten the login.defs umask to 027 (Lynis AUTH-9328): the image has no
+# interactive users, so files created at runtime stay group-readable only.
+RUN printf 'UMASK 027\n' >> /etc/login.defs
+
 WORKDIR /work

@@ -1,3 +1,20 @@
 # One finding ID per line (CVE, GHSA, AVD-DS-*, secret rule, license).
 # Optional expiry suffix: ' exp:YYYY-MM-DD'. Audited suppressions carry a
 # statement in docs/operations.md.
+#
+# --- python site-packages vendored inside oss-cad-suite (fpga-tools) ---
+# The sha256-pinned OSS CAD Suite tarball ships its own python2.7 and
+# python3.11 trees under /opt/oss-cad-suite/lib; the pinned release
+# (2026-10-01) is the newest upstream build and still carries these
+# versions. The findings are upstream-borne — the real fix is a future
+# suite release that rebuilds its bundled interpreters — so they are
+# waived per-CVE until 2027-01-03 and re-evaluated on every
+# OSS_CAD_SUITE_RELEASE bump (scripts/dependency_update_deferrals.json).
+# Flask/Werkzeug serve no network endpoint in the image; pip/setuptools
+# under the vendored pythons are never invoked by the fpga package.
+CVE-2023-30861 exp:2027-01-03
+CVE-2024-34069 exp:2027-01-03
+CVE-2021-3572 exp:2027-01-03
+CVE-2022-40897 exp:2027-01-03
+CVE-2024-6345 exp:2027-01-03
+CVE-2025-47273 exp:2027-01-03
