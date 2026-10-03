@@ -122,10 +122,16 @@ dispatch_pin_workflow() {
     command+=(-f "base_sha=$BASE_SHA")
   fi
   check_pin_pr_state
-  if ! retry "${command[@]}"; then
-    check_pin_pr_state
-    write_summary "Dispatch of ${workflow} for pin PR ${PR_URL} failed; required PR checks remain authoritative."
+  if retry "${command[@]}"; then
+    return 0
   fi
+  # The lock branch is deleted the moment the PR merges, so a dispatch can
+  # 422 ("No ref found") inside the create->dispatch window. Re-check the
+  # PR state before erroring: check_pin_pr_state treats MERGED as success
+  # (dispatching the post-merge workflows) and CLOSED as fatal, so a
+  # resolved race never reaches the summary line below.
+  check_pin_pr_state
+  write_summary "Dispatch of ${workflow} for pin PR ${PR_URL} failed; required PR checks remain authoritative."
 }
 
 required_check_counts() {

@@ -80,14 +80,29 @@ jobs:
           build-args: |
             IMAGE_REVISION=${{ github.sha }}
           push: true
+          # Only the immutable per-sha tag is pushed at build time; the
+          # mutable :latest tag is promoted after every gate below passes,
+          # so a failed scan never serves a new :latest.
           tags: |
             ghcr.io/${{ env.IMAGE_OWNER }}/fpga-tools:${{ github.sha }}-tools
-            ghcr.io/${{ env.IMAGE_OWNER }}/fpga-tools:latest
           cache-from: type=gha
           # A failed cache export must not fail the publish; gha cache
           # imports already degrade to a miss rather than an error, so
           # ignore-error applies to cache-to only.
           cache-to: type=gha,mode=max,ignore-error=true
+      # The full JSON scan runs before the SARIF gate so the diagnostic
+      # report exists even when the gate fails — exactly when it is needed.
+      - name: Scan tools image (Trivy JSON)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          scan-ref: ghcr.io/${{ env.IMAGE_OWNER }}/fpga-tools@${{ steps.tools.outputs.digest }}
+          version: v0.75.0
+          scanners: vuln,secret,misconfig,license
+          ignore-unfixed: false
+          exit-code: '0'
+          format: json
+          output: trivy-image.json
       - name: Scan tools image (Trivy SARIF)
         id: trivy-scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -104,30 +119,19 @@ jobs:
           format: sarif
           output: trivy-image.sarif
           limit-severities-for-sarif: true
-      - name: Scan tools image (Trivy JSON)
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: image
-          scan-ref: ghcr.io/${{ env.IMAGE_OWNER }}/fpga-tools@${{ steps.tools.outputs.digest }}
-          version: v0.75.0
-          scanners: vuln,secret,misconfig,license
-          ignore-unfixed: false
-          exit-code: '0'
-          format: json
-          output: trivy-report.json
           skip-setup-trivy: true
       - name: Upload Trivy SARIF
-        if: always()
+        if: always() && hashFiles('trivy-image.sarif') != ''
         uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           sarif_file: trivy-image.sarif
           category: trivy-fpga-tools
       - name: Upload Trivy JSON report
-        if: always()
+        if: always() && hashFiles('trivy-image.json') != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: fpga-tools-trivy
-          path: trivy-report.json
+          path: trivy-image.json
           retention-days: 90
       - name: Attest tools image provenance
         id: attest
@@ -229,7 +233,7 @@ jobs:
           PY
           done
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always()
+        if: always() && hashFiles('doctor.json', 'report.json', 'examples/*/out/*.fpga-report.json', 'examples/*/out/*.fpga-report.md', 'examples/*/out/*.log') != ''
         with:
           name: published-fpga-tools-smoke
           path: |
@@ -249,6 +253,15 @@ jobs:
             echo "- **tools tag**: \`$TOOLS_TAG\`"
             echo "- **workflow run**: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Promote :latest
+        # Every gate above passed: point the mutable tag at the attested
+        # digest. imagetools create copies the manifest server-side — no
+        # re-push — so the provenance and SBOM attestations keep
+        # referencing the same digest.
+        run: |
+          docker buildx imagetools create \
+            "ghcr.io/${IMAGE_OWNER}/fpga-tools:latest" \
+            "$TOOLS_REF"
       - name: Update digest lock and merge PR
         env:
           GH_TOKEN: ${{ github.token }}
