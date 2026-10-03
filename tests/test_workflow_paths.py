@@ -71,6 +71,7 @@ def test_main_failure_workflow_names_existing_workflows() -> None:
     )
     for workflow in (
         "CI",
+        "Container hardening audit",
         "Publish fpga images",
         "Locked image check",
         "Digest lock PR sweep",
