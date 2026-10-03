@@ -22,21 +22,31 @@ Three layers were adopted after a comparative evaluation of Lynis,
   ghcr.io registries and waives DL3008 (exact deb pins rot when archives
   drop them; downloaded tools are already version+sha256 pinned).
 - **Image scan on publish** (`publish-fpga-images.yml`): Trivy v0.75.0
-  via `trivy-action` v0.36.0 scans the pushed digest for
-  CRITICAL/HIGH fixable vulnerabilities, secrets, and misconfiguration,
-  gated (`exit-code 1`), with SARIF uploaded to code scanning
-  (`category: trivy-fpga-tools`) and a full JSON report as an artifact.
-  The action is SHA-pinned and `version:` is explicit — the March 2026
-  Trivy supply-chain compromise made both non-negotiable.
+  via `trivy-action` v0.36.0 then scans the pushed digest for
+  CRITICAL/HIGH fixable vulnerabilities, secrets, and misconfiguration —
+  a full JSON report first (always produced, even when the gate fails),
+  then the gated SARIF scan (`exit-code 1`) uploaded to code scanning
+  (`category: trivy-fpga-tools`). Only after every gate passes does the
+  `Promote :latest` step retag the digest to `:latest` via
+  `docker buildx imagetools create`, so a failing image never serves
+  `:latest`. The action is SHA-pinned and `version:` is explicit — the
+  March 2026 Trivy supply-chain compromise made both non-negotiable.
 - **Weekly audit** (`container-audit.yml`, Mondays 03:32 UTC): pulls the
   pinned digest from `docker/image-digests.json`, re-scans with a fresh
   vulnerability DB (new CVEs against the frozen image), runs the Docker
   CIS compliance report, runs an informational in-image Lynis 3.1.7
-  audit, aggregates `container-hardening.json` (artifact), and
+  audit (cloned at tag `3.1.7` then checked out detached at the pinned
+  commit `2e99f92265760b73fd6b139868eb8d4116624030`), aggregates
+  `container-hardening.json` (artifact), and
   edits/creates a "Container hardening report" issue. The issue closes
   automatically when fixable HIGH/CRITICAL findings reach zero. The
   Lynis Hardening Index is recorded as a trend metric only — its
   denominator shifts with container-skipped tests, so it never gates.
+  The CIS aggregator walks `Results` recursively for `MisconfSummary`
+  nodes and fails the step when zero checks were evaluated, so dead
+  telemetry cannot masquerade as coverage. The plain-CLI CIS scan reuses
+  a weekly `actions/cache` Trivy DB (`TRIVY_CACHE_DIR` under
+  `$RUNNER_TEMP`).
 
 Not adopted, with reasons: `lynis audit dockerfile` (~6 greps, frozen
 since 2018, subset of hadolint, hardening index always 1);
@@ -87,11 +97,26 @@ tmpfs for tools that need scratch space.
 
 ## CI runner network auditing
 
-CI and image-publishing jobs use `step-security/harden-runner` in audit-only mode. It observes network egress without blocking requests; per-run insights are available in the GitHub Actions job summary.
+Every job in every workflow starts with `step-security/harden-runner` in
+audit-only mode (the pinned v2.21.1 step is kept byte-identical across the
+family's shared workflows). It observes network egress without blocking
+requests; per-run insights are available in the GitHub Actions job
+summary.
 
 ## Digest-lock PR verification
 
-The publisher dispatches `ci.yml` and `workflow-lint.yml` on the lock branch, then polls the authoritative required-check set for up to 30 minutes. Non-required failures do not block publishing; a concluded required-check failure or a PR closed without merge fails the job. A PR merged externally triggers the existing post-merge main workflows without waiting for their results. If required checks remain pending at the deadline, the publisher arms squash auto-merge with branch deletion and exits successfully so branch protection can complete the merge.
+The publisher dispatches `ci.yml` and `workflow-lint.yml` on the lock branch, then polls the authoritative required-check set for up to 30 minutes. Non-required failures do not block publishing; a concluded required-check failure or a PR closed without merge fails the job. A PR merged externally triggers the existing post-merge main workflows without waiting for their results. If required checks remain pending at the deadline, the publisher arms squash auto-merge with branch deletion and exits successfully so branch protection can complete the merge. When the merge later lands — either via armed auto-merge or via the `digest-lock-sweep.yml` retry — the sweep's own merge dispatches `ci.yml` and `locked-image-check.yml` on main, closing the post-merge verification gap left by token merges suppressing push triggers.
+
+`release.yml` accepts a `dry_run` input that rehearses a release without
+writing anything: the bump job computes the would-be version with
+`bump_version.py --dry-run`, checks the tag is free, emits HEAD as the
+release SHA, and the downstream verify/install-smoke/build jobs still
+run against it while tag and release creation are skipped.
+
+The verify job's pytest run enforces `--cov-fail-under=85` (measured
+~90% at adoption; `[tool.coverage.report] fail_under = 67` remains the
+local baseline), so the existing coverage measurement now gates
+regressions.
 
 SPDX generation prefers the GHCR registry source, writes temporary data under
 the runner's temporary directory, and disables file metadata. The publisher

@@ -32,7 +32,7 @@
     }
   ],
   "formal": [
-    {"id": "increments", "top": "blinky", "mode": "prove", "depth": 4, "parameters": {"g_WIDTH": 8}}
+    {"id": "increment", "top": "blinky", "mode": "prove", "depth": 4, "parameters": {"g_WIDTH": 8}}
   ],
   "programmer": {"board": "tangprimer20k"}
 }

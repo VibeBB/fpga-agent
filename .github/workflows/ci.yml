@@ -104,7 +104,10 @@ jobs:
       - name: Check shared workflows
         run: uv run python scripts/check_shared_workflows.py
       - name: Pytest
-        run: uv run pytest --cov --cov-report=term-missing:skip-covered
+        # Floor is below the measured ~90% total but above the
+        # [tool.coverage.report] fail_under=67 baseline so the existing
+        # coverage measurement now gates regressions.
+        run: uv run pytest --cov --cov-report=term-missing:skip-covered --cov-fail-under=85
       - name: Plugin load (OpenHands SDK)
         env:
           OPENHANDS_SUPPRESS_BANNER: "1"
@@ -164,7 +167,7 @@ jobs:
           -v "$PWD:$PWD" -w "$PWD" fpga-tools:ci
           sh -c 'uv sync --locked --no-group sdk-check && uv run --no-sync pytest -m tools'
       - name: Upload reports
-        if: always()
+        if: always() && hashFiles('examples/*/fpga-reports/**') != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: fpga-reports
