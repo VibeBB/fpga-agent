@@ -36,6 +36,25 @@ Deferrals and review dates are tracked in
 `scripts/dependency_update_deferrals.json`; a deferred candidate still needs
 an owner to revisit it by the listed date.
 
+## Current deferrals
+
+| Surface | Name | Latest | Re-check | Reason |
+| --- | --- | --- | --- | --- |
+| pypi | mcp | 2.3.0 | 2027-04-01 | `openhands-sdk` 1.51.0 -> `fastmcp<4` -> `fastmcp-slim` requires `mcp>=1.24.0,<2.0`; mcp 2.x cannot coexist with the SDK pin. |
+| python-version | * | 3.14 | 2027-04-01 | Matrix is 3.12/3.13; openhands-sdk support for 3.14 unconfirmed. |
+| docker-arg | OSS_CAD_SUITE_RELEASE | 2026-10-03 | 2027-01-03 | Vendored python2.7/3.11 site-packages carry 6 upstream CVEs waived in `.trivyignore`; re-scan on every suite bump. |
+
+## Decisions — 2026-10-03 round
+
+| Component | Change | Decision | Reason |
+| --- | --- | --- | --- |
+| openhands-sdk / openhands-tools | 1.50.1 -> 1.51.0 | adopted | Per-commit review in `research/sdk-v1.51.0-feature-evaluation.md`; no agent-profile/persona features adopted (plugin keeps its `.fpga.json` contract). |
+| uv | 0.12.21 -> 0.12.22 | adopted | Bug-fix release (relock hash verification, workspace default groups); no repo-visible behavior change; CPython 3.12.15 ships via `uv python install` on rebuild. |
+| OSS CAD Suite | 2026-10-01 -> 2026-10-03 | adopted | Newest dated release with the linux-x64 asset published; sha256 computed from the downloaded tarball (`41b1e1c6…`). `.trivyignore` waivers stay until the publish-gate Trivy scan re-verifies the new image. |
+| anchore/sbom-action | stays v0.24.3 | no-op | Already pinned at `66cbf4b` (# v0.24.3); nothing to change. |
+| ruff | stays 0.16.10 | no-op | `>=0.16` already resolved to the latest 0.16.10 in `uv.lock`. |
+| mcp | stays `>=1.29,<2` | deferred | `fastmcp<4` constraint in openhands-sdk 1.51.0 still caps `mcp<2.0`; deferral refreshed to latest 2.3.0. |
+
 The scheduled workflow writes its Markdown and JSON reports under the runner's
 temporary directory, adds the report and run URL to the step summary, and
 exposes outdated and unknown counts. Fetch failures are reported as unknown;

@@ -5,11 +5,12 @@
 # --- python site-packages vendored inside oss-cad-suite (fpga-tools) ---
 # The sha256-pinned OSS CAD Suite tarball ships its own python2.7 and
 # python3.11 trees under /opt/oss-cad-suite/lib; the pinned release
-# (2026-10-01) is the newest upstream build and still carries these
-# versions. The findings are upstream-borne — the real fix is a future
-# suite release that rebuilds its bundled interpreters — so they are
-# waived per-CVE until 2027-01-03 and re-evaluated on every
-# OSS_CAD_SUITE_RELEASE bump (scripts/dependency_update_deferrals.json).
+# (2026-10-03) still vendors these interpreters, so the upstream-borne
+# findings are expected to persist — the real fix is a future suite
+# release that rebuilds its bundled pythons. They are waived per-CVE
+# until 2027-01-03 and re-verified by the publish-gate Trivy scan on
+# every OSS_CAD_SUITE_RELEASE bump
+# (scripts/dependency_update_deferrals.json).
 # Flask/Werkzeug serve no network endpoint in the image; pip/setuptools
 # under the vendored pythons are never invoked by the fpga package.
 CVE-2023-30861 exp:2027-01-03

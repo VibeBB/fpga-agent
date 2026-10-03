@@ -3,9 +3,9 @@
     {
       "surface": "pypi",
       "name": "mcp",
-      "latest": "2.2.0",
+      "latest": "2.3.0",
       "review_by": "2027-04-01",
-      "reason": "openhands-sdk 1.50.1 requires fastmcp>=3.2.0,<4, which requires mcp<2.0. Defer MCP 2.x until a supported SDK/fastmcp release removes that constraint."
+      "reason": "openhands-sdk 1.51.0 requires fastmcp>=3.2.0,<4, which requires mcp<2.0. Defer MCP 2.x until a supported SDK/fastmcp release removes that constraint."
     },
     {
       "surface": "python-version",
@@ -17,7 +17,7 @@
     {
       "surface": "docker-arg",
       "name": "OSS_CAD_SUITE_RELEASE",
-      "latest": "2026-10-01",
+      "latest": "2026-10-03",
       "review_by": "2027-01-03",
       "reason": "The pinned suite tarball vendors python2.7/python3.11 site-packages carrying 6 upstream-borne CVEs (9 Trivy findings) that no in-repo change can fix; they are waived in .trivyignore until 2027-01-03. On the next OSS_CAD_SUITE_RELEASE bump, re-scan the image and drop the waivers that upstream's rebuilt pythons cleared."
     }
