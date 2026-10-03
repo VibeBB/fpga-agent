@@ -260,7 +260,7 @@ jobs:
         # referencing the same digest.
         run: |
           docker buildx imagetools create \
-            "ghcr.io/${IMAGE_OWNER}/fpga-tools:latest" \
+            --tag "ghcr.io/${IMAGE_OWNER}/fpga-tools:latest" \
             "$TOOLS_REF"
       - name: Update digest lock and merge PR
         env:
