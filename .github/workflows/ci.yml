@@ -104,10 +104,11 @@ jobs:
       - name: Check shared workflows
         run: uv run python scripts/check_shared_workflows.py
       - name: Pytest
-        # Floor is below the measured ~90% total but above the
+        # Floor is below the ~76.5% this job measures (tools-marked tests
+        # only run in e2e, which has the OSS CAD Suite) but above the
         # [tool.coverage.report] fail_under=67 baseline so the existing
         # coverage measurement now gates regressions.
-        run: uv run pytest --cov --cov-report=term-missing:skip-covered --cov-fail-under=85
+        run: uv run pytest --cov --cov-report=term-missing:skip-covered --cov-fail-under=75
       - name: Plugin load (OpenHands SDK)
         env:
           OPENHANDS_SUPPRESS_BANNER: "1"
