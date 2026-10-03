@@ -193,7 +193,7 @@ def test_measure_records_required_probe_commands(
         f"{name}\t{command}\t{version}\n"
         for name, command, version in (
             ("python", "python --version", "Python 3.12.14"),
-            ("uv", "uv --version", "uv 0.12.21"),
+            ("uv", "uv --version", "uv 0.12.22"),
             ("fpga-agent", "python -c ...", "0.1.0"),
             ("ghdl-yosys-plugin", "yosys -m ghdl -p help ghdl -q", "GHDL plugin"),
             ("yosys", "yosys --version", "Yosys 0.62"),
