@@ -13,6 +13,13 @@
       "latest": "3.14",
       "review_by": "2027-04-01",
       "reason": "Repo targets Python 3.12/3.13 (requires-python >=3.12, CI matrix 3.12/3.13). 3.14 is pending upstream verification: openhands-sdk support for 3.14 is unconfirmed. Re-evaluate when the SDK's supported range covers 3.14."
+    },
+    {
+      "surface": "docker-arg",
+      "name": "OSS_CAD_SUITE_RELEASE",
+      "latest": "2026-10-01",
+      "review_by": "2027-01-03",
+      "reason": "The pinned suite tarball vendors python2.7/python3.11 site-packages carrying 6 upstream-borne CVEs (9 Trivy findings) that no in-repo change can fix; they are waived in .trivyignore until 2027-01-03. On the next OSS_CAD_SUITE_RELEASE bump, re-scan the image and drop the waivers that upstream's rebuilt pythons cleared."
     }
   ]
 }
