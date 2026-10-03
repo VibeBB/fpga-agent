@@ -15,6 +15,7 @@ from scripts.check_dependency_updates import (
     _github_latest_date_tag,  # pyright: ignore[reportPrivateUsage]
     _github_latest_tag,  # pyright: ignore[reportPrivateUsage]
     check_docker_args,
+    check_git_clones,
     main,
 )
 
@@ -83,6 +84,30 @@ def test_docker_release_pins_use_upstream_latest_tags() -> None:
         "2026-12-01",
         True,
     )
+
+
+def test_lynis_clone_pin_parsed():
+    statuses = check_git_clones(ROOT, list_remote_tags=lambda url: ["3.1.7"])
+    lynis = next(status for status in statuses if status.name == "CISOfy/lynis")
+    assert lynis.current == "3.1.7"
+    assert lynis.latest == "3.1.7"
+    assert lynis.outdated is False
+
+
+def test_git_clones_report_outdated_and_fetch_failed():
+    statuses = check_git_clones(ROOT, list_remote_tags=lambda url: ["3.1.7", "3.2.0"])
+    lynis = next(status for status in statuses if status.name == "CISOfy/lynis")
+    assert lynis.latest == "3.2.0"
+    assert lynis.outdated is True
+
+    def failed_tags(url: str) -> list[str]:
+        raise OSError(url)
+
+    statuses = check_git_clones(ROOT, list_remote_tags=failed_tags)
+    lynis = next(status for status in statuses if status.name == "CISOfy/lynis")
+    assert lynis.latest == "?"
+    assert lynis.fetch_failed is True
+    assert lynis.outdated is False
 
 
 def test_subprocess_timeout_is_bounded():

@@ -11,9 +11,14 @@ uv run --no-sync python scripts/check_dependency_updates.py \
 
 The report checks direct and locked PyPI dependencies, the uv pin, GitHub
 Actions SHA pins, pinned `uvx` tools, Docker ARG release pins, the Ubuntu base
-tag, and Python-version support. Review candidates against upstream release
-notes and compatibility with the FPGA gates. Regenerate `uv.lock` with uv;
-do not edit it by hand.
+tag, `git clone --branch` pins inside workflows, and Python-version support.
+Review candidates against upstream release notes and compatibility with the
+FPGA gates. Regenerate `uv.lock` with uv; do not edit it by hand.
+
+Workflow `git clone --branch` pins are treated as a `git-clone` surface and
+each ref is compared against the upstream repo's latest semver tag, so a new
+release of the pinned CISOfy/lynis checkout in `container-audit.yml` surfaces
+in the weekly report.
 
 These Dockerfile surfaces require manual review before changing:
 
