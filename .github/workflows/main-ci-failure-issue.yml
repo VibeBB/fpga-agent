@@ -14,8 +14,16 @@ on:
       - "Scorecard"
       - "PR branch cleanup"
       - "Workflow lint"
+      - "CodeQL"
+      - "GHCR tag retention"
     types: [completed]
     branches: [main]
+  # Runs dispatched with GITHUB_TOKEN (post-merge digest-lock verification)
+  # never emit a workflow_run event, so a scheduled reconcile closes failure
+  # issues whose workflow is already green on main.
+  schedule:
+    - cron: "53 */6 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
