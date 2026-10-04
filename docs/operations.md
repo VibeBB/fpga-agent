@@ -143,9 +143,10 @@ that is never promoted, locked, or attested. A tag is only removed when
 it is older than 14 days, its digest is not the one pinned by
 `docker/image-digests.json`, and no build-provenance attestation exists
 for the digest; `workflow_dispatch` offers a `dry_run` report mode.
-`codeql.yml` runs CodeQL (python) on PRs, main pushes, and a weekly
-schedule, feeding the code-scanning dashboard the scorecard SAST check
-measures.
+CodeQL (python) is analyzed by GitHub's default code-scanning setup in
+repository Settings — an in-repo `codeql.yml` must not be added, since
+Code Scanning rejects SARIF uploads from advanced configurations while
+default setup is enabled.
 
 ## Settings-level posture (recorded decisions)
 
