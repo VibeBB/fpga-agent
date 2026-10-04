@@ -133,6 +133,32 @@ def test_publish_gate_summary_renders_offending_rules(tmp_path: Path) -> None:
     assert "| CVE-2026-0002 | 7.5 | error |" in out
 
 
+def test_publish_gate_summary_reads_trivy_json(tmp_path: Path) -> None:
+    report = tmp_path / "trivy-image.json"
+    report.write_bytes((FIXTURES / "trivy-image.json").read_bytes())
+    result = _run_script("trivy_gate_summary.py", [str(report)], {}, tmp_path)
+    assert result.returncode == 0, result.stderr
+    out = result.stdout
+    assert "### Trivy gate: fixable CRITICAL/HIGH findings" in out
+    assert "| CVE-2026-0001 | CRITICAL | critical | libssl3 fixed in 3.0.17-1 |" in out
+    assert "| CVE-2026-0002 | HIGH | high | bash fixed in 5.2.15-2 |" in out
+
+
+def test_publish_gate_summary_json_skips_unfixable(tmp_path: Path) -> None:
+    report = tmp_path / "trivy-image.json"
+    report.write_text(
+        '{"Results": [{"Vulnerabilities": ['
+        '{"Severity": "HIGH", "FixedVersion": "", "VulnerabilityID": "CVE-1"},'
+        '{"Severity": "LOW", "FixedVersion": "1.0", "VulnerabilityID": "CVE-2"}'
+        "]}]}",
+        encoding="utf-8",
+    )
+    result = _run_script("trivy_gate_summary.py", [str(report)], {}, tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert "CVE-1" not in result.stdout
+    assert "CVE-2" not in result.stdout
+
+
 def test_publish_gate_summary_empty_results(tmp_path: Path) -> None:
     sarif = tmp_path / "trivy-image.sarif"
     sarif.write_text('{"runs": [{"results": []}]}', encoding="utf-8")
