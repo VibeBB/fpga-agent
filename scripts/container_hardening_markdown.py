@@ -13,6 +13,10 @@ import sys
 from typing import Any, cast
 
 
+def _metric(table: dict[str, Any], key: str) -> Any:
+    return table.get(key) or 0
+
+
 def main() -> int:
     with open(os.environ["REPORT_JSON"], encoding="utf-8") as fh:
         data: Any = json.load(fh)
@@ -25,7 +29,7 @@ def main() -> int:
     print(f"| Trivy vulns C/H/M/L | {t['critical']}/{t['high']}/{t['medium']}/{t['low']} |")
     print(f"| Fixable HIGH+CRITICAL | {t['fixable_high_or_critical']} |")
     print(f"| Misconfig pass | {t['misconfig_pass']}/{t['misconfig_total']} |")
-    print(f"| Secrets found | {t['secrets']} |")
+    print(f"| Secrets found | {_metric(t, 'secrets')} |")
     print(f"| CIS Docker pass/fail | {r['cis_docker']['passed']}/{r['cis_docker']['failed']} |")
     print(f"| Lynis hardening index (trend only) | {r['lynis']['hardening_index']} |")
     print(f"| Lynis warnings | {r['lynis']['warnings']} |")
