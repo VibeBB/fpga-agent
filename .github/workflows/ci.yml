@@ -25,15 +25,19 @@ jobs:
     timeout-minutes: 10
     outputs:
       code: ${{ steps.scope.outputs.code }}
+      pinscript: ${{ steps.scope.outputs.pinscript }}
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           disable-telemetry: true
+      # Only pull_request events diff BASE_SHA..HEAD_SHA; push/dispatch/call
+      # events short-circuit to code=true below and never need the clone.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'pull_request'
         with:
-          ref: ${{ inputs.ref || github.sha }}
-          fetch-depth: 0
+          ref: ${{ inputs.ref }}
+          fetch-depth: 100
           persist-credentials: false
       - id: scope
         env:
@@ -46,12 +50,32 @@ jobs:
             echo "code=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          # fetch-depth: 100 covers ordinary PRs; fetch the base commit and
+          # deepen progressively when the merge base is still unreachable
+          # (long-lived PRs or deep main history), unshallowing as a last
+          # resort so the diff can never silently cover an empty range.
+          git cat-file -e "$BASE_SHA" 2>/dev/null || \
+            git fetch -q --depth=100 origin "$BASE_SHA"
+          attempt=0
+          until git merge-base "$BASE_SHA" "$HEAD_SHA" >/dev/null 2>&1; do
+            attempt=$((attempt + 1))
+            if [ "$attempt" -lt 4 ]; then
+              git fetch -q --deepen=500 origin || break
+            else
+              git fetch -q --unshallow origin || break
+            fi
+          done
           git diff --name-only "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" "$HEAD_SHA" > "$RUNNER_TEMP/changed-files"
           if grep -Ev '^(docs/|[^/]+\.md$|LICENSE$|\.github/ISSUE_TEMPLATE/|\.github/PULL_REQUEST_TEMPLATE\.md$)' "$RUNNER_TEMP/changed-files" >/dev/null; then
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
           fi
+          pinscript=false
+          if grep -qE '^(scripts/publish_image_pin_pr\.sh|tests/test_publish_image_pin_pr\.py|\.github/workflows/publish-fpga-images\.yml)$' "$RUNNER_TEMP/changed-files"; then
+            pinscript=true
+          fi
+          echo "pinscript=$pinscript" >> "$GITHUB_OUTPUT"
 
   dockerfile-lint:
     runs-on: ubuntu-26.04
@@ -119,6 +143,32 @@ jobs:
       - name: Docs
         run: uv run python scripts/verify_docs.py
 
+  # prodeng-style guard: the pin-PR script drives branch protection and
+  # auto-merge during real publishes, so its stub tests run on PRs that
+  # touch the script, its tests, or the publishing workflow.
+  pin-script-guard:
+    needs: changes
+    if: needs.changes.outputs.pinscript == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+          disable-telemetry: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.12"
+          cache-suffix: pin-script-guard
+      - name: Sync dependencies
+        run: uv sync --locked
+      - name: Run pin-PR script tests
+        run: uv run pytest tests/test_publish_image_pin_pr.py -q
+
   e2e:
     needs: changes
     if: needs.changes.outputs.code == 'true'
@@ -135,14 +185,20 @@ jobs:
           persist-credentials: false
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Build fpga-tools image
-        env:
-          IMAGE_REVISION: ${{ inputs.ref || github.sha }}
-        run: >-
-          docker buildx build --load
-          -f docker/fpga-tools.Dockerfile -t fpga-tools:ci
-          --build-arg "IMAGE_REVISION=$IMAGE_REVISION"
-          --cache-from type=gha,scope=fpga-tools
-          --cache-to type=gha,mode=max,scope=fpga-tools .
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: docker/fpga-tools.Dockerfile
+          build-args: |
+            IMAGE_REVISION=${{ inputs.ref || github.sha }}
+          load: true
+          tags: fpga-tools:ci
+          # Same default gha scope publish-fpga-images.yml uses: e2e
+          # imports the cache publish keeps warm on main. The previous
+          # raw `docker buildx build` never received the ACTIONS_* cache
+          # envs, so its --cache-* flags were dead config.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true
       - name: Fetch Colibri
         run: python3 scripts/fetch_colibri.py
       - name: Full gates in the image (no network)

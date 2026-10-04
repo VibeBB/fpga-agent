@@ -104,23 +104,17 @@ jobs:
           exit-code: '0'
           format: json
           output: trivy-image.json
-      - name: Scan tools image (Trivy SARIF)
+      # One image scan feeds both consumers: the JSON report is uploaded
+      # for diagnostics, and `trivy convert` derives the SARIF + gate from
+      # it instead of rescanning the same digest a second time.
+      - name: Gate tools image on fixable CRITICAL/HIGH findings
         id: trivy-scan
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: image
-          # Scan the exact pushed digest — the content the SBOM and
-          # provenance attestations bind to.
-          scan-ref: ghcr.io/${{ env.IMAGE_OWNER }}/fpga-tools@${{ steps.tools.outputs.digest }}
-          version: v0.75.0
-          scanners: vuln,secret,misconfig
-          severity: CRITICAL,HIGH
-          ignore-unfixed: true
-          exit-code: '1'
-          format: sarif
-          output: trivy-image.sarif
-          limit-severities-for-sarif: true
-          skip-setup-trivy: true
+        run: |
+          set -euo pipefail
+          trivy convert --format sarif --severity CRITICAL,HIGH \
+            --ignore-unfixed --output trivy-image.sarif trivy-image.json
+          trivy convert --format table --severity CRITICAL,HIGH \
+            --ignore-unfixed --exit-code 1 trivy-image.json
       - name: Upload Trivy SARIF
         if: always() && hashFiles('trivy-image.sarif') != ''
         uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
@@ -134,6 +128,14 @@ jobs:
           name: fpga-tools-trivy
           path: trivy-image.json
           retention-days: 90
+      - name: Summarize Trivy gate failure
+        # When the gate found fixable CRITICAL/HIGH findings, list the
+        # offending rules in the step summary so the publish failure is
+        # reviewable without downloading artifacts.
+        if: always() && steps.trivy-scan.outcome == 'failure' && hashFiles('trivy-image.sarif') != ''
+        run: |
+          set -euo pipefail
+          python3 scripts/trivy_gate_summary.py trivy-image.sarif >> "$GITHUB_STEP_SUMMARY"
       - name: Attest tools image provenance
         id: attest
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2

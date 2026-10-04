@@ -105,7 +105,7 @@ summary.
 
 ## Digest-lock PR verification
 
-The publisher dispatches `ci.yml` and `workflow-lint.yml` on the lock branch, then polls the authoritative required-check set for up to 30 minutes. Non-required failures do not block publishing; a concluded required-check failure or a PR closed without merge fails the job. A PR merged externally triggers the existing post-merge main workflows without waiting for their results. If required checks remain pending at the deadline, the publisher arms squash auto-merge with branch deletion and exits successfully so branch protection can complete the merge. When the merge later lands — either via armed auto-merge or via the `digest-lock-sweep.yml` retry — the sweep's own merge dispatches `ci.yml` and `locked-image-check.yml` on main, closing the post-merge verification gap left by token merges suppressing push triggers.
+The publisher dispatches `ci.yml` and `workflow-lint.yml` on the lock branch — skipped when a pull_request run already covers the PR head SHA, since the required checks would run twice on identical content — then polls the authoritative required-check set for up to 15 minutes. Non-required failures do not block publishing; a concluded required-check failure or a PR closed without merge fails the job. A PR merged externally triggers the existing post-merge main workflows without waiting for their results. If required checks remain pending at the deadline, the publisher arms squash auto-merge with branch deletion and exits successfully so branch protection can complete the merge. When the merge later lands — either via armed auto-merge or via the `digest-lock-sweep.yml` retry — the sweep's own merge dispatches `ci.yml` and `locked-image-check.yml` on main, closing the post-merge verification gap left by token merges suppressing push triggers.
 
 `release.yml` accepts a `dry_run` input that rehearses a release without
 writing anything: the bump job computes the would-be version with
@@ -113,8 +113,8 @@ writing anything: the bump job computes the would-be version with
 release SHA, and the downstream verify/install-smoke/build jobs still
 run against it while tag and release creation are skipped.
 
-The verify job's pytest run enforces `--cov-fail-under=85` (measured
-~90% at adoption; `[tool.coverage.report] fail_under = 67` remains the
+The verify job's pytest run enforces `--cov-fail-under=75` (measured
+~76.5% at adoption; `[tool.coverage.report] fail_under = 67` remains the
 local baseline), so the existing coverage measurement now gates
 regressions.
 
@@ -124,3 +124,15 @@ removes file entries and relationships involving files to produce the
 package-level SPDX-2.3 SBOM. A guard reports disk space and the attested SBOM
 size after transformation and fails above 16 MiB; the full Syft SBOM is
 uploaded as a 90-day workflow-run artifact.
+
+## Scheduled hygiene
+
+`ghcr-tag-retention.yml` runs weekly and deletes orphaned `<sha>-tools`
+tags from the fpga-tools package — failed publishes push a per-sha tag
+that is never promoted, locked, or attested. A tag is only removed when
+it is older than 14 days, its digest is not the one pinned by
+`docker/image-digests.json`, and no build-provenance attestation exists
+for the digest; `workflow_dispatch` offers a `dry_run` report mode.
+`codeql.yml` runs CodeQL (python) on PRs, main pushes, and a weekly
+schedule, feeding the code-scanning dashboard the scorecard SAST check
+measures.

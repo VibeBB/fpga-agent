@@ -10,8 +10,14 @@ uv run --no-sync python scripts/check_dependency_updates.py \
 ```
 
 The report checks direct and locked PyPI dependencies, the uv pin, GitHub
-Actions SHA pins, pinned `uvx` tools, Docker ARG release pins, the Ubuntu base
+Actions SHA pins (including subpath actions such as
+`github/codeql-action/upload-sarif`, resolved to the owning repository),
+pinned `uvx` tools, Docker ARG release pins, the Ubuntu base
 tag, `git clone --branch` pins inside workflows, and Python-version support.
+Direct-download pins in workflows are tracked too: the sha256-pinned
+actionlint tarball and zizmor wheel in `workflow-lint.yml`, and tool
+`version:` inputs on actions (the Trivy version given to
+`aquasecurity/trivy-action` and `aquasecurity/setup-trivy`).
 Review candidates against upstream release notes and compatibility with the
 FPGA gates. Regenerate `uv.lock` with uv; do not edit it by hand.
 
@@ -58,6 +64,8 @@ an owner to revisit it by the listed date.
 The scheduled workflow writes its Markdown and JSON reports under the runner's
 temporary directory, adds the report and run URL to the step summary, and
 exposes outdated and unknown counts. Fetch failures are reported as unknown;
-the tracking issue stays open until both counts are zero. Dependabot groups
+the tracking issue is only created or kept open while either count is
+nonzero; a clean run edits/closes an existing issue and otherwise writes
+just the step summary. Dependabot groups
 GitHub Actions updates and applies a seven-day cooldown to Actions and Docker
 updates.
