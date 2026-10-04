@@ -86,10 +86,8 @@ def test_main_failure_workflow_names_existing_workflows() -> None:
 def test_release_reuses_ci_and_packages_fpga_assets() -> None:
     text = (REPO_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
     assert "uses: ./.github/workflows/ci.yml" in text
-    assert "plugins/fpga/.plugin/plugin.json" in text
     assert 'zip -r "../dist/fpga-plugin-v${VERSION}.zip" fpga' in text
     assert 'zip -r "dist/fpga-examples-v${VERSION}.zip" examples' in text
-    assert "workflow-lint.yml" in text
     assert "smoke_install_plugin.py" in text
     assert "install-smoke" in text
     assert "--repo VibeBB/fpga-agent" in text

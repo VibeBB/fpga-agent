@@ -121,7 +121,17 @@ The publisher dispatches `ci.yml` and `workflow-lint.yml` on the lock branch —
 writing anything: the bump job computes the would-be version with
 `bump_version.py --dry-run`, checks the tag is free, emits HEAD as the
 release SHA, and the downstream verify/install-smoke/build jobs still
-run against it while tag and release creation are skipped.
+run against it while tag and release creation are skipped. The
+bump-version state machine — version resolution, tag check, direct push,
+and the self-approving + dispatched-checks + auto-merge fallback PR — lives
+in `scripts/release_bump.sh` (the workflow step is a thin wrapper) and is
+covered by `tests/test_release_bump.py` (stubbed `gh`, local git remotes).
+
+`publish-fpga-images.yml` accepts a `dry_run` dispatch input that rehearses
+the publish: the image builds into the local daemon and the Trivy gate,
+SBOM chain, measurement, and smoke checks still run against it, but nothing
+is pushed, promoted (`:latest`), attested, locked, or dispatched, and no
+SARIF reaches code scanning. The run summary lists every skipped step.
 
 The verify job's pytest run enforces `--cov-fail-under=75` (measured
 ~76.5% at adoption; `[tool.coverage.report] fail_under = 67` remains the
