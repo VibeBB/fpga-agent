@@ -20,6 +20,27 @@
       "latest": "2026-10-03",
       "review_by": "2027-01-03",
       "reason": "The pinned suite tarball vendors python2.7/python3.11 site-packages carrying 6 upstream-borne CVEs (9 Trivy findings) that no in-repo change can fix; they are waived in .trivyignore until 2027-01-03. On the next OSS_CAD_SUITE_RELEASE bump, re-scan the image and drop the waivers that upstream's rebuilt pythons cleared."
+    },
+    {
+      "surface": "uv-pin",
+      "name": "uv",
+      "latest": "0.12.23",
+      "review_by": "2027-01-04",
+      "reason": "0.12.22 is the version the family-wide snapshot rebuild standardized on this wave (required-version in pyproject.toml and the workflow bootstrap); a same-day 0.12.23 release needs an upstream changelog review and a coordinated bump across repos, not a lone-repo edit."
+    },
+    {
+      "surface": "docker-arg",
+      "name": "UV_VERSION",
+      "latest": "0.12.23",
+      "review_by": "2027-01-04",
+      "reason": "Dockerfile UV_VERSION must move with the pyproject required-version pin; deferred with the uv-pin entry pending a coordinated family bump of 0.12.22."
+    },
+    {
+      "surface": "github-actions",
+      "name": "actions/cache",
+      "latest": "v6.1.0",
+      "review_by": "2027-01-04",
+      "reason": "v6 is a brand-new major of actions/cache; the trivy DB cache in container-audit.yml works on v4.3.0. Bump family-wide after an upstream changelog review of the v5/v6 breaking changes."
     }
   ]
 }

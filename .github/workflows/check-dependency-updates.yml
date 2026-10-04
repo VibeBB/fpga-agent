@@ -57,23 +57,15 @@ jobs:
           REPORT_MD: ${{ runner.temp }}/report.md
           OUTDATED: ${{ steps.report.outputs.outdated }}
           UNKNOWN_COUNT: ${{ steps.report.outputs.unknown_count }}
+          LABEL: dependency-updates
+          LABEL_COLOR: "0366d6"
+          LABEL_DESCRIPTION: Dependency update report
+          TITLE: Dependency update check report
+          CLOSE_COMMENT: All checked dependencies are current.
+        # A clean run edits/closes an existing report issue but never
+        # creates a fresh one — the report markdown is already in the
+        # step summary, so nothing is lost.
         run: |
-          # gh issue create fails with "could not add label" when the label
-          # does not exist (observed before the first report issue landed).
-          gh label create dependency-updates --repo "$GITHUB_REPOSITORY" \
-            --color 0366d6 --description "Dependency update report" --force
-          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
-            --label dependency-updates \
-            --search "in:title Dependency update check report" \
-            --json number --jq '.[0].number // empty')
-          if [ -n "$number" ]; then
-            gh issue edit "$number" --repo "$GITHUB_REPOSITORY" --body-file "$REPORT_MD"
-          else
-            number=$(gh issue create --repo "$GITHUB_REPOSITORY" \
-              --title "Dependency update check report" --label dependency-updates \
-              --body-file "$REPORT_MD" | sed 's#.*/##')
-          fi
-          if [ "$OUTDATED" = "0" ] && [ "$UNKNOWN_COUNT" = "0" ] && [ -n "$number" ]; then
-            gh issue close "$number" --repo "$GITHUB_REPOSITORY" \
-              --comment "All checked dependencies are current."
-          fi
+          clean=0
+          [ "$OUTDATED" = "0" ] && [ "$UNKNOWN_COUNT" = "0" ] && clean=1
+          CLEAN=$clean bash scripts/upsert_report_issue.sh

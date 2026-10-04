@@ -115,6 +115,23 @@ approve_gated_runs() {
   done <<< "$run_ids"
 }
 
+pull_request_run_covers_head() {
+  # The pull_request event on the lock branch already triggers the same
+  # required checks at the same head SHA; dispatching them again by hand
+  # duplicates ~5 minutes of runner time per workflow. Returns 0 when a
+  # pull_request-triggered run for this workflow covers the PR head.
+  local workflow=$1
+  local head_sha
+  head_sha=$(retry gh pr view "$PR_URL" --repo "$GITHUB_REPOSITORY" \
+    --json headRefOid --jq '.headRefOid' 2>/dev/null || true)
+  [ -n "$head_sha" ] || return 1
+  retry gh run list --repo "$GITHUB_REPOSITORY" --workflow "$workflow" \
+    --branch "$BRANCH" --event pull_request --limit 20 \
+    --json databaseId,headSha \
+    --jq ".[] | select(.headSha == \"$head_sha\") | .databaseId" \
+    | grep -q .
+}
+
 dispatch_pin_workflow() {
   local workflow=$1
   local -a command=(gh workflow run "$workflow" --repo "$GITHUB_REPOSITORY" --ref "$BRANCH")
@@ -122,6 +139,10 @@ dispatch_pin_workflow() {
     command+=(-f "base_sha=$BASE_SHA")
   fi
   check_pin_pr_state
+  if pull_request_run_covers_head "$workflow"; then
+    echo "A pull_request $workflow run already covers the pin PR head; skipping dispatch."
+    return 0
+  fi
   if retry "${command[@]}"; then
     return 0
   fi
