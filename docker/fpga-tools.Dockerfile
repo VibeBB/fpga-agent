@@ -1,4 +1,4 @@
-ARG UV_VERSION=0.12.22
+ARG UV_VERSION=0.12.23
 ARG UV_DIGEST=sha256:f513a91fc62fe7c17567eee97230dd198e43edb8a9fbecca843714a4358fe1bc
 FROM ghcr.io/astral-sh/uv:${UV_VERSION}@${UV_DIGEST} AS uv
 
@@ -83,12 +83,12 @@ COPY src ./src
 # msgpack, and setuptools that nothing in the image invokes — dependencies
 # install via uv and the shipped venv is pip-less — so strip the payload
 # instead of shipping unused vulnerable vendored packages.
-RUN uv python install 3.12 \
+RUN uv python install 3.14 \
     && rm -rf /opt/uv-python/bin/pip* \
               /opt/uv-python/cpython-*/bin/pip* \
-              /opt/uv-python/cpython-*/lib/python3.12/site-packages/pip \
-              /opt/uv-python/cpython-*/lib/python3.12/site-packages/pip-*.dist-info \
-              /opt/uv-python/cpython-*/lib/python3.12/ensurepip \
+              /opt/uv-python/cpython-*/lib/python3.14/site-packages/pip \
+              /opt/uv-python/cpython-*/lib/python3.14/site-packages/pip-*.dist-info \
+              /opt/uv-python/cpython-*/lib/python3.14/ensurepip \
     && uv sync --locked --no-dev --no-group sdk-check \
     && python -m fpga --help >/dev/null
 
