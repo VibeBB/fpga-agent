@@ -85,13 +85,36 @@ def test_cis_empty_results_still_fail_closed(tmp_path: Path) -> None:
     assert "Docker CIS scan produced no results" in result.stderr
 
 
-def test_empty_misconfig_results_fail_closed(tmp_path: Path) -> None:
-    env = _compute_env(tmp_path, write_config=False)
-    # Strip every Misconfigurations key so both scans yield 0/0 — dead
-    # telemetry must fail, not masquerade as coverage.
+def test_misconfig_summary_counts_when_no_entries(tmp_path: Path) -> None:
+    # A clean `trivy config` run emits only MisconfSummary (trivy 0.75
+    # omits passing checks from Misconfigurations): coverage exists and
+    # the report must count it instead of failing closed.
+    env = _compute_env(tmp_path)
     image = json.loads((tmp_path / "trivy-image.json").read_text(encoding="utf-8"))
     for result in image.get("Results", []):
         result.pop("Misconfigurations", None)
+        result.pop("MisconfSummary", None)
+    (tmp_path / "trivy-image.json").write_text(json.dumps(image), encoding="utf-8")
+    (tmp_path / "trivy-config.json").write_text(
+        '{"Results": [{"Target": "fpga-tools.Dockerfile", "Class": "config",'
+        ' "MisconfSummary": {"Successes": 25, "Failures": 0}}]}',
+        encoding="utf-8",
+    )
+    result = _run_script("container_hardening_report.py", [], env, tmp_path)
+    assert result.returncode == 0, result.stderr
+    report = json.loads((tmp_path / "container-hardening.json").read_text(encoding="utf-8"))
+    assert report["trivy"]["misconfig_pass"] == 25
+    assert report["trivy"]["misconfig_total"] == 25
+
+
+def test_empty_misconfig_results_fail_closed(tmp_path: Path) -> None:
+    env = _compute_env(tmp_path, write_config=False)
+    # Strip every Misconfigurations and MisconfSummary key so both scans
+    # yield 0/0 — dead telemetry must fail, not masquerade as coverage.
+    image = json.loads((tmp_path / "trivy-image.json").read_text(encoding="utf-8"))
+    for result in image.get("Results", []):
+        result.pop("Misconfigurations", None)
+        result.pop("MisconfSummary", None)
     (tmp_path / "trivy-image.json").write_text(json.dumps(image), encoding="utf-8")
     result = _run_script("container_hardening_report.py", [], env, tmp_path)
     assert result.returncode != 0
@@ -131,6 +154,32 @@ def test_publish_gate_summary_renders_offending_rules(tmp_path: Path) -> None:
     assert "### Trivy gate: fixable CRITICAL/HIGH findings" in out
     assert "| CVE-2026-0001 | 9.8 | error |" in out
     assert "| CVE-2026-0002 | 7.5 | error |" in out
+
+
+def test_publish_gate_summary_reads_trivy_json(tmp_path: Path) -> None:
+    report = tmp_path / "trivy-image.json"
+    report.write_bytes((FIXTURES / "trivy-image.json").read_bytes())
+    result = _run_script("trivy_gate_summary.py", [str(report)], {}, tmp_path)
+    assert result.returncode == 0, result.stderr
+    out = result.stdout
+    assert "### Trivy gate: fixable CRITICAL/HIGH findings" in out
+    assert "| CVE-2026-0001 | CRITICAL | critical | libssl3 fixed in 3.0.17-1 |" in out
+    assert "| CVE-2026-0002 | HIGH | high | bash fixed in 5.2.15-2 |" in out
+
+
+def test_publish_gate_summary_json_skips_unfixable(tmp_path: Path) -> None:
+    report = tmp_path / "trivy-image.json"
+    report.write_text(
+        '{"Results": [{"Vulnerabilities": ['
+        '{"Severity": "HIGH", "FixedVersion": "", "VulnerabilityID": "CVE-1"},'
+        '{"Severity": "LOW", "FixedVersion": "1.0", "VulnerabilityID": "CVE-2"}'
+        "]}]}",
+        encoding="utf-8",
+    )
+    result = _run_script("trivy_gate_summary.py", [str(report)], {}, tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert "CVE-1" not in result.stdout
+    assert "CVE-2" not in result.stdout
 
 
 def test_publish_gate_summary_empty_results(tmp_path: Path) -> None:

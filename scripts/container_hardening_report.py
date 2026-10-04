@@ -75,14 +75,22 @@ def main() -> int:
         licenses += len(result.get("Licenses") or [])
     # `trivy image --scanners misconfig` emits no Misconfigurations for
     # this image class; the Dockerfile config scan (TRIVY_CONFIG) supplies
-    # the real misconfig coverage.
+    # the real misconfig coverage. Trivy 0.75 omits passing checks from
+    # Misconfigurations, so MisconfSummary is the authoritative count;
+    # the entry walk is kept for scanners that emit PASS/FAIL rows.
     for key in ("TRIVY_JSON", "TRIVY_CONFIG"):
         config = _load(os.environ[key]) if os.environ.get(key) else {}
         for result in _list_of_dicts(config, "Results"):
-            for m in _list_of_dicts(result, "Misconfigurations"):
-                mis_total += 1
-                if m.get("Status") == "PASS":
-                    mis_pass += 1
+            summary_node = result.get("MisconfSummary")
+            if isinstance(summary_node, dict):
+                summary = cast(dict[str, Any], summary_node)
+                mis_pass += int(summary.get("Successes") or 0)
+                mis_total += int(summary.get("Successes") or 0) + int(summary.get("Failures") or 0)
+            else:
+                for m in _list_of_dicts(result, "Misconfigurations"):
+                    mis_total += 1
+                    if m.get("Status") == "PASS":
+                        mis_pass += 1
     if mis_total == 0:
         # dead telemetry must fail, not masquerade as coverage
         sys.exit("Misconfig scans produced no results")

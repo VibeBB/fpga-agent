@@ -153,8 +153,12 @@ jobs:
             # Retry once on an empty result set before letting the
             # aggregation guard below fail the job — a transient
             # zero-result scan on a healthy digest was observed on
-            # 2026-10-03.
+            # 2026-10-03. Purge the cached trivy data (vuln DB + checks
+            # bundle) first so a poisoned weekly cache cannot produce
+            # the same empty report on the retry; the config scan below
+            # then re-downloads a fresh bundle too (run 37168758428).
             echo "::warning::Docker CIS scan produced no results (attempt $attempt)"
+            rm -rf "$TRIVY_CACHE_DIR"
             sleep 30
           done
       - name: Scan Dockerfile config (Trivy misconfig)
