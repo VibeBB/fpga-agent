@@ -1,12 +1,12 @@
 {
   "fpga_tools": {
-    "attestation": "https://github.com/VibeBB/fpga-agent/attestations/52508059",
-    "digest": "sha256:4e369b8a2d81b71454fce7440a11689d24f0bc7c4b1b125a59d0e97b4ca995f5",
+    "attestation": "https://github.com/VibeBB/fpga-agent/attestations/52513373",
+    "digest": "sha256:fff927515820ebec53491cfaae7800550333ce7fc7be6e800c6d0c6455ee2cab",
     "dockerfile": "docker/fpga-tools.Dockerfile",
     "image": "ghcr.io/vibebb/fpga-tools",
-    "published_at": "2026-10-04T02:21:33Z",
-    "sbom_attestation": "https://github.com/VibeBB/fpga-agent/attestations/52508155",
-    "tag": "f513c7ce58f19120e09f0c8c376b2a9efad0573d-tools",
+    "published_at": "2026-10-04T03:08:51Z",
+    "sbom_attestation": "https://github.com/VibeBB/fpga-agent/attestations/52513459",
+    "tag": "df0e13b193ab3101fe7bf3a8d82d432113779c99-tools",
     "tools": {
       "boolector": "boolector --version: 3.2.4",
       "ecppack": "ecppack --help: Error: input file is mandatory.",
@@ -21,9 +21,9 @@
       "nextpnr-ice40": "nextpnr-ice40 --version: \"nextpnr-ice40\" -- Next Generation Place and Route (Version nextpnr-0.11.1-47-ge2fe86b3)",
       "nvc": "nvc --version: nvc 1.23.0 (1.23.0.r0.gcba10a2) (Using LLVM 21.1.8)",
       "openFPGALoader": "openFPGALoader -V: openFPGALoader v1.1.1",
-      "python": "python --version: Python 3.12.15",
+      "python": "python --version: Python 3.14.8",
       "sby": "sby --help: usage: sby [options] [<jobname>.sby [tasknames] | <dirname>]",
-      "uv": "uv --version: uv 0.12.22 (x86_64-unknown-linux-musl)",
+      "uv": "uv --version: uv 0.12.23 (x86_64-unknown-linux-musl)",
       "verilator": "verilator --version: Verilator 5.053 devel rev v5.052-288-g5c9a804e8 (mod)",
       "vvp": "vvp -V: Icarus Verilog runtime version 14.0 (devel) (s20260301-508-g2f296d88a-dirty)",
       "yices-smt2": "yices-smt2 --version: Yices 2.7.0",
@@ -31,6 +31,6 @@
       "yosys-smtbmc": "yosys-smtbmc --help: yosys-smtbmc [options] <yosys_smt2_output>",
       "z3": "z3 --version: Z3 version 4.15.5 - 64 bit"
     },
-    "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/37170458015"
+    "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/37172678989"
   }
 }
