@@ -10,8 +10,8 @@ Lattice, Gowin) tool or binary.
 | Component | Version pin | License | Use |
 |---|---|---|---|
 | Ubuntu 26.04 | `ubuntu:26.04@sha256:da6fc2be…` | various | Base image |
-| uv | `ghcr.io/astral-sh/uv:0.12.22` | Apache-2.0 / MIT | Python and package manager |
-| CPython | 3.12.x via uv | PSF-2.0 | Runtime |
+| uv | `ghcr.io/astral-sh/uv:0.12.23` | Apache-2.0 / MIT | Python and package manager |
+| CPython | 3.14.x via uv | PSF-2.0 | Runtime |
 | OSS CAD Suite | release `2026-10-03`, asset `oss-cad-suite-linux-x64-20261003.tgz`, sha256 `41b1e1c669efe199ac6e3969b067b84622c365871b4bc09e6b9357ea2f001dcc` | bundle of the tools below; each keeps its license in `/opt/oss-cad-suite/license` | Toolchain bundle |
 | Yosys (+ ABC) | 0.69+158 (suite) | ISC (ABC: BSD-style) | Synthesis |
 | GHDL Yosys plugin | suite | GPL-3.0 | VHDL front end for synthesis and formal |

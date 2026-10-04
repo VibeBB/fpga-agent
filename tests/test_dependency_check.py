@@ -61,7 +61,7 @@ def test_docker_args_report_fetch_failed_on_timeout():
 def test_docker_release_pins_use_upstream_latest_tags() -> None:
     def tags(url: str) -> list[str]:
         if url.endswith("astral-sh/uv"):
-            return ["0.12.22"]
+            return ["0.12.23"]
         if url.endswith("nickg/nvc"):
             return ["r1.23.0", "r1.24.0"]
         if url.endswith("YosysHQ/oss-cad-suite-build"):
@@ -73,8 +73,8 @@ def test_docker_release_pins_use_upstream_latest_tags() -> None:
     nvc_status = next(status for status in statuses if status.name == "NVC_VERSION")
     oss_status = next(status for status in statuses if status.name == "OSS_CAD_SUITE_RELEASE")
     assert (uv_status.current, uv_status.latest, uv_status.outdated) == (
-        "0.12.22",
-        "0.12.22",
+        "0.12.23",
+        "0.12.23",
         False,
     )
     assert (nvc_status.current, nvc_status.latest, nvc_status.outdated) == (
