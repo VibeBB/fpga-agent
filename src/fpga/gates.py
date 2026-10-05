@@ -42,6 +42,13 @@ SPDX_TOKEN = re.compile(r"[A-Za-z0-9.+-]+")
 SPDX_OPERATORS = frozenset({"AND", "OR", "WITH"})
 
 
+class RenderRef(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    view: str
+    path: str
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
 class Check(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str
@@ -53,7 +60,7 @@ class Check(BaseModel):
 
 class GateReport(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     system: Literal["fpga"] = "fpga"
     artifact_kind: Literal["fpga_gate_report"] = "fpga_gate_report"
     design: str
@@ -64,6 +71,7 @@ class GateReport(BaseModel):
     bitstream_sha256: str | None = None
     verdict: Verdict
     checks: list[Check]
+    renders: list[RenderRef] = Field(default_factory=list[RenderRef])
 
 
 def _check(
@@ -434,6 +442,7 @@ def run_gates(
     else:
         checks.append(check_netlist_match(contract, profile, circuit))
     bitstream_sha: str | None = None
+    renders: list[RenderRef] = []
     if full:
         if checks[0].status == "fail":
             checks.append(_check("fpga.lint", contract.top, ["contract gate failed"]))
@@ -449,6 +458,8 @@ def run_gates(
                     ),
                     None,
                 )
+    if full:
+        renders = _render_checks(contract, profile, out_dir, contract_path, checks)
     verdict: Verdict = PASS if all(c.status != "fail" for c in checks) else FAIL
     return GateReport(
         design=contract.name,
@@ -459,7 +470,43 @@ def run_gates(
         bitstream_sha256=bitstream_sha,
         verdict=verdict,
         checks=checks,
+        renders=renders,
     )
+
+
+def _render_checks(
+    contract: FpgaContract,
+    profile: DeviceProfile,
+    out_dir: Path,
+    contract_path: Path,
+    checks: list[Check],
+) -> list[RenderRef]:
+    """Render the run's views; failures are evidence notes, never verdicts."""
+    from .render import related_check, render_view_pngs, skipped_note
+
+    build_dir = resolve(contract_path, contract.build.dir)
+    rendered, skipped = render_view_pngs(
+        contract,
+        profile,
+        out_dir,
+        build_dir=build_dir,
+        views=["utilization", "timing", "floorplan", "waveform"],
+        gate_report_path=out_dir / "_never.json",
+    )
+    for item in skipped:
+        check_id = related_check(item["view"])
+        note = skipped_note(item["view"], item["reason"])
+        target = next((c for c in checks if c.id == check_id), None)
+        if target is not None:
+            target.evidence.append(note)
+    return [
+        RenderRef(
+            view=str(item["view"]),
+            path=Path(str(item["path"])).name,
+            sha256=str(item["sha256"]),
+        )
+        for item in rendered
+    ]
 
 
 def _toolchain_checks(
@@ -593,7 +640,12 @@ def write_outputs(contract_path: Path, report: GateReport, out_dir: Path) -> lis
         profile = load_profile(contract.device.profile, [contract_path.parent])
     except (OSError, ValueError, ValidationError):
         return written
-    pinmap = pinmap_export(contract, profile, sha256_file(contract_path))
+    circuit_sha: str | None = None
+    if contract.circuit is not None:
+        circuit_path = resolve(contract_path, contract.circuit.connectivity)
+        if circuit_path.is_file():
+            circuit_sha = sha256_file(circuit_path)
+    pinmap = pinmap_export(contract, profile, sha256_file(contract_path), circuit_sha)
     written.append(
         write_text(
             out_dir / f"{contract.name}.fpga-pinmap.json",
@@ -601,4 +653,14 @@ def write_outputs(contract_path: Path, report: GateReport, out_dir: Path) -> lis
         )
     )
     written.append(write_text(out_dir / f"{contract.name}.fpga-pinmap.md", pinmap_markdown(pinmap)))
+    try:
+        from .render import pinmap_canvas, report_canvas, write_png
+
+        write_png(pinmap_canvas(contract, profile), out_dir / f"{contract.name}.fpga-pinmap.png")
+        write_png(
+            report_canvas(report.model_dump(mode="json")),
+            out_dir / f"{contract.name}.fpga-report.png",
+        )
+    except Exception:  # renders are best-effort, never a verdict
+        pass
     return written

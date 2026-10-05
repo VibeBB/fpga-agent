@@ -82,7 +82,55 @@ def test_pinmap_export(ulx3s: Path) -> None:
     assert {"port": "clk_25mhz", "package_pin": "G2"}.items() <= pinmap["pins"][0].items()
 
 
-def test_request_artifact(ulx3s: Path) -> None:
+def _decision_event(root: Path) -> str:
+    """Append a minimal decision record so requests have a ref to cite."""
+    from typing import Any
+
+    from fpga import records
+
+    root.joinpath("out").mkdir(exist_ok=True)
+    root.joinpath("out/design.v").write_text("module m; endmodule\n", encoding="utf-8")
+    result = records.record_decision(
+        {
+            "id": "fpga-request-test",
+            "stage": "design",
+            "question": "Which pin should carry the LED?",
+            "principles": ["an I/O pin must meet the required voltage standard"],
+            "options": [
+                {"name": "G2", "pros": ["free"], "cons": ["shared"]},
+                {"name": "T1", "pros": ["dedicated"], "cons": ["far"]},
+            ],
+            "chosen": "G2",
+            "rationale": (
+                "G2 already carries the LED net on the reference board, meets the"
+                " 3.3 V I/O standard, and requires no rework of the carrier board,"
+                " which keeps the change minimal and the risk of a new constraint"
+                " mistake close to zero for this particular board revision."
+            ),
+            "risks": ["pin is shared"],
+            "revisit_when": "the carrier board changes",
+            "evidence": [{"path": "out/design.v"}],
+        },
+        root=root,
+    )
+    return cast(dict[str, Any], result["record"])["event_id"]
+
+
+def test_request_artifact(ulx3s: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = ulx3s.parent
+    monkeypatch.setenv("OPENHANDS_PROJECT_DIR", str(root))
+    decision = _decision_event(root)
+    missing_ref = service.request_payload(
+        ulx3s,
+        None,
+        target="circuit",
+        risk="low",
+        change="x".ljust(10),
+        rationale="y".ljust(10),
+        nets=[],
+        failing_checks=[],
+    )
+    assert missing_ref["verdict"] == "fail"
     payload = service.request_payload(
         ulx3s,
         None,
@@ -92,12 +140,16 @@ def test_request_artifact(ulx3s: Path) -> None:
         rationale="the LED0 path misses timing",
         nets=["LED0"],
         failing_checks=["fpga.timing"],
+        decision_refs=[decision],
     )
     assert payload["verdict"] == "pass"
     written = Path(cast(list[str], payload["written"])[0])
     assert written.name.endswith(".fpga-request.json")
     request = json.loads(written.read_text())
     assert request["target"] == "circuit" and request["failing_checks"] == ["fpga.timing"]
+    assert request["schema_version"] == 2
+    assert request["decision_refs"] == [decision]
+    assert request["inputs"][0]["path"] == ulx3s.name
     bad = service.request_payload(
         ulx3s,
         None,
@@ -218,7 +270,7 @@ def _launch(
     )
 
 
-def test_launcher_host_mode_runs_cli(ulx3s: Path, tmp_path: Path) -> None:
+def test_launcher_fails_closed_without_image(ulx3s: Path, tmp_path: Path) -> None:
     plugin_root = tmp_path / "plugins" / "fpga"
     shutil.copytree(PLUGIN, plugin_root)
     (plugin_root / "tools-image.json").write_text(
@@ -232,8 +284,10 @@ def test_launcher_host_mode_runs_cli(ulx3s: Path, tmp_path: Path) -> None:
         encoding="utf-8",
     )
     result = _launch(["validate", str(ulx3s)], tmp_path, plugin_root)
-    assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout)["verdict"] == "pass"
+    assert result.returncode == 1
+    result = _launch(["validate", str(ulx3s), "--warn"], tmp_path, plugin_root)
+    assert result.returncode == 0
+    assert json.loads(result.stdout)["verdict"] == "fail"
 
 
 def test_launcher_program_fails_closed_on_host(ulx3s: Path, tmp_path: Path) -> None:

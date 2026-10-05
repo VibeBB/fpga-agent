@@ -223,8 +223,6 @@ class FpgaContract(_Strict):
                 raise ValueError(f"simulation {sim.id}: {family} designs run on {expected}")
             if any(_family(s.language) != family for s in sim.sources):
                 raise ValueError(f"simulation {sim.id}: testbench language differs from design")
-            if sim.waveform and sim.runner != "nvc":
-                raise ValueError(f"simulation {sim.id}: waveform capture needs the nvc runner")
         for run in self.formal:
             if any(_family(s.language) != family for s in run.sources):
                 raise ValueError(f"formal {run.id}: property language differs from design")

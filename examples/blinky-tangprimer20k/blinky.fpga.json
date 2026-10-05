@@ -4,16 +4,49 @@
   "artifact_kind": "fpga_contract",
   "name": "blinky",
   "description": "Counter on four LEDs of a Sipeed Tang Primer 20K dock (Gowin GW2A-18C)",
-  "device": {"profile": "gowin-gw2a18c-pbga256", "ref": "U1"},
+  "device": {
+    "profile": "gowin-gw2a18c-pbga256",
+    "ref": "U1"
+  },
   "top": "blinky",
-  "sources": [{"path": "rtl/blinky.vhdl", "language": "vhdl"}],
-  "clocks": [{"port": "clk", "frequency_mhz": 27}],
+  "sources": [
+    {
+      "path": "rtl/blinky.vhdl",
+      "language": "vhdl"
+    }
+  ],
+  "clocks": [
+    {
+      "port": "clk",
+      "frequency_mhz": 27
+    }
+  ],
   "pins": [
-    {"port": "clk", "package_pin": "H11", "io_standard": "LVCMOS33"},
-    {"port": "led[0]", "package_pin": "L16", "io_standard": "LVCMOS33"},
-    {"port": "led[1]", "package_pin": "L14", "io_standard": "LVCMOS33"},
-    {"port": "led[2]", "package_pin": "N14", "io_standard": "LVCMOS33"},
-    {"port": "led[3]", "package_pin": "N16", "io_standard": "LVCMOS33"}
+    {
+      "port": "clk",
+      "package_pin": "H11",
+      "io_standard": "LVCMOS33"
+    },
+    {
+      "port": "led[0]",
+      "package_pin": "L16",
+      "io_standard": "LVCMOS33"
+    },
+    {
+      "port": "led[1]",
+      "package_pin": "L14",
+      "io_standard": "LVCMOS33"
+    },
+    {
+      "port": "led[2]",
+      "package_pin": "N14",
+      "io_standard": "LVCMOS33"
+    },
+    {
+      "port": "led[3]",
+      "package_pin": "N16",
+      "io_standard": "LVCMOS33"
+    }
   ],
   "build": {
     "dir": "build",
@@ -25,14 +58,34 @@
       "id": "count",
       "runner": "nvc",
       "top": "blinky_tb",
-      "sources": [{"path": "tb/blinky_tb.vhdl", "language": "vhdl"}],
-      "expect": ["PASS: blinky counts"],
-      "forbid": ["FAIL"],
-      "stop_time": "10us"
+      "sources": [
+        {
+          "path": "tb/blinky_tb.vhdl",
+          "language": "vhdl"
+        }
+      ],
+      "expect": [
+        "PASS: blinky counts"
+      ],
+      "forbid": [
+        "FAIL"
+      ],
+      "stop_time": "10us",
+      "waveform": true
     }
   ],
   "formal": [
-    {"id": "increment", "top": "blinky", "mode": "prove", "depth": 4, "parameters": {"g_WIDTH": 8}}
+    {
+      "id": "increment",
+      "top": "blinky",
+      "mode": "prove",
+      "depth": 4,
+      "parameters": {
+        "g_WIDTH": 8
+      }
+    }
   ],
-  "programmer": {"board": "tangprimer20k"}
+  "programmer": {
+    "board": "tangprimer20k"
+  }
 }

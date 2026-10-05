@@ -5,10 +5,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 
 from pydantic import ValidationError
 
-from . import doctor, flow, program
+from . import doctor, flow, liaison, program
 from .contract import FpgaContract, load_contract, resolve
 from .devices import DeviceProfile, bundled_ids, load_profile
 from .formal import run_formal
@@ -36,6 +37,14 @@ def default_out(contract_path: Path) -> Path:
 def _load(contract_path: Path) -> tuple[FpgaContract, DeviceProfile]:
     contract = load_contract(contract_path)
     return contract, load_profile(contract.device.profile, [contract_path.resolve().parent])
+
+
+def _circuit_sha(contract: FpgaContract, contract_path: Path) -> str | None:
+    """sha256 of the circuit connectivity file the contract links, if any."""
+    if contract.circuit is None:
+        return None
+    path = resolve(contract_path.resolve(), contract.circuit.connectivity)
+    return sha256_file(path) if path.is_file() else None
 
 
 def doctor_payload() -> Json:
@@ -66,12 +75,19 @@ def validate_payload(contract_path: Path) -> Json:
     }
 
 
+def _images(written: list[Path]) -> list[str]:
+    return [str(p) for p in written if p.suffix == ".png" and p.is_file()]
+
+
 def gates_payload(contract_path: Path, out_dir: Path | None, *, full: bool) -> Json:
     out = out_dir or default_out(contract_path)
     report = run_gates(contract_path, out, full=full)
     written = write_outputs(contract_path.resolve(), report, out)
     payload: Json = json.loads(report.model_dump_json())
     payload["written"] = [str(p) for p in written]
+    images = _images(written)
+    if images:
+        payload["images"] = images
     return payload
 
 
@@ -93,13 +109,31 @@ def pinmap_payload(contract_path: Path, out_dir: Path | None) -> Json:
     except (OSError, ValueError, ValidationError) as exc:
         return {"verdict": FAIL, "stage": "pinmap", "detail": str(exc)}
     out = out_dir or default_out(contract_path)
-    pinmap = pinmap_export(contract, profile, sha256_file(contract_path))
+    pinmap = pinmap_export(
+        contract, profile, sha256_file(contract_path), _circuit_sha(contract, contract_path)
+    )
     json_path = write_text(
         out / f"{contract.name}.fpga-pinmap.json",
         json.dumps(pinmap.model_dump(mode="json"), indent=2, ensure_ascii=False) + "\n",
     )
     md_path = write_text(out / f"{contract.name}.fpga-pinmap.md", pinmap_markdown(pinmap))
-    return {"verdict": PASS, "stage": "pinmap", "written": [str(json_path), str(md_path)]}
+    written = [json_path, md_path]
+    try:
+        from .render import pinmap_canvas, write_png
+
+        png_path = out / f"{contract.name}.fpga-pinmap.png"
+        write_png(pinmap_canvas(contract, profile), png_path)
+        written.append(png_path)
+    except Exception as exc:  # a render failure never fails the export
+        return {
+            "verdict": PASS,
+            "stage": "pinmap",
+            "written": [str(p) for p in written],
+            "render_errors": [str(exc)],
+        }
+    payload: Json = {"verdict": PASS, "stage": "pinmap", "written": [str(p) for p in written]}
+    payload["images"] = _images(written)
+    return payload
 
 
 def sim_payload(contract_path: Path, sim_id: str, out_dir: Path | None) -> Json:
@@ -112,7 +146,7 @@ def sim_payload(contract_path: Path, sim_id: str, out_dir: Path | None) -> Json:
         return {"verdict": FAIL, "stage": "sim", "detail": f"unknown simulation {sim_id}"}
     out = out_dir or default_out(contract_path)
     result = run_simulation(contract, contract_path.resolve(), sim, out)
-    return {
+    payload: Json = {
         "verdict": PASS if result.ok else FAIL,
         "stage": "sim",
         "simulation": sim.id,
@@ -124,6 +158,16 @@ def sim_payload(contract_path: Path, sim_id: str, out_dir: Path | None) -> Json:
         "transcript": str(result.transcript) if result.transcript else None,
         "waveform": str(result.waveform) if result.waveform else None,
     }
+    if result.waveform is not None:
+        try:
+            from .render import waveform_canvas, write_png
+
+            png_path = out / f"{contract.name}.fpga-wave-{sim.id}.png"
+            write_png(waveform_canvas(result.waveform, f"{contract.name} wave {sim.id}"), png_path)
+            payload["images"] = [str(png_path)]
+        except Exception as exc:
+            payload["render_errors"] = [str(exc)]
+    return payload
 
 
 def formal_payload(contract_path: Path, run_id: str, out_dir: Path | None) -> Json:
@@ -174,12 +218,27 @@ def build_payload(contract_path: Path, out_dir: Path | None) -> Json:
     out.mkdir(parents=True, exist_ok=True)
     checks: list[Check] = implementation_checks(contract, contract_path.resolve(), profile, out)
     ok = all(c.status != "fail" for c in checks)
-    return {
+    payload: Json = {
         "verdict": PASS if ok else FAIL,
         "stage": "build",
         "checks": [c.model_dump(mode="json") for c in checks],
         "note": "advisory; `fpga gates` is the authoritative run",
     }
+    from .render import render_view_pngs
+
+    rendered, skipped = render_view_pngs(
+        contract,
+        profile,
+        out,
+        build_dir=resolve(contract_path.resolve(), contract.build.dir),
+        views=["pinmap", "utilization", "timing", "floorplan", "waveform"],
+    )
+    if rendered:
+        payload["renders"] = rendered
+        payload["images"] = [str(item["path"]) for item in rendered]
+    if skipped:
+        payload["render_errors"] = skipped
+    return payload
 
 
 def program_payload(
@@ -215,6 +274,8 @@ def request_payload(
     rationale: str,
     nets: list[str],
     failing_checks: list[str],
+    extra_inputs: list[str] | None = None,
+    decision_refs: list[str] | None = None,
 ) -> Json:
     try:
         contract = load_contract(contract_path)
@@ -228,10 +289,74 @@ def request_payload(
             rationale=rationale,
             nets=nets,
             failing_checks=failing_checks,
+            extra_inputs=extra_inputs,
+            decision_refs=decision_refs,
         )
     except (OSError, ValueError, ValidationError) as exc:
         return {"verdict": FAIL, "stage": "request", "detail": str(exc)}
     return {"verdict": PASS, "stage": "request", "id": request.id, "written": [str(path)]}
+
+
+def render_payload(contract_path: Path, out_dir: Path | None, view: str) -> Json:
+    """Re-render the report images from existing artifacts without rerunning tools."""
+    try:
+        contract, profile = _load(contract_path)
+    except (OSError, ValueError, ValidationError) as exc:
+        return {"verdict": FAIL, "stage": "render", "detail": str(exc)}
+    out = out_dir or default_out(contract_path)
+    views = None if view == "all" else [view]
+    from .render import render_view_pngs
+
+    try:
+        rendered, skipped = render_view_pngs(
+            contract,
+            profile,
+            out,
+            build_dir=resolve(contract_path.resolve(), contract.build.dir),
+            views=views,
+        )
+    except Exception as exc:
+        return {"verdict": FAIL, "stage": "render", "detail": str(exc)}
+    return {
+        "verdict": PASS,
+        "stage": "render",
+        "rendered": rendered,
+        "skipped": skipped,
+        "images": [str(item["path"]) for item in rendered],
+    }
+
+
+def ux_inbox_payload(workspace: Path | None) -> Json:
+    return cast(Json, liaison.inbox(workspace))
+
+
+def ux_respond_payload(workspace: Path | None, payload: dict[str, object]) -> Json:
+    """Validate and write a UX response; refusals come back as a fail verdict."""
+    request = str(payload.get("request", ""))
+    status = str(payload.get("status", ""))
+    try:
+        result = liaison.respond(
+            workspace,
+            request,
+            status,
+            reason=str(payload.get("reason", "")),
+            artifacts=[str(p) for p in cast(list[object], payload.get("artifacts") or [])],
+            gate_verdicts=[
+                cast(dict[str, str], v)
+                for v in cast(list[object], payload.get("gate_verdicts") or [])
+            ],
+            gate_report=cast(str | Path | None, payload.get("gate_report")),
+            decision_refs=[str(r) for r in cast(list[object], payload.get("decision_refs") or [])],
+            impression_refs=[
+                str(r) for r in cast(list[object], payload.get("impression_refs") or [])
+            ],
+            questions_for_user=[
+                str(q) for q in cast(list[object], payload.get("questions_for_user") or [])
+            ],
+        )
+    except (OSError, ValueError, ValidationError) as exc:
+        return {"verdict": FAIL, "stage": "ux-respond", "detail": str(exc)}
+    return cast(Json, result)
 
 
 def profile_payload(profile_id: str | None) -> Json:

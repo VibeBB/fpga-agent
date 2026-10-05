@@ -4,6 +4,7 @@ import importlib.util
 import subprocess
 from pathlib import Path
 from types import ModuleType
+from typing import cast
 from unittest.mock import Mock
 
 import pytest
@@ -65,22 +66,28 @@ def _main_module(
 ) -> tuple[ModuleType, list[list[str]]]:
     launcher = _launcher_module()
     monkeypatch.setattr(launcher.sys, "argv", ["fpga_launcher.py", *argv])
-    monkeypatch.setattr(
-        launcher,
-        "image_pin",
-        lambda _root: (
-            {"ref": pin, "image": None, "digest": None, "attestation": None} if pin else None
-        ),
-    )
-    monkeypatch.setattr(launcher, "resolve_source", lambda _root: Path("/src"))
+
+    def fake_pin(_root: Path) -> object:
+        if pin is None:
+            return None
+        return {"ref": pin, "image": None, "digest": None, "attestation": None}
+
+    monkeypatch.setattr(launcher, "image_pin", fake_pin)
+
+    def fake_source(_root: Path) -> Path:
+        return Path("/src")
+
+    monkeypatch.setattr(launcher, "resolve_source", fake_source)
     monkeypatch.setattr(launcher, "running_inside_tools_image", lambda: inside_image)
     exec_calls: list[list[str]] = []
-    monkeypatch.setattr(
-        launcher.os, "execvpe", lambda *args: exec_calls.append(list(args)), raising=True
-    )
-    monkeypatch.setattr(
-        launcher.os, "execvp", lambda *args: exec_calls.append(list(args)), raising=True
-    )
+
+    def record_exec(*args: object) -> None:
+        command = args[1]
+        assert isinstance(command, (list, tuple))
+        exec_calls.append([str(x) for x in cast(list[object], command)])
+
+    monkeypatch.setattr(launcher.os, "execvpe", record_exec, raising=True)
+    monkeypatch.setattr(launcher.os, "execvp", record_exec, raising=True)
     return launcher, exec_calls
 
 
@@ -106,7 +113,7 @@ def test_launcher_runs_in_process_inside_tools_image(monkeypatch: pytest.MonkeyP
     launcher, exec_calls = _main_module(monkeypatch, ["gates", "x.fpga.json"], inside_image=True)
     assert launcher.main() == 0
     assert len(exec_calls) == 1
-    assert exec_calls[0][1][1:] == ["-m", "fpga.cli", "gates", "x.fpga.json"]
+    assert exec_calls[0][1:] == ["-m", "fpga.cli", "gates", "x.fpga.json"]
 
 
 def test_launcher_program_stays_on_host(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -116,4 +123,4 @@ def test_launcher_program_stays_on_host(monkeypatch: pytest.MonkeyPatch) -> None
     assert launcher.main() == 0
     assert len(exec_calls) == 1
     assert exec_calls[0][0] != "docker"
-    assert exec_calls[0][1][1:] == ["-m", "fpga.cli", "program", "x.fpga.json"]
+    assert exec_calls[0][1:] == ["-m", "fpga.cli", "program", "x.fpga.json"]

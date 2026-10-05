@@ -8,7 +8,7 @@ from typing import cast
 import pytest
 
 from fpga import service
-from fpga.gates import GateReport, run_gates
+from fpga.gates import GateReport, run_gates, write_outputs
 
 from .conftest import read_json, tools_available, write_json
 
@@ -84,6 +84,35 @@ def test_timing_budget_fails(tangnano: Path) -> None:
     report = _full(tangnano)
     assert "fpga.timing" in _failed(report)
     assert report.verdict == "fail"
+
+
+@pytest.mark.parametrize(
+    "example", ["ulx3s", "tangnano", "tangnano20k", "tangprimer20k", "uart_echo"]
+)
+def test_gates_write_pngs_and_vcds(example: str, request: pytest.FixtureRequest) -> None:
+    contract: Path = request.getfixturevalue(example)
+    out = contract.parent / "fpga-reports"
+    report = _full(contract)
+    assert report.verdict == "pass", _failed(report)
+    write_outputs(contract, report, out)
+    name = report.design
+    pngs = sorted(out.glob("*.png"))
+    views = {p.name for p in pngs}
+    assert f"{name}.fpga-pinmap.png" in views
+    assert f"{name}.fpga-report.png" in views
+    assert f"{name}.fpga-utilization.png" in views
+    assert f"{name}.fpga-timing.png" in views
+    assert f"{name}.fpga-floorplan.png" in views
+    waves = {r.view for r in report.renders}
+    assert "waveform" in waves
+    assert list(out.glob("sim-*.vcd")), "expected a VCD capture"
+    assert any(f"{name}.fpga-wave-" in p.name for p in pngs)
+    for ref in report.renders:
+        path = out / ref.path
+        assert path.is_file() and path.suffix == ".png"
+        import hashlib
+
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == ref.sha256
 
 
 def test_port_pin_mismatch_fails_synth(ulx3s: Path) -> None:

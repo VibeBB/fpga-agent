@@ -324,6 +324,33 @@ def record_vision_review(payload: Mapping[str, Any], root: Path | None = None) -
     return _append("vision_review", body, base)
 
 
+def _event_ids(log: Path) -> set[str]:
+    ids: set[str] = set()
+    if not log.is_file():
+        return ids
+    for line in log.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line).get("event_id")
+        except json.JSONDecodeError:
+            continue
+        if isinstance(event, str) and re.fullmatch(_SHA256, event):
+            ids.add(event)
+    return ids
+
+
+def decision_event_ids(root: Path | None = None) -> set[str]:
+    return _event_ids(records_dir(root) / LOG_FILES["decision"])
+
+
+def impression_event_ids(root: Path | None = None) -> set[str]:
+    directory = records_dir(root)
+    return _event_ids(directory / LOG_FILES["stage_impression"]) | _event_ids(
+        directory / LOG_FILES["vision_review"]
+    )
+
+
 RECORDERS = {
     "decision": record_decision,
     "impression": record_impression,
