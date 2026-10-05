@@ -624,6 +624,9 @@ def timing_canvas(contract: FpgaContract, report: dict[str, Any]) -> Canvas:
 
 
 _BEL = re.compile(r"X(\d+)/?Y(\d+)")
+# Constant/global pseudo-cells carry BEL-looking attributes but are not
+# placement: skip them rather than classing them "other".
+_PSEUDO_CELLS = {"VCC", "GND", "GOWIN_VCC", "GOWIN_GND", "GSR", "PUR"}
 _CLASS_COLORS: dict[str, Color] = {
     "logic": BLUE,
     "ram": PURPLE,
@@ -656,9 +659,10 @@ def floorplan_canvas(placed: dict[str, Any], profile: DeviceProfile, top: str) -
     for cell in cells.values():
         cell = cast(dict[str, Any], cell)
         coords = _bel_coords(cast(dict[str, Any], cell.get("attributes", {})))
-        if coords is None:
+        cell_type = str(cell.get("type", ""))
+        if coords is None or cell_type in _PSEUDO_CELLS:
             continue
-        resource_class = profile.resources.get(str(cell.get("type", "")), "other")
+        resource_class = profile.resources.get(cell_type, "other")
         bucket = grid.setdefault(coords, {})
         bucket[resource_class] = bucket.get(resource_class, 0) + 1
     if not grid:

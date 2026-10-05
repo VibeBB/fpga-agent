@@ -270,6 +270,18 @@ def test_floorplan_canvas_real_fixture_classes() -> None:
     assert len(classes) >= 3, legend
 
 
+def test_floorplan_canvas_gowin_fixture_classes() -> None:
+    profile = load_profile("gowin-gw1nr9c-qn88p", [EXAMPLES / "blinky-tangnano9k"])
+    placed = json.loads((DATA / "blinky-tangnano9k.pnr.json").read_text(encoding="utf-8"))
+    canvas = render.floorplan_canvas(placed, profile, "blinky")
+    _png_check(canvas.png_bytes())
+    assert canvas.layout_problems() == []
+    legend = [box[4] for box in canvas.text_boxes]
+    classes = {t.split(" (")[0] for t in legend if " (" in t and t.endswith(")")}
+    assert "other" not in classes, legend
+    assert {"logic", "io"} <= classes, legend
+
+
 def test_floorplan_regex_fallback_keeps_types() -> None:
     data = render.placed_cells(
         '{"modules": {"top": {"cells": {'

@@ -143,12 +143,15 @@ def _layouts_clean(contract_path: Path, out: Path) -> None:
             contract.top,
         )
         canvases.append(floorplan)
-        classes = {
-            box[4].split(" (")[0]
-            for box in floorplan.text_boxes
-            if " (" in box[4] and box[4].endswith(")")
-        }
-        assert len(classes) >= 3, f"floorplan classes collapsed: {classes}"
+        import re as _re
+
+        legend: dict[str, int] = {}
+        for box in floorplan.text_boxes:
+            match = _re.fullmatch(r"(\w+) \((\d+)\)", box[4])
+            if match:
+                legend[match.group(1)] = int(match.group(2))
+        assert len(legend) >= 2, f"floorplan classes collapsed: {legend}"
+        assert legend.get("other", 0) <= 2, f"unclassifiable cell types: {legend}"
     for vcd in out.glob("sim-*.vcd"):
         canvases.append(render.waveform_canvas(vcd, f"{contract.name} wave"))
     for canvas in canvases:
