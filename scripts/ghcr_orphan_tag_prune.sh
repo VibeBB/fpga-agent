@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Prune orphaned <sha>-tools tags from the ghcr fpga-tools package.
+# Prune orphaned <sha>-tools tags from a ghcr.io package.
 #
 # A package version is an orphan when ALL of these hold:
 #   - it carries a tag matching ^[0-9a-f]{40}-tools$ (a publish-time sha tag)
 #   - it is older than GHCR_PRUNE_MIN_AGE_DAYS (default: 14 days)
-#   - its digest is not the digest pinned in docker/image-digests.json
+#   - its digest is not the digest pinned in the image lock file
 #   - it has no stored build-provenance attestation (a gated, attested
 #     image is kept even while unpinned)
 #
@@ -13,24 +13,38 @@
 # also runs with GHCR_PRUNE_DRY_RUN=1 to report candidates only.
 #
 # Environment: GITHUB_REPOSITORY_OWNER, GITHUB_REPOSITORY, GH_TOKEN;
-#   GHCR_PACKAGE (default: fpga-tools), GHCR_PRUNE_MIN_AGE_DAYS,
-#   GHCR_PRUNE_DRY_RUN, LOCK_FILE (default: docker/image-digests.json).
+#   GHCR_PACKAGE (required in workflows; default: fpga-tools),
+#   GHCR_PRUNE_MIN_AGE_DAYS, GHCR_PRUNE_DRY_RUN,
+#   LOCK_FILE (default: docker/image-digests.json),
+#   LOCK_ENTRY (default: GHCR_PACKAGE with '-' -> '_').
 set -euo pipefail
 
 PACKAGE=${GHCR_PACKAGE:-fpga-tools}
 ORG=${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER is required}
 REPO=${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required}
 LOCK_FILE=${LOCK_FILE:-docker/image-digests.json}
+LOCK_ENTRY=${LOCK_ENTRY:-${PACKAGE//-/_}}
 MIN_AGE=${GHCR_PRUNE_MIN_AGE_DAYS:-14}
 DRY_RUN=${GHCR_PRUNE_DRY_RUN:-0}
+export LOCK_ENTRY
 
 summary() { echo "$1" | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"; }
 
 lock_digest=$(python3 - "$LOCK_FILE" <<'PY'
-import json, sys
+import json, os, sys
 try:
-    entry = json.load(open(sys.argv[1], encoding="utf-8"))["fpga_tools"]
-except (OSError, ValueError, KeyError):
+    data = json.load(open(sys.argv[1], encoding="utf-8"))
+except (OSError, ValueError):
+    data = {}
+# Two lock schemas exist in the family: the standard docker/image-digests.json
+# (entry name -> record) and bard's flat plugins/bard/skills/bard-render/
+# tools-image.json (the record itself is the document root).
+key = os.environ.get("LOCK_ENTRY", "")
+if key and isinstance(data.get(key), dict):
+    entry = data[key]
+elif isinstance(data.get("digest"), str):
+    entry = data
+else:
     entry = {}
 print(entry.get("digest") or "")
 PY
