@@ -113,6 +113,46 @@ def test_gates_write_pngs_and_vcds(example: str, request: pytest.FixtureRequest)
         import hashlib
 
         assert hashlib.sha256(path.read_bytes()).hexdigest() == ref.sha256
+    _layouts_clean(contract, out)
+
+
+def _layouts_clean(contract_path: Path, out: Path) -> None:
+    """Every view must render without text overlaps or clipping."""
+    from fpga import render
+    from fpga.contract import load_contract
+    from fpga.devices import load_profile
+
+    contract = load_contract(contract_path)
+    profile = load_profile(contract.device.profile, [contract_path.parent])
+    build = contract_path.parent / "build"
+    canvases = [render.pinmap_canvas(contract, profile)]
+    report_json = build / f"{contract.name}.nextpnr-report.json"
+    import json
+
+    if report_json.is_file():
+        report = json.loads(report_json.read_text(encoding="utf-8"))
+        canvases.append(render.utilization_canvas(contract, profile, report))
+        canvases.append(render.timing_canvas(contract, report))
+    placed = build / f"{contract.name}.placed.json"
+    if not placed.is_file():
+        placed = build / f"{contract.name}.pnr.json"
+    if placed.is_file():
+        floorplan = render.floorplan_canvas(
+            render.placed_cells(placed.read_text(encoding="utf-8"), contract.top),
+            profile,
+            contract.top,
+        )
+        canvases.append(floorplan)
+        classes = {
+            box[4].split(" (")[0]
+            for box in floorplan.text_boxes
+            if " (" in box[4] and box[4].endswith(")")
+        }
+        assert len(classes) >= 3, f"floorplan classes collapsed: {classes}"
+    for vcd in out.glob("sim-*.vcd"):
+        canvases.append(render.waveform_canvas(vcd, f"{contract.name} wave"))
+    for canvas in canvases:
+        assert canvas.layout_problems() == []
 
 
 def test_port_pin_mismatch_fails_synth(ulx3s: Path) -> None:

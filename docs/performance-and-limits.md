@@ -21,6 +21,7 @@
 | VCD file size | 64 MiB (`VCD_MAX_BYTES`; larger captures render `TRUNCATED`) |
 | VCD value changes | 2 000 000 (`VCD_MAX_CHANGES`; over the cap → truncated render) |
 | waveform rows | 32 signals (`MAX_WAVE_ROWS`) |
+| text scale | ≥ 2 (`MIN_TEXT_SCALE`); signal labels capped at 32 chars |
 
 ## MCP image caps (`src/fpga/mcp_server.py`)
 
@@ -44,6 +45,7 @@ capped by `records-policy.json` `max_stop_denials` (2).
   STA or power estimation ([improvement notes](improvement-notes.md)).
 - The placed-JSON floorplan only knows BEL coordinates (no die outline,
   congestion or wire density); when nextpnr writes unparseable JSON the
-  view degrades to NEXTPNR_BEL strings only.
+  view degrades to a regex scan that still pairs each `type` with its
+  `NEXTPNR_BEL` so cell classes survive.
 - `fpga program` is host-only, human-confirmed, and never a gate or MCP
   tool.

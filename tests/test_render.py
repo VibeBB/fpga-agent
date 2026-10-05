@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import struct
 import zlib
 from pathlib import Path
@@ -61,10 +62,112 @@ def test_canvas_png_valid_and_deterministic() -> None:
     again.fill_rect(2, 2, 10, 8, (255, 0, 0))
     again.rect(0, 0, 63, 31, (0, 0, 0))
     again.line(0, 0, 63, 31, (0, 0, 255))
-    again.text(4, 20, "a1 ?", (0, 0, 0), 2)  # lowercase folds to upper
+    again.text(4, 20, "A1 ?", (0, 0, 0), 2)
     assert again.png_bytes() == data
+    different = render.Canvas(64, 32)
+    different.text(4, 20, "a1 ?", (0, 0, 0), 2)  # lowercase has real glyphs
+    assert different.png_bytes() != data
     with pytest.raises(ValueError):
         render.Canvas(5000, 10)
+
+
+def test_font_covers_printable_ascii_distinct() -> None:
+    import string
+
+    font = render.FONT_ROWS
+    for char in string.printable[:95]:
+        assert char in font, f"missing glyph {char!r}"
+        bitmap = font[char]
+        assert len(bitmap) == 35
+        assert set(bitmap) <= {" ", "#"}
+    bitmaps = {char: font[char] for char in font}
+    assert len(set(bitmaps.values())) == len(bitmaps), "duplicate glyphs"
+
+
+def test_font_specific_bitmaps() -> None:
+    def rows(char: str) -> list[str]:
+        bitmap = render.FONT_ROWS[char]
+        return [bitmap[r * 5 : r * 5 + 5] for r in range(7)]
+
+    assert rows("5") == [
+        "#####",
+        "#    ",
+        "#### ",
+        "    #",
+        "    #",
+        "#   #",
+        " ### ",
+    ]
+    assert rows("S") == [
+        " ####",
+        "#    ",
+        "#    ",
+        " ### ",
+        "    #",
+        "    #",
+        "#### ",
+    ]
+    assert rows("E") == [
+        "#####",
+        "#    ",
+        "#    ",
+        "#### ",
+        "#    ",
+        "#    ",
+        "#####",
+    ]
+    assert rows("6") == [
+        "  ## ",
+        " #   ",
+        "#    ",
+        "#### ",
+        "#   #",
+        "#   #",
+        " ### ",
+    ]
+    assert rows("9") == [
+        " ### ",
+        "#   #",
+        "#   #",
+        " ####",
+        "    #",
+        "   # ",
+        " ##  ",
+    ]
+    assert rows("0") == [
+        " ### ",
+        "#   #",
+        "#  ##",
+        "# # #",
+        "##  #",
+        "#   #",
+        " ### ",
+    ]
+    assert rows("O") == [
+        " ### ",
+        "#   #",
+        "#   #",
+        "#   #",
+        "#   #",
+        "#   #",
+        " ### ",
+    ]
+    # '-' only the middle row lit; '_' only the bottom row lit
+    assert rows("-") == ["     "] * 3 + ["#####"] + ["     "] * 3
+    assert rows("_") == ["     "] * 6 + ["#####"]
+    assert rows(".") == ["     "] * 5 + [" ##  ", " ##  "]
+
+
+def test_layout_problems_detects_overlap() -> None:
+    canvas = render.Canvas(200, 100)
+    canvas.text(4, 4, "alpha", (0, 0, 0), 2)
+    canvas.text(8, 8, "beta", (0, 0, 0), 2)
+    canvas.text(0, 92, "outside?", (0, 0, 0), 2)
+    canvas.fill_rect(120, 4, 20, 20, (0, 0, 0))
+    canvas.solid(120, 4, 20, 20)
+    canvas.text(124, 8, "on", (0, 0, 0), 2)
+    problems = canvas.layout_problems()
+    assert len(problems) >= 3
 
 
 def test_pinmap_canvas() -> None:
@@ -72,6 +175,7 @@ def test_pinmap_canvas() -> None:
     profile = load_profile(contract.device.profile, [EXAMPLES / "blinky-tangnano9k"])
     canvas = render.pinmap_canvas(contract, profile)
     _png_check(canvas.png_bytes())
+    assert canvas.layout_problems() == []
 
 
 def test_pinmap_canvas_perimeter() -> None:
@@ -84,6 +188,7 @@ def test_pinmap_canvas_perimeter() -> None:
     )
     canvas = render.pinmap_canvas(contract, perimeter)
     _png_check(canvas.png_bytes())
+    assert canvas.layout_problems() == []
 
 
 def _nextpnr_report() -> dict[str, Any]:
@@ -108,8 +213,31 @@ def test_utilization_and_timing_canvases() -> None:
     contract = _contract("uart-echo-icebreaker")
     profile = load_profile(contract.device.profile, [EXAMPLES / "uart-echo-icebreaker"])
     report = _nextpnr_report()
-    _png_check(render.utilization_canvas(contract, profile, report).png_bytes())
-    _png_check(render.timing_canvas(contract, report).png_bytes())
+    utilization = render.utilization_canvas(contract, profile, report)
+    timing = render.timing_canvas(contract, report)
+    _png_check(utilization.png_bytes())
+    _png_check(timing.png_bytes())
+    assert utilization.layout_problems() == []
+    assert timing.layout_problems() == []
+
+
+def test_timing_worst_path_total_from_segments() -> None:
+    contract = _contract("uart-echo-icebreaker")
+    report = _nextpnr_report()
+    report["critical_paths"] = {
+        "clk": {
+            "from": "count[0]$Q",
+            "to": "count[7]$D",
+            "segments": [
+                {"type": "setup", "delay": 10.5, "net": "n1"},
+                {"type": "route", "delay": 5.4, "net": "n2"},
+            ],
+        }
+    }
+    canvas = render.timing_canvas(contract, report)
+    texts = [box[4] for box in canvas.text_boxes]
+    assert any("15.90 ns" in t for t in texts), texts
+    assert canvas.layout_problems() == []
 
 
 def test_floorplan_canvas() -> None:
@@ -128,6 +256,30 @@ def test_floorplan_canvas() -> None:
     }
     _png_check(render.floorplan_canvas(placed, profile, contract.top).png_bytes())
     _png_check(render.floorplan_canvas({"modules": {}}, profile, contract.top).png_bytes())
+
+
+def test_floorplan_canvas_real_fixture_classes() -> None:
+    contract = _contract("uart-echo-icebreaker")
+    profile = load_profile(contract.device.profile, [EXAMPLES / "uart-echo-icebreaker"])
+    placed = json.loads((DATA / "uart-echo.placed.json").read_text(encoding="utf-8"))
+    canvas = render.floorplan_canvas(placed, profile, contract.top)
+    _png_check(canvas.png_bytes())
+    assert canvas.layout_problems() == []
+    legend = [box[4] for box in canvas.text_boxes]
+    classes = {t.split(" (")[0] for t in legend if " (" in t and t.endswith(")")}
+    assert len(classes) >= 3, legend
+
+
+def test_floorplan_regex_fallback_keeps_types() -> None:
+    data = render.placed_cells(
+        '{"modules": {"top": {"cells": {'
+        '"a": {"type": "SB_GB", "attributes": {"NEXTPNR_BEL": "X16/Y0"}},'
+        '"b": {"type": "SB_IO", "attributes": {"NEXTPNR_BEL": "X0/Y5"}}'
+        "}}}",
+        "top",
+    )
+    cells = data["modules"]["top"]["cells"]
+    assert {c["type"] for c in cells.values()} == {"SB_GB", "SB_IO"}
 
 
 def _write_vcd(path: Path, rows: int = 4096) -> None:
@@ -159,6 +311,56 @@ def test_waveform_canvas_and_parser(tmp_path: Path) -> None:
     assert [s.name for s in signals] == ["clk", "data"]
     canvas = render.waveform_canvas(vcd, "uart-echo wave count")
     _png_check(canvas.png_bytes())
+    assert canvas.layout_problems() == []
+
+
+def test_waveform_string_and_scope_vars(tmp_path: Path) -> None:
+    vcd = tmp_path / "sim-echo.vcd"
+    vcd.write_text(
+        "\n".join(
+            [
+                "$timescale 1us $end",
+                "$scope module uart_echo $end",
+                "$var wire 1 ! clk $end",
+                '$var wire 8 " tx [7:0] $end',
+                "$var string 1 # done $end",
+                "$var string 1 $ state $end",
+                "$scope module inner $end",
+                "$var wire 8 % tx [7:0] $end",
+                "$upscope $end",
+                "$upscope $end",
+                "$enddefinitions $end",
+                "#0",
+                "0!",
+                'b00000000 "',
+                "sfalse #",
+                "ss_reset $",
+                "b00000000 %",
+                "#100",
+                "1!",
+                'b10101010 "',
+                "strue #",
+                "ss_run $",
+                "b11110000 %",
+                "#200",
+                "0!",
+            ]
+        )
+        + "\n",
+        encoding="ascii",
+    )
+    signals, timescale, _ = render.parse_vcd(vcd)
+    assert timescale == "1us"
+    assert any(s.width == 0 for s in signals)
+    canvas = render.waveform_canvas(vcd, "uart-echo wave echo")
+    _png_check(canvas.png_bytes())
+    assert canvas.layout_problems() == []
+    texts = {box[4] for box in canvas.text_boxes}
+    assert any("us" in t for t in texts), "engineering-unit tick labels"
+    assert any(t.startswith("inner.tx") or t == "inner.tx [8]" for t in texts), (
+        "duplicate names must be scope-qualified"
+    )
+    assert any(t == "true" for t in texts), "string value drawn as text"
 
 
 def test_waveform_row_cap_and_performance(tmp_path: Path) -> None:

@@ -5,6 +5,10 @@ utilization against budgets, timing against requirements, the placed
 floorplan, simulation waveforms (VCD) and the gate report itself. Renders
 are advisory; a render failure never changes a gate verdict. Every image
 is RGB8 PNG with filter 0 and zlib level 9, so bytes are deterministic.
+
+The canvas records the bounding box of every text run and every
+registered solid region; ``layout_problems()`` reports overlaps and
+clipping so tests can assert every view is clean.
 """
 
 from __future__ import annotations
@@ -12,6 +16,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import json
+import math
 import re
 import struct
 import zlib
@@ -26,6 +31,7 @@ MAX_DIM = 4096
 VCD_MAX_BYTES = 64 * 1024 * 1024
 VCD_MAX_CHANGES = 2_000_000
 MAX_WAVE_ROWS = 32
+MIN_TEXT_SCALE = 2
 
 WHITE = (255, 255, 255)
 BLACK = (20, 20, 20)
@@ -41,85 +47,128 @@ LIGHT_GREEN = (220, 240, 220)
 
 Color = tuple[int, int, int]
 
-# 5x7 bitmap font, rows top to bottom, '#'/space pixels. Covers the
-# characters used in labels; lowercase is folded to uppercase on draw and
-# anything unknown renders as '?'.
-_FONT_ROWS: dict[str, str] = {
-    " ": "               ",
-    "!": "  #    #    #    #    #         #  ",
-    '"': " # #  # #  # #                    ",
-    "#": " # #  # # ##### # # ##### # #  # # ",
-    "$": "  #   #### # #   ###    # #####  #  ",
-    "%": "##  ### #    #   #   #  # ##  ##",
-    "&": " ##  #  # # #   #   # # #  #  ## #",
-    "'": "  #    #   #                       ",
-    "(": "   #   #   #    #    #    #    #  ",
-    ")": " #     #    #    #    #   #   #   ",
-    "*": "      #   # #  ###  # #   #       ",
-    "+": "      #    #   ###   #    #       ",
-    ",": "                  ##    #   #     ",
-    "-": "             ###                  ",
-    ".": "                  ##   ##         ",
-    "/": "    #   #    #   #   #   #  #    ",
-    "0": " ### #   ##  ## # ###   ##   # ### ",
-    "1": "  #   ##    #    #    #    #   ### ",
-    "2": " ### #   #    #  ##  #   #    #####",
-    "3": " ### #   #    #  ##     ##   # ### ",
-    "4": "   #   ##  # # #  #######   #   # ",
-    "5": "######     ####     #    ##   # ### ",
-    "6": "  ## #    #   #### #   ##   # ### ",
-    "7": "######    #   #   #    #    #    # ",
-    "8": " ### #   ##   # ### #   ##   # ### ",
-    "9": " ### #   ##   # ####     #   #  ## ",
-    ":": "      ##   ##        ##   ##       ",
-    ";": "      ##   ##        ##   #   #    ",
-    "<": "   #   #   #   #      #    #    # ",
-    "=": "          ###       ###            ",
-    ">": " #     #    #      #   #   #   #  ",
-    "?": " ### #   #    #   #   #         #  ",
-    "@": " ### #   ## ### # # ## ## #     ### ",
-    "A": " ### #   ##   #######   ##   ##   #",
-    "B": "#### #   ##   ##### #   ##   ##### ",
-    "C": " ### #   ##    #    #    #   # ### ",
-    "D": "###  #  # #   ##   ##   ##  # ###  ",
-    "E": "######    #    #### #    #    #####",
-    "F": "######    #    #### #    #    #    ",
-    "G": " ### #   ##    #  ###   ##   # ####",
-    "H": "#   ##   ##   #######   ##   ##   #",
-    "I": " ###   #    #    #    #    #   ### ",
-    "J": "    #    #    #    ##   ##   # ### ",
-    "K": "#   ##  # # #  ##   # #  #  ##   #",
-    "L": "#    #    #    #    #    #    #####",
-    "M": "#   ### ### # ## # ##   ##   ##   #",
-    "N": "#   ###  ## # ##  ###   ##   ##   #",
-    "O": " ### #   ##   ##   ##   ##   # ### ",
-    "P": "#### #   ##   ##### #    #    #    ",
-    "Q": " ### #   ##   ##   ## # ##  #  ## #",
-    "R": "#### #   ##   ##### # #  #  ##   #",
-    "S": " #####    #     ###      #    #### ",
-    "T": "#####  #    #    #    #    #    #  ",
-    "U": "#   ##   ##   ##   ##   ##   # ### ",
-    "V": "#   ##   ##   ##   # # #  # #   #  ",
-    "W": "#   ##   ##   ## # ## # ## # # # # ",
-    "X": "#   # # #   #    #    #  # # #   #",
-    "Y": "#   # # #   #    #    #    #    #  ",
-    "Z": "#####    #   #   #   #   #    #####",
-    "[": " ###  #    #    #    #    #    ### ",
-    "\\": "#     #    #    #    #   #      #",
-    "]": " ###    #    #    #    #    #  ### ",
-    "^": "  #   # # #   #                    ",
-    "_": "                          #####",
-    "{": "   #   #    #   #     #    #    # ",
-    "|": "  #    #    #    #    #    #    #  ",
-    "}": " #     #    #     #   #    #   #   ",
-    "~": "        #  # # #  #               ",
-}
-_FALLBACK = _FONT_ROWS["?"]
+# Classic 5x7 ASCII font (HD44780/GLCD style), 0x20-0x7E, each glyph seven
+# rows of five pixels. Lowercase is a real alphabet, not a fold.
+_FONT_LIST = [
+    (" ", ["     "] * 7),
+    ("!", ["  #  ", "  #  ", "  #  ", "  #  ", "  #  ", "     ", "  #  "]),
+    ('"', [" # # ", " # # ", " # # ", "     ", "     ", "     ", "     "]),
+    ("#", [" # # ", " # # ", "#####", " # # ", "#####", " # # ", " # # "]),
+    ("$", ["  #  ", " ####", "# #  ", " ### ", "  # #", "#### ", "  #  "]),
+    ("%", ["##   ", "##  #", "   # ", "  #  ", " #   ", "#  ##", "   ##"]),
+    ("&", [" ##  ", "#  # ", "# #  ", " #   ", "# # #", "#  # ", " ## #"]),
+    ("'", ["  #  ", "  #  ", " #   ", "     ", "     ", "     ", "     "]),
+    ("(", ["   # ", "  #  ", " #   ", " #   ", " #   ", "  #  ", "   # "]),
+    (")", [" #   ", "  #  ", "   # ", "   # ", "   # ", "  #  ", " #   "]),
+    ("*", ["     ", "  #  ", "# # #", " ### ", "# # #", "  #  ", "     "]),
+    ("+", ["     ", "  #  ", "  #  ", "#####", "  #  ", "  #  ", "     "]),
+    (",", ["     ", "     ", "     ", "     ", " ##  ", " ##  ", " #   "]),
+    ("-", ["     ", "     ", "     ", "#####", "     ", "     ", "     "]),
+    (".", ["     ", "     ", "     ", "     ", "     ", " ##  ", " ##  "]),
+    ("/", ["     ", "    #", "   # ", "  #  ", " #   ", "#    ", "     "]),
+    ("0", [" ### ", "#   #", "#  ##", "# # #", "##  #", "#   #", " ### "]),
+    ("1", ["  #  ", " ##  ", "  #  ", "  #  ", "  #  ", "  #  ", " ### "]),
+    ("2", [" ### ", "#   #", "    #", "  ## ", " #   ", "#    ", "#####"]),
+    ("3", ["#####", "   # ", "  #  ", "   # ", "    #", "#   #", " ### "]),
+    ("4", ["   # ", "  ## ", " # # ", "#  # ", "#####", "   # ", "   # "]),
+    ("5", ["#####", "#    ", "#### ", "    #", "    #", "#   #", " ### "]),
+    ("6", ["  ## ", " #   ", "#    ", "#### ", "#   #", "#   #", " ### "]),
+    ("7", ["#####", "    #", "   # ", "  #  ", " #   ", " #   ", " #   "]),
+    ("8", [" ### ", "#   #", "#   #", " ### ", "#   #", "#   #", " ### "]),
+    ("9", [" ### ", "#   #", "#   #", " ####", "    #", "   # ", " ##  "]),
+    (":", ["     ", " ##  ", " ##  ", "     ", " ##  ", " ##  ", "     "]),
+    (";", ["     ", " ##  ", " ##  ", "     ", " ##  ", " ##  ", " #   "]),
+    ("<", ["   # ", "  #  ", " #   ", "#    ", " #   ", "  #  ", "   # "]),
+    ("=", ["     ", "     ", "#####", "     ", "#####", "     ", "     "]),
+    (">", [" #   ", "  #  ", "   # ", "    #", "   # ", "  #  ", " #   "]),
+    ("?", [" ### ", "#   #", "    #", "   # ", "  #  ", "     ", "  #  "]),
+    ("@", [" ### ", "#   #", "# ###", "# # #", "# ###", "#    ", " ### "]),
+    ("A", [" ### ", "#   #", "#   #", "#####", "#   #", "#   #", "#   #"]),
+    ("B", ["#### ", "#   #", "#   #", "#### ", "#   #", "#   #", "#### "]),
+    ("C", [" ### ", "#   #", "#    ", "#    ", "#    ", "#   #", " ### "]),
+    ("D", ["###  ", "#  # ", "#   #", "#   #", "#   #", "#  # ", "###  "]),
+    ("E", ["#####", "#    ", "#    ", "#### ", "#    ", "#    ", "#####"]),
+    ("F", ["#####", "#    ", "#    ", "#### ", "#    ", "#    ", "#    "]),
+    ("G", [" ### ", "#   #", "#    ", "# ###", "#   #", "#   #", " ####"]),
+    ("H", ["#   #", "#   #", "#   #", "#####", "#   #", "#   #", "#   #"]),
+    ("I", [" ### ", "  #  ", "  #  ", "  #  ", "  #  ", "  #  ", " ### "]),
+    ("J", ["    #", "    #", "    #", "    #", "    #", "#   #", " ### "]),
+    ("K", ["#   #", "#  # ", "# #  ", "##   ", "# #  ", "#  # ", "#   #"]),
+    ("L", ["#    ", "#    ", "#    ", "#    ", "#    ", "#    ", "#####"]),
+    ("M", ["#   #", "## ##", "# # #", "# # #", "#   #", "#   #", "#   #"]),
+    ("N", ["#   #", "#   #", "##  #", "# # #", "#  ##", "#   #", "#   #"]),
+    ("O", [" ### ", "#   #", "#   #", "#   #", "#   #", "#   #", " ### "]),
+    ("P", ["#### ", "#   #", "#   #", "#### ", "#    ", "#    ", "#    "]),
+    ("Q", [" ### ", "#   #", "#   #", "#   #", "# # #", "#  # ", " ## #"]),
+    ("R", ["#### ", "#   #", "#   #", "#### ", "# #  ", "#  # ", "#   #"]),
+    ("S", [" ####", "#    ", "#    ", " ### ", "    #", "    #", "#### "]),
+    ("T", ["#####", "  #  ", "  #  ", "  #  ", "  #  ", "  #  ", "  #  "]),
+    ("U", ["#   #", "#   #", "#   #", "#   #", "#   #", "#   #", " ### "]),
+    ("V", ["#   #", "#   #", "#   #", "#   #", "#   #", " # # ", "  #  "]),
+    ("W", ["#   #", "#   #", "#   #", "# # #", "# # #", "# # #", " # # "]),
+    ("X", ["#   #", "#   #", " # # ", "  #  ", " # # ", "#   #", "#   #"]),
+    ("Y", ["#   #", "#   #", " # # ", "  #  ", "  #  ", "  #  ", "  #  "]),
+    ("Z", ["#####", "    #", "   # ", "  #  ", " #   ", "#    ", "#####"]),
+    ("[", [" ### ", " #   ", " #   ", " #   ", " #   ", " #   ", " ### "]),
+    ("\\", ["     ", "#    ", " #   ", "  #  ", "   # ", "    #", "     "]),
+    ("]", [" ### ", "   # ", "   # ", "   # ", "   # ", "   # ", " ### "]),
+    ("^", ["  #  ", " # # ", "#   #", "     ", "     ", "     ", "     "]),
+    ("_", ["     ", "     ", "     ", "     ", "     ", "     ", "#####"]),
+    ("`", [" #   ", "  #  ", "     ", "     ", "     ", "     ", "     "]),
+    ("a", ["     ", "     ", " ### ", "    #", " ####", "#   #", " ####"]),
+    ("b", ["#    ", "#    ", "#### ", "#   #", "#   #", "#   #", "#### "]),
+    ("c", ["     ", "     ", " ### ", "#   #", "#    ", "#   #", " ### "]),
+    ("d", ["    #", "    #", " ####", "#   #", "#   #", "#   #", " ####"]),
+    ("e", ["     ", "     ", " ### ", "#   #", "#####", "#    ", " ### "]),
+    ("f", ["  ## ", " #  #", " #   ", "###  ", " #   ", " #   ", " #   "]),
+    ("g", ["     ", "     ", " ####", "#   #", " ####", "    #", " ### "]),
+    ("h", ["#    ", "#    ", "#### ", "#   #", "#   #", "#   #", "#   #"]),
+    ("i", ["  #  ", "     ", " ##  ", "  #  ", "  #  ", "  #  ", " ### "]),
+    ("j", ["   # ", "     ", "  ## ", "   # ", "   # ", "#  # ", " ##  "]),
+    ("k", ["#    ", "#    ", "#  # ", "# #  ", "##   ", "# #  ", "#  # "]),
+    ("l", [" ##  ", "  #  ", "  #  ", "  #  ", "  #  ", "  #  ", " ### "]),
+    ("m", ["     ", "     ", "## # ", "# # #", "# # #", "#   #", "#   #"]),
+    ("n", ["     ", "     ", "#### ", "#   #", "#   #", "#   #", "#   #"]),
+    ("o", ["     ", "     ", " ### ", "#   #", "#   #", "#   #", " ### "]),
+    ("p", ["     ", "     ", "#### ", "#   #", "#### ", "#    ", "#    "]),
+    ("q", ["     ", "     ", " ####", "#   #", " ####", "    #", "    #"]),
+    ("r", ["     ", "     ", "# ## ", "##  #", "#    ", "#    ", "#    "]),
+    ("s", ["     ", "     ", " ####", "#    ", " ### ", "    #", "#### "]),
+    ("t", [" #   ", " #   ", "#### ", " #   ", " #   ", " #  #", "  ## "]),
+    ("u", ["     ", "     ", "#   #", "#   #", "#   #", "#   #", " ####"]),
+    ("v", ["     ", "     ", "#   #", "#   #", "#   #", " # # ", "  #  "]),
+    ("w", ["     ", "     ", "#   #", "#   #", "# # #", "# # #", " # # "]),
+    ("x", ["     ", "     ", "#   #", " # # ", "  #  ", " # # ", "#   #"]),
+    ("y", ["     ", "     ", "#   #", "#   #", " ####", "    #", " ### "]),
+    ("z", ["     ", "     ", "#####", "   # ", "  #  ", " #   ", "#####"]),
+    ("{", ["   # ", "  #  ", "  #  ", " #   ", "  #  ", "  #  ", "   # "]),
+    ("|", ["  #  ", "  #  ", "  #  ", "  #  ", "  #  ", "  #  ", "  #  "]),
+    ("}", [" #   ", "   # ", "   # ", "    #", "   # ", "   # ", " #   "]),
+    ("~", ["     ", " ##  ", "#  ##", "     ", "     ", "     ", "     "]),
+]
+FONT_ROWS: dict[str, str] = {char: "".join(rows) for char, rows in _FONT_LIST}
+_FALLBACK = FONT_ROWS["?"]
 _CELL = 6  # glyph advance in pixels at scale 1
 
 
+def text_width(text: str, scale: int) -> int:
+    """Pixel width of a text run at the given scale."""
+    return len(text) * _CELL * scale
+
+
+def text_height(scale: int) -> int:
+    """Pixel height of a text run at the given scale."""
+    return 7 * scale
+
+
 class Canvas:
-    """RGB8 pixel canvas with rects, Bresenham lines and 5x7 text."""
+    """RGB8 pixel canvas with rects, Bresenham lines and 5x7 text.
+
+    Every ``text`` call records its bounding box; ``solid`` registers a
+    drawn region (bars, trace bands) that text must not cover.
+    ``layout_problems()`` reports text-on-text overlaps, text-on-solid
+    overlaps and boxes extending past the canvas.
+    """
 
     def __init__(self, width: int, height: int, background: Color = WHITE) -> None:
         if not (0 < width <= MAX_DIM and 0 < height <= MAX_DIM):
@@ -127,6 +176,8 @@ class Canvas:
         self.width = width
         self.height = height
         self.pixels = bytearray(background * (width * height))
+        self.text_boxes: list[tuple[int, int, int, int, str]] = []
+        self._solids: list[tuple[int, int, int, int]] = []
 
     def _set(self, x: int, y: int, color: Color) -> None:
         if 0 <= x < self.width and 0 <= y < self.height:
@@ -142,6 +193,10 @@ class Canvas:
         for yy in range(y0, y1):
             offset = (yy * self.width + x0) * 3
             self.pixels[offset : offset + len(row)] = row
+
+    def solid(self, x: int, y: int, width: int, height: int) -> None:
+        """Register a drawn region that later text must not cover."""
+        self._solids.append((x, y, x + width, y + height))
 
     def rect(self, x: int, y: int, width: int, height: int, color: Color) -> None:
         self.fill_rect(x, y, width, 1, color)
@@ -165,17 +220,35 @@ class Canvas:
                 error += dx
                 y0 += sy
 
-    def text(self, x: int, y: int, text: str, color: Color, scale: int = 1) -> None:
-        scale = max(1, min(3, scale))
+    def text(self, x: int, y: int, text: str, color: Color, scale: int = 2) -> None:
+        scale = max(MIN_TEXT_SCALE, min(4, scale))
         cx = x
-        for char in text.upper():
-            glyph = _FONT_ROWS.get(char, _FALLBACK)
+        for char in text:
+            glyph = FONT_ROWS.get(char, _FALLBACK)
             for row in range(7):
                 bits = glyph[row * 5 : row * 5 + 5]
                 for col, mark in enumerate(bits):
                     if mark != " ":
                         self.fill_rect(cx + col * scale, y + row * scale, scale, scale, color)
             cx += _CELL * scale
+        if text:
+            self.text_boxes.append(
+                (x, y, x + text_width(text, scale) - scale, y + text_height(scale), text)
+            )
+
+    def layout_problems(self) -> list[str]:
+        """Overlapping text boxes, text over registered solids, clipping."""
+        problems: list[str] = []
+        for i, (x0, y0, x1, y1, text) in enumerate(self.text_boxes):
+            if x0 < 0 or y0 < 0 or x1 > self.width or y1 > self.height:
+                problems.append(f"text {text!r} clipped at ({x0},{y0})-({x1},{y1})")
+            for sx0, sy0, sx1, sy1 in self._solids:
+                if x0 < sx1 and x1 > sx0 and y0 < sy1 and y1 > sy0:
+                    problems.append(f"text {text!r} overlaps solid ({sx0},{sy0})-({sx1},{sy1})")
+            for x2, y2, x3, y3, other in self.text_boxes[i + 1 :]:
+                if x0 < x3 and x1 > x2 and y0 < y3 and y1 > y2:
+                    problems.append(f"text {text!r} overlaps text {other!r}")
+        return problems
 
     def png_bytes(self) -> bytes:
         raw = b"".join(
@@ -212,16 +285,16 @@ def write_png(canvas: Canvas, path: Path) -> dict[str, object]:
     }
 
 
-def _clip_label(canvas: Canvas, x: int, y: int, text: str, color: Color, scale: int) -> None:
-    max_chars = max(1, (canvas.width - x - 8) // (_CELL * scale))
-    canvas.text(x, y, text[:max_chars], color, scale)
-
-
-def _legend(canvas: Canvas, x: int, y: int, entries: list[tuple[Color, str]]) -> None:
+def _legend(
+    canvas: Canvas, x: int, y: int, entries: list[tuple[Color, str]], scale: int = 2
+) -> int:
+    """Swatch + label per entry; returns the y below the last entry."""
     for i, (color, label) in enumerate(entries):
-        canvas.fill_rect(x, y + i * 18 + 2, 12, 12, color)
-        canvas.rect(x, y + i * 18 + 2, 12, 12, BLACK)
-        _clip_label(canvas, x + 16, y + i * 18, label, BLACK, 2)
+        yy = y + i * (text_height(scale) + 8)
+        canvas.fill_rect(x, yy, 14, 14, color)
+        canvas.rect(x, yy, 14, 14, BLACK)
+        canvas.text(x + 20, yy, label, BLACK, scale)
+    return y + len(entries) * (text_height(scale) + 8)
 
 
 _BGA_NAME = re.compile(r"^[A-Z]{1,2}[0-9]+$")
@@ -244,11 +317,15 @@ def _pin_color(contract: FpgaContract, profile: DeviceProfile, name: str) -> Col
 
 
 def pinmap_canvas(contract: FpgaContract, profile: DeviceProfile) -> Canvas:
-    """Package drawing: a BGA grid or a QFP-style perimeter + pin table."""
+    """Package drawing: a BGA grid or a perimeter + pin table."""
     names = [p.name for p in profile.pins]
-    margin, cell, gap = 12, 30, 4
+    scale = 2
+    side = 0
+    pad, pitch = 40, 46
+    is_bga = bool(names) and all(_BGA_NAME.match(n) for n in names)
+    margin, top_y = 16, 48
     positions: dict[str, tuple[int, int]] = {}
-    if names and all(_BGA_NAME.match(n) for n in names):
+    if is_bga:
         letters = sorted(
             {match.group(0) for n in names if (match := re.match(r"[A-Z]+", n)) is not None}
         )
@@ -258,12 +335,9 @@ def pinmap_canvas(contract: FpgaContract, profile: DeviceProfile) -> Canvas:
         for row, letter in enumerate(letters):
             for col, digit in enumerate(digits):
                 name = f"{letter}{digit}"
-                positions[name] = (
-                    margin + col * (cell + gap),
-                    margin + row * (cell + gap),
-                )
-        grid_w = margin + len(digits) * (cell + gap)
-        grid_h = margin + len(letters) * (cell + gap)
+                positions[name] = (margin + col * pitch, top_y + row * pitch)
+        grid_w = margin + len(digits) * pitch
+        grid_h = top_y + len(letters) * pitch
     else:
         match = re.search(r"(\d+)\s*$", profile.package)
         if match:
@@ -272,75 +346,102 @@ def pinmap_canvas(contract: FpgaContract, profile: DeviceProfile) -> Canvas:
             numeric = [int(n) for n in names if n.isdigit()]
             count = max(numeric) if numeric else len(names)
         count = max(count, len(names))
-        numeric_names = sorted((n for n in names if n.isdigit()), key=int)
-        ordered = numeric_names if len(numeric_names) >= count else names
-        side = max(1, count // 4)
-        box = side * 16 + 2 * margin
+        side = max(1, math.ceil(count / 4))
+        edge = side * pitch
+        # All package pins 1..count, pin 1 at the top-left, counter-clockwise.
+        ordered = [str(n) for n in range(1, count + 1)]
         for index, name in enumerate(ordered):
-            edge, slot = divmod(index, side)
-            x, y = margin + slot * 16, margin + side * 16 + slot * 0
-            if edge == 0:  # left edge, pin 1 at top
-                x, y = margin, margin + slot * 16
-            elif edge == 1:  # bottom, left to right
-                x, y = margin + slot * 16, margin + side * 16
-            elif edge == 2:  # right, bottom to top
-                x, y = margin + side * 16, margin + (side - 1 - slot) * 16
-            else:  # top, right to left
-                x, y = margin + (side - 1 - slot) * 16, margin
+            edge_i, slot = divmod(index, side)
+            if edge_i == 0:  # left edge, top to bottom
+                x, y = margin, top_y + slot * pitch
+            elif edge_i == 1:  # bottom, left to right
+                x, y = margin + slot * pitch, top_y + edge
+            elif edge_i == 2:  # right edge, bottom to top
+                x, y = margin + edge, top_y + (side - slot) * pitch
+            else:  # top edge, right to left (last pin beside pin 1)
+                x, y = margin + (side - slot) * pitch, top_y
             positions[name] = (x, y)
-        grid_w = box + 2 * margin
-        grid_h = box + 2 * margin
-    used = {p.package_pin for p in contract.pins}
-    user_io = len(profile.pins)
-    table_x = grid_w + 20
-    table_y = 56
-    row_h = 16
-    table_h = table_y + (len(contract.pins) + 2) * row_h
-    height = max(grid_h + 60, table_h + 140)
-    canvas = Canvas(min(table_x + 860, MAX_DIM), min(height, MAX_DIM))
+        grid_w = margin + edge + pitch
+        grid_h = top_y + edge + pitch
+    # Table columns measured on content.
+    rows = [
+        (pin.package_pin, pin.port, pin.net or "-", pin.io_standard or "-", pin.pull or "-")
+        for pin in contract.pins
+    ]
+    headers = ("pin", "port", "net", "io_std", "pull")
+    col_w = [
+        max(text_width(headers[i], scale), *[text_width(r[i], scale) for r in rows] or [0]) + 16
+        for i in range(5)
+    ]
+    table_w = sum(col_w)
+    table_x = grid_w + 32
+    row_h = text_height(scale) + 8
+    legend_h = 6 * (text_height(scale) + 8) + 16
+    height = max(grid_h + legend_h + 24, 48 + (len(rows) + 3) * row_h + 32)
+    width = table_x + table_w + 40
+    canvas = Canvas(min(width, MAX_DIM), min(height, MAX_DIM))
     title = (
         f"{contract.name} pin map - {profile.part} {profile.package} "
-        f"({len(used)}/{user_io} user I/O)"
+        f"({len(contract.pins)}/{len(names)} user I/O)"
     )
-    canvas.text(12, 12, title, BLACK, 2)
-    if positions and all(_BGA_NAME.match(n) for n in names):
+    canvas.text(margin, 12, title, BLACK, scale)
+    if is_bga:
         for name, (x, y) in positions.items():
-            canvas.fill_rect(x, y, cell, cell, _pin_color(contract, profile, name))
-            canvas.rect(x, y, cell, cell, BLACK)
-            canvas.text(x + 1, y + 10, name, BLACK, 1)
+            canvas.fill_rect(x, y, pad, pad, _pin_color(contract, profile, name))
+            canvas.rect(x, y, pad, pad, BLACK)
+            canvas.text(
+                x + max(2, (pad - text_width(name, scale)) // 2),
+                y + (pad - text_height(scale)) // 2,
+                name,
+                BLACK,
+                scale,
+            )
     else:
-        x0, y0, size = margin + 32, margin + 32, (max(1, len(positions) // 4)) * 16 - 32
-        canvas.fill_rect(x0, y0, size, size, (245, 245, 245))
-        canvas.rect(x0, y0, size, size, BLACK)
-        canvas.text(x0 + 8, y0 + 8, profile.package, BLACK, 1)
+        inner = margin + pitch
+        inner_size = side * pitch - pitch
+        canvas.fill_rect(inner, top_y + pitch, inner_size, inner_size, (245, 245, 245))
+        canvas.rect(inner, top_y + pitch, inner_size, inner_size, BLACK)
+        canvas.text(inner + 12, top_y + pitch + 12, profile.package, BLACK, scale)
         for name, (x, y) in positions.items():
-            canvas.fill_rect(x, y, 14, 14, _pin_color(contract, profile, name))
-            canvas.rect(x, y, 14, 14, BLACK)
-            canvas.text(x + 3, y + 4, name, BLACK, 1)
-    _legend(
-        canvas,
-        12,
-        max(grid_h + 12, 40),
-        [
+            color = _pin_color(contract, profile, name)
+            canvas.fill_rect(x, y, pad, pad, color)
+            canvas.rect(x, y, pad, pad, BLACK)
+            canvas.text(
+                x + max(2, (pad - text_width(name, scale)) // 2),
+                y + (pad - text_height(scale)) // 2,
+                name,
+                BLACK,
+                scale,
+            )
+    legend_y = grid_h + 12
+    used_colors = {_pin_color(contract, profile, n) for n in positions}
+    legend_entries: list[tuple[Color, str]] = [
+        entry
+        for entry in [
             (BLUE, "used signal"),
             (GREEN, "used clock"),
             (ORANGE, "used caution pin (acknowledged)"),
             (RED, "unused caution pin"),
             (GREY, "free user I/O"),
             (DARK_GREY, "not user I/O"),
-        ],
-    )
-    canvas.text(table_x, 24, "package pin  port      net      io_std   pull", BLACK, 1)
-    canvas.line(table_x, 36, table_x + 520, 36, BLACK)
-    for row, pin in enumerate(contract.pins):
-        y = table_y + row * row_h
-        canvas.fill_rect(table_x - 4, y, 8, 8, _pin_color(contract, profile, pin.package_pin))
-        canvas.rect(table_x - 4, y, 8, 8, BLACK)
-        columns = (
-            f"{pin.package_pin:<12} {pin.port:<11} {(pin.net or '-'):<10} "
-            f"{pin.io_standard or '-':<8} {pin.pull or '-'}"
-        )
-        _clip_label(canvas, table_x + 10, y, columns, BLACK, 1)
+        ]
+        if entry[0] in used_colors
+    ]
+    _legend(canvas, margin, legend_y, legend_entries, scale)
+    x = table_x
+    for i, header in enumerate(headers):
+        canvas.text(x, 48, header, BLACK, scale)
+        x += col_w[i]
+    rule_y = 48 + text_height(scale) + 4
+    canvas.line(table_x, rule_y, table_x + table_w, rule_y, BLACK)
+    for r, row in enumerate(rows):
+        y = 48 + text_height(scale) + 12 + r * row_h
+        canvas.fill_rect(table_x - 24, y, 14, 14, _pin_color(contract, profile, row[0]))
+        canvas.rect(table_x - 24, y, 14, 14, BLACK)
+        x = table_x
+        for i, value in enumerate(row):
+            canvas.text(x, y, value, BLACK, scale)
+            x += col_w[i]
     return canvas
 
 
@@ -354,36 +455,68 @@ def utilization_canvas(
         for cell, e in utilization.items()
         if int(e.get("used", 0)) > 0
     )
-    width, row_h = 900, 44
-    height = 70 + max(1, len(entries)) * row_h
-    canvas = Canvas(min(width, MAX_DIM), min(height, MAX_DIM))
-    canvas.text(12, 12, f"{contract.name} utilization - {profile.part}", BLACK, 2)
-    bar_x, bar_w = 300, 520
-    for row, (cell, used, available) in enumerate(entries):
-        y = 50 + row * row_h
+    scale = 2
+    rows: list[tuple[str, int, int, str, float | None, float]] = []
+    for cell, used, available in entries:
         resource_class = profile.resources.get(cell, "other")
         pct = 100.0 * used / available if available else 100.0
         budget = contract.build.budget.limit(resource_class)
+        rows.append((cell, used, available, resource_class, budget, pct))
+    label_w = max((text_width(f"{c} ({r})", scale) for c, _, _, r, _, _ in rows), default=100)
+    value_w = max(
+        (
+            text_width(
+                f"{u}/{a} {p:.1f}%" + (f" budget {b:g}%" if b is not None else ""),
+                scale,
+            )
+            for _, u, a, _, b, p in rows
+        ),
+        default=100,
+    )
+    margin, row_h = 16, 34
+    bar_x = margin + label_w + 24
+    bar_w = 420
+    width = bar_x + bar_w + 24 + value_w + 16
+    height = 60 + max(1, len(rows)) * row_h + 16
+    canvas = Canvas(min(width, MAX_DIM), min(height, MAX_DIM))
+    canvas.text(margin, 12, f"{contract.name} utilization - {profile.part}", BLACK, scale)
+    for r, (cell, used, available, resource_class, budget, pct) in enumerate(rows):
+        y = 60 + r * row_h
         over = budget is not None and pct > budget
-        canvas.fill_rect(bar_x, y + 6, bar_w, 16, (235, 235, 235))
+        canvas.text(margin, y + 2, f"{cell} ({resource_class})", RED if over else BLACK, scale)
+        canvas.fill_rect(bar_x, y, bar_w, 18, (235, 235, 235))
         fill = int(bar_w * min(pct, 100.0) / 100.0)
-        canvas.fill_rect(bar_x, y + 6, fill, 16, RED if over else BLUE)
+        canvas.fill_rect(bar_x, y, fill, 18, RED if over else BLUE)
+        canvas.solid(bar_x, y, bar_w, 18)
         if budget is not None:
             marker = bar_x + int(bar_w * budget / 100.0)
-            canvas.line(marker, y + 2, marker, y + 26, BLACK)
-        label = f"{cell} {used}/{available} {pct:.1f}% {resource_class}" + (
-            f" (budget {budget:g}%)" if budget is not None else ""
+            canvas.line(marker, y - 3, marker, y + 21, BLACK)
+        value = f"{used}/{available} {pct:.1f}%" + (
+            f" budget {budget:g}%" if budget is not None else ""
         )
-        _clip_label(canvas, 12, y + 2, label, RED if over else BLACK, 2)
-    if not entries:
-        canvas.text(12, 60, "no utilization data", RED, 2)
+        canvas.text(bar_x + bar_w + 16, y + 2, value, RED if over else BLACK, scale)
+    if not rows:
+        canvas.text(margin, 60, "no utilization data", RED, scale)
     return canvas
 
 
+def _path_delay(segments: list[Any]) -> float | None:
+    total = 0.0
+    seen = False
+    for segment in segments:
+        if isinstance(segment, dict):
+            delay = cast(dict[str, Any], segment).get("delay")
+            if isinstance(delay, (int, float)):
+                total += float(delay)
+                seen = True
+    return total if seen else None
+
+
 def timing_canvas(contract: FpgaContract, report: dict[str, Any]) -> Canvas:
-    """Achieved vs required MHz per clock net, with slack and worst path."""
+    """Achieved vs required MHz per clock net, with slack and worst paths."""
     fmax = cast(dict[str, dict[str, float]], report.get("fmax", {}))
     paths_data: Any = report.get("critical_paths", {})
+    scale = 2
     rows: list[tuple[str, float, float]] = []
     for clock in contract.clocks:
         base = clock.port.split("[", 1)[0]
@@ -392,7 +525,13 @@ def timing_canvas(contract: FpgaContract, report: dict[str, Any]) -> Canvas:
         for net in nets or [clock.port]:
             achieved = float(fmax.get(net, {}).get("achieved", 0.0))
             rows.append((net, achieved, clock.frequency_mhz))
-    width, row_h = 900, 40
+
+    def _row_text(net: str, achieved: float, required: float) -> str:
+        if achieved:
+            slack = 1000.0 / required - 1000.0 / achieved
+            return f"{achieved:.2f} MHz achieved / {required:g} MHz required, slack {slack:+.1f} ns"
+        return f"no timing data / {required:g} MHz required"
+
     worst: list[tuple[str, dict[str, Any]]] = []
     if isinstance(paths_data, dict):
         for net, info in cast(dict[str, Any], paths_data).items():
@@ -402,68 +541,85 @@ def timing_canvas(contract: FpgaContract, report: dict[str, Any]) -> Canvas:
         for entry in cast(list[Any], paths_data)[:6]:
             if isinstance(entry, dict):
                 item = cast(dict[str, Any], entry)
-                label = f"{item.get('from', '?')} -> {item.get('to', '?')}"
                 merged = dict(item)
                 merged.setdefault("segments", item.get("path", []))
-                worst.append((label, merged))
-    height = 70 + max(1, len(rows)) * row_h + len(worst) * 90
+                worst.append((str(item.get("from", "?")), merged))
+
+    seg_lines: list[list[str]] = []
+    for label, info in worst:
+        segments = info.get("segments", [])
+        total = info.get("total_delay_ns")
+        if not isinstance(total, (int, float)):
+            total = _path_delay(cast(list[Any], segments) if isinstance(segments, list) else [])
+        total_text = f"{float(total):.2f} ns" if isinstance(total, (int, float)) else "? ns"
+        lines = [
+            f"worst path on {label}",
+            f"{info.get('from', '?')} -> {info.get('to', '?')}  total {total_text}",
+        ]
+        top_segments: list[dict[str, Any]] = []
+        if isinstance(segments, list):
+            segment_dicts = [
+                cast(dict[str, Any], s) for s in cast(list[Any], segments) if isinstance(s, dict)
+            ]
+            top_segments = sorted(
+                segment_dicts, key=lambda seg: float(seg.get("delay", 0.0) or 0.0), reverse=True
+            )[:5]
+        for seg in top_segments:
+            net = str(seg.get("net") or seg.get("from", {}).get("cell", "?"))[:48]
+            lines.append(f"  {seg.get('type', '?')} {float(seg.get('delay', 0.0)):.2f} ns {net}")
+        seg_lines.append(lines)
+
+    label_w = max((text_width(n, scale) for n, _, _ in rows), default=80)
+    value_w = max((text_width(_row_text(n, a, r), scale) for n, a, r in rows), default=80)
+    worst_w = max(
+        (text_width(line, scale) for lines in seg_lines for line in lines),
+        default=80,
+    )
+    margin, row_h = 16, 36
+    bar_x = margin + label_w + 24
+    bar_w = 320
+    width = max(bar_x + bar_w + 24 + value_w + 24, margin + worst_w + 24)
+    seg_h = sum(len(lines) * (text_height(scale) + 6) + 14 for lines in seg_lines)
+    height = 60 + max(1, len(rows)) * row_h + seg_h + 40
     canvas = Canvas(min(width, MAX_DIM), min(height, MAX_DIM))
-    canvas.text(12, 12, f"{contract.name} timing", BLACK, 2)
-    bar_x, bar_w = 300, 520
-    for row, (net, achieved, required) in enumerate(rows):
-        y = 50 + row * row_h
-        slack = (1000.0 / required - 1000.0 / achieved) if achieved else float("-inf")
+    canvas.text(margin, 12, f"{contract.name} timing", BLACK, scale)
+    for r, (net, achieved, required) in enumerate(rows):
+        y = 60 + r * row_h
+        ok = achieved >= required
+        canvas.text(margin, y + 2, net, GREEN if ok else RED, scale)
         scale_max = max(required, achieved, 1.0) * 1.2
-        canvas.fill_rect(bar_x, y + 6, bar_w, 14, (235, 235, 235))
+        canvas.fill_rect(bar_x, y, bar_w, 18, (235, 235, 235))
         canvas.fill_rect(
             bar_x,
-            y + 6,
+            y,
             int(bar_w * min(achieved, scale_max) / scale_max),
-            14,
-            GREEN if achieved >= required else RED,
+            18,
+            GREEN if ok else RED,
         )
-        canvas.line(
-            bar_x + int(bar_w * required / scale_max),
+        canvas.solid(bar_x, y, bar_w, 18)
+        marker = bar_x + int(bar_w * required / scale_max)
+        canvas.line(marker, y - 3, marker, y + 21, BLACK)
+        canvas.text(
+            bar_x + bar_w + 16,
             y + 2,
-            bar_x + int(bar_w * required / scale_max),
-            y + 24,
-            BLACK,
-        )
-        slack_text = f"slack {slack:.2f} ns" if achieved else "no timing data"
-        _clip_label(
-            canvas,
-            12,
-            y + 2,
-            f"{net} {achieved:.2f}/{required:g} MHz {slack_text}",
-            GREEN if achieved >= required else RED,
-            2,
+            _row_text(net, achieved, required),
+            GREEN if ok else RED,
+            scale,
         )
     if not rows:
-        canvas.text(12, 60, "contract declares no clocks", DARK_GREY, 2)
-    y = 60 + len(rows) * row_h
-    for net, info in worst:
-        canvas.text(12, y, f"worst path on {net}:", BLACK, 2)
-        delay = info.get("total_delay_ns", info.get("delay", "?"))
-        canvas.text(
-            12,
-            y + 20,
-            f"{info.get('from', '?')} -> {info.get('to', '?')} {delay} ns",
-            DARK_GREY,
-            2,
-        )
-        segments = info.get("segments", [])
-        if isinstance(segments, list):
-            for seg_i, segment in enumerate(cast(list[Any], segments)[:5]):
-                if isinstance(segment, dict):
-                    seg = cast(dict[str, Any], segment)
-                    seg_text = (
-                        f"{seg.get('type', '?')} {float(seg.get('delay', 0.0)):.2f} ns "
-                        f"{seg.get('net', '')}"
-                    )
-                else:
-                    seg_text = str(segment)
-                canvas.text(24, y + 40 + seg_i * 16, seg_text[:72], DARK_GREY, 1)
-        y += 90
+        canvas.text(margin, 60, "contract declares no clocks", DARK_GREY, scale)
+    y = 60 + max(1, len(rows)) * row_h + 16
+    for lines in seg_lines:
+        for i, line in enumerate(lines):
+            canvas.text(
+                margin + (24 if i >= 2 else 0),
+                y,
+                line,
+                DARK_GREY if i else BLACK,
+                scale,
+            )
+            y += text_height(scale) + 6
+        y += 14
     return canvas
 
 
@@ -506,50 +662,81 @@ def floorplan_canvas(placed: dict[str, Any], profile: DeviceProfile, top: str) -
         bucket = grid.setdefault(coords, {})
         bucket[resource_class] = bucket.get(resource_class, 0) + 1
     if not grid:
-        canvas = Canvas(420, 120)
+        canvas = Canvas(560, 120)
         canvas.text(12, 40, "no NEXTPNR_BEL placement data", RED, 2)
         return canvas
+    min_x = min(x for x, _ in grid)
     max_x = max(x for x, _ in grid)
+    min_y = min(y for _, y in grid)
     max_y = max(y for _, y in grid)
-    tile = 14
-    origin_x, origin_y = 60, 50
-    width = origin_x + (max_x + 1) * tile + 260
-    height = origin_y + (max_y + 1) * tile + 60
-    canvas = Canvas(min(width, MAX_DIM), min(height, MAX_DIM))
+    nx, ny = max_x - min_x + 1, max_y - min_y + 1
+    scale = 2
+    tile = 22
+    tick_label_w = text_width(str(max(max_x, max_y)), scale) + 8
+    origin_x, origin_y = 24 + tick_label_w, 64
     counts: dict[str, int] = {}
     for bucket in grid.values():
         for resource_class, n in bucket.items():
             counts[resource_class] = counts.get(resource_class, 0) + n
+    legend_x = origin_x + nx * tile + 32
+    legend_w = max(text_width(f"{k} ({v})", scale) for k, v in counts.items()) + 40
     summary = ", ".join(f"{k}={v}" for k, v in sorted(counts.items()))
-    canvas.text(12, 12, f"{top} floorplan ({summary})", BLACK, 2)
+    width = max(legend_x + legend_w, 48 + text_width(f"{top} floorplan ({summary})", scale))
+    height = origin_y + ny * tile + 70
+    canvas = Canvas(min(width, MAX_DIM), min(height, MAX_DIM))
+    canvas.text(24, 12, f"{top} floorplan ({summary})", BLACK, scale)
     for (gx, gy), bucket in sorted(grid.items()):
-        dominant, total = max(bucket.items(), key=lambda kv: kv[1])
+        dominant, _ = max(bucket.items(), key=lambda kv: kv[1])
         total = sum(bucket.values())
         base = _CLASS_COLORS.get(dominant, DARK_GREY)
         intensity = 255 - min(160, 60 * total)
         color = tuple(min(255, c * intensity // 255 + (255 - intensity)) for c in base)
         canvas.fill_rect(
-            origin_x + gx * tile,
-            origin_y + gy * tile,
+            origin_x + (gx - min_x) * tile,
+            origin_y + (gy - min_y) * tile,
             tile - 1,
             tile - 1,
             cast(Color, color),
         )
-    for gx in range(0, max_x + 1, max(1, (max_x + 1) // 10)):
-        canvas.line(origin_x + gx * tile, origin_y - 4, origin_x + gx * tile, origin_y, BLACK)
-        canvas.text(origin_x + gx * tile, origin_y - 16, str(gx), BLACK, 1)
-    for gy in range(0, max_y + 1, max(1, (max_y + 1) // 10)):
-        canvas.line(origin_x - 4, origin_y + gy * tile, origin_x, origin_y + gy * tile, BLACK)
-        canvas.text(origin_x - 40, origin_y + gy * tile, str(gy), BLACK, 1)
-    canvas.text(origin_x + (max_x + 1) * tile // 2, origin_y - 34, "X", BLACK, 1)
-    canvas.text(origin_x - 52, origin_y + (max_y + 1) * tile // 2, "Y", BLACK, 1)
+    step_x = max(1, math.ceil(nx / 10))
+    for gx in range(min_x, max_x + 1, step_x):
+        x = origin_x + (gx - min_x) * tile
+        label = str(gx)
+        canvas.line(x, origin_y - 4, x, origin_y, BLACK)
+        canvas.text(x, origin_y - 4 - text_height(scale) - 4, label, BLACK, scale)
+    step_y = max(1, math.ceil(ny / 10))
+    for gy in range(min_y, max_y + 1, step_y):
+        y = origin_y + (gy - min_y) * tile
+        label = str(gy)
+        canvas.line(origin_x - 4, y, origin_x, y, BLACK)
+        canvas.text(
+            origin_x - 8 - text_width(label, scale),
+            y - text_height(scale) // 2,
+            label,
+            BLACK,
+            scale,
+        )
+    canvas.text(origin_x + nx * tile // 2, origin_y + ny * tile + 12, "X", BLACK, scale)
+    canvas.text(origin_x - 16 - tick_label_w, origin_y + ny * tile // 2, "Y", BLACK, scale)
     _legend(
         canvas,
-        origin_x + (max_x + 1) * tile + 20,
+        legend_x,
         origin_y,
-        [(_CLASS_COLORS[k], f"{k} ({v})") for k, v in sorted(counts.items())],
+        [(_CLASS_COLORS.get(k, DARK_GREY), f"{k} ({v})") for k, v in sorted(counts.items())],
+        scale,
     )
     return canvas
+
+
+def _bus_text(value: str) -> str:
+    """Display text for a bus/string change value."""
+    if set(value) <= {"0", "1"}:
+        return _hex(value)
+    if value.startswith("s"):
+        return value[1:]
+    if set(value) <= {"x", "z"}:
+        return "x"
+    return value
 
 
 def _hex(bits: str) -> str:
@@ -602,7 +789,10 @@ def parse_vcd(path: Path) -> tuple[list[VcdSignal], str, bool]:
             if len(parts) >= 4:
                 ident = parts[2]
                 name = parts[3].split("[")[0]
+                is_string = parts[0].strip() in ("string", "real")
                 width = int(parts[1]) if parts[1].isdigit() else 1
+                if is_string:
+                    width = 0
                 signals[ident] = VcdSignal(name, ".".join(scopes), width)
     changes = 0
     time = 0
@@ -616,11 +806,11 @@ def parse_vcd(path: Path) -> tuple[list[VcdSignal], str, bool]:
             continue
         if line[0] == "$":
             continue
-        if line[0] in "bBrR":
+        if line[0] in "bBrRsS":
             value, _, ident = line[1:].partition(" ")
             signal = signals.get(ident)
             if signal is not None:
-                signal.changes.append((time, value.lower()))
+                signal.changes.append((time, value.lower() if line[0] in "bBrR" else value))
                 changes += 1
         else:
             signal = signals.get(line[1:])
@@ -630,50 +820,100 @@ def parse_vcd(path: Path) -> tuple[list[VcdSignal], str, bool]:
         if changes > VCD_MAX_CHANGES:
             truncated = True
             break
-    ordered = sorted(signals.values(), key=lambda s: (s.scope != top_scope, s.scope, s.name))
+    ordered = sorted(
+        signals.values(),
+        key=lambda s: (s.scope.count("."), s.scope != top_scope, s.scope, s.name),
+    )
     return ordered[:MAX_WAVE_ROWS], timescale, truncated
 
 
+def _timescale_unit(timescale: str) -> tuple[float, str]:
+    """Numeric value of one VCD time unit in seconds and the timescale text."""
+    match = re.match(r"(\d+)\s*(fs|ps|ns|us|ms|s)", timescale.lower())
+    if match:
+        base = {"fs": 1e-15, "ps": 1e-12, "ns": 1e-9, "us": 1e-6, "ms": 1e-3, "s": 1.0}
+        return float(match.group(1)) * base[match.group(2)], match.group(2)
+    return 1.0, "s"
+
+
+def _eng_unit(span_seconds: float) -> tuple[float, str]:
+    for factor, unit in (
+        (1e-15, "fs"),
+        (1e-12, "ps"),
+        (1e-9, "ns"),
+        (1e-6, "us"),
+        (1e-3, "ms"),
+        (1.0, "s"),
+    ):
+        if span_seconds * (1.0 / factor) < 1000 or unit == "s":
+            return factor, unit
+    return 1.0, "s"
+
+
 def waveform_canvas(vcd_path: Path, title: str) -> Canvas:
-    """Digital traces from a VCD file: scalars as waveforms, buses as boxes."""
+    """Digital traces from a VCD file: scalars waveforms, buses/text boxes."""
     signals, timescale, truncated = parse_vcd(vcd_path)
-    if truncated:
-        title = f"{title} TRUNCATED"
-    label_w = 170
+    unit_s, _ = _timescale_unit(timescale)
     t0 = min((c[0] for s in signals for c in s.changes), default=0)
     t1 = max((c[0] for s in signals for c in s.changes), default=1)
     span = max(1, t1 - t0)
-    row_h = 30
-    width = 980
-    height = 80 + max(1, len(signals)) * row_h + 30
+    factor, unit = _eng_unit(span * unit_s)
+    span_text = f"{t0 * unit_s / factor:g} {unit} .. {t1 * unit_s / factor:g} {unit}"
+    scale = 2
+    # Signal labels: qualify duplicates with their scope relative to the top.
+    name_counts: dict[str, int] = {}
+    for signal in signals:
+        name_counts[signal.name] = name_counts.get(signal.name, 0) + 1
+    top_scope = signals[0].scope.split(".")[0] if signals else ""
+
+    def _label(signal: VcdSignal) -> str:
+        if name_counts.get(signal.name, 0) <= 1:
+            base = signal.name
+        else:
+            scope = signal.scope
+            if top_scope and scope.startswith(top_scope + "."):
+                scope = scope[len(top_scope) + 1 :]
+            elif scope == top_scope:
+                scope = ""
+            base = f"{scope}.{signal.name}" if scope else signal.name
+        if len(base) > 32:
+            base = "..." + base[-29:]
+        suffix = f" [{signal.width}]" if signal.width > 1 else ""
+        return base + suffix
+
+    label_w = max((text_width(_label(s), scale) for s in signals), default=120)
+    margin = 16
+    plot_x = margin + label_w + 16
+    plot_w = 720
+    tick_max_w = 0
+    tick_values = [t0 + span * i // 10 for i in range(11)]
+    tick_labels = [f"{t * unit_s / factor:g} {unit}" for t in tick_values]
+    if tick_labels:
+        tick_max_w = max(text_width(label, scale) for label in tick_labels)
+    width = plot_x + plot_w + 16 + tick_max_w // 2
+    row_h = 34
+    axis_y = 64 + max(1, len(signals)) * row_h + 10
+    height = axis_y + 44
     canvas = Canvas(min(width, MAX_DIM), min(height, MAX_DIM))
-    canvas.text(12, 12, f"{title} ({timescale})", BLACK, 2)
-    plot_x, plot_w = label_w, width - label_w - 20
-    axis_y = 60 + len(signals) * row_h + 6
-    canvas.line(plot_x, axis_y, plot_x + plot_w, axis_y, BLACK)
-    ticks = 10
-    for i in range(ticks + 1):
-        t = t0 + span * i // ticks
-        x = plot_x + plot_w * i // ticks
-        canvas.line(x, axis_y, x, axis_y + 4, BLACK)
-        canvas.text(x, axis_y + 8, str(t), DARK_GREY, 1)
+    heading = f"{title} {span_text}" + (" TRUNCATED" if truncated else "")
+    canvas.text(margin, 12, heading, BLACK, scale)
 
     def x_of(t: int) -> int:
         return plot_x + int(plot_w * (t - t0) / span)
 
     for row, signal in enumerate(signals):
-        y = 60 + row * row_h
-        mid, hi, lo = y + 14, y + 4, y + 24
-        label = f"{signal.name} [{signal.width}]" if signal.width > 1 else signal.name
-        _clip_label(canvas, 8, y + 6, label, BLACK, 2)
+        y = 64 + row * row_h
+        mid, hi, lo = y + 16, y + 6, y + 26
+        canvas.text(margin, y + 4, _label(signal), BLACK, scale)
         changes = signal.changes
         if not changes:
-            canvas.text(plot_x + 4, mid - 4, "x", RED, 2)
+            canvas.text(plot_x + 6, y + 4, "x", RED, scale)
             continue
         if len(changes) > plot_w * 2:
             xs = {x_of(c[0]) for c in changes}
             canvas.fill_rect(min(xs), hi, max(xs) - min(xs) + 1, lo - hi, (190, 215, 255))
             canvas.rect(min(xs), hi, max(xs) - min(xs) + 1, lo - hi, BLUE)
+            canvas.solid(min(xs), hi, max(xs) - min(xs) + 1, lo - hi)
             continue
         if signal.width == 1:
             prev_t, prev_v = changes[0]
@@ -700,16 +940,18 @@ def waveform_canvas(vcd_path: Path, title: str) -> Canvas:
                 canvas.line(x0, lo, x1, lo, BLACK)
                 canvas.line(x0, hi, x0, lo, BLACK)
                 canvas.line(x1, hi, x1, lo, BLACK)
-                value = _hex(prev_v) if set(prev_v) <= {"0", "1"} else "x"
-                if x1 - x0 > 30:
-                    canvas.text(
-                        x0 + 4,
-                        mid - 4,
-                        value[: (x1 - x0 - 6) // 6],
-                        RED if value == "x" else DARK_GREY,
-                        1,
-                    )
+                value = _bus_text(prev_v)
+                if x1 - x0 > text_width(value, scale) + 8:
+                    canvas.text(x0 + 4, mid - text_height(scale) // 2, value, DARK_GREY, scale)
                 prev_t, prev_v = t, v
+    canvas.line(plot_x, axis_y, plot_x + plot_w, axis_y, BLACK)
+    step = max(1, math.ceil((tick_max_w + 16) * 10 / plot_w))
+    for i in range(0, 11, step):
+        t, label = tick_values[i], tick_labels[i]
+        x = plot_x + plot_w * i // 10
+        canvas.line(x, axis_y, x, axis_y + 6, BLACK)
+        x_text = max(margin, x - text_width(label, scale) // 2)
+        canvas.text(x_text, axis_y + 12, label, DARK_GREY, scale)
     return canvas
 
 
@@ -717,38 +959,64 @@ def report_canvas(report: dict[str, Any]) -> Canvas:
     """One row per gate check with a status chip, plus a verdict banner."""
     checks = cast(list[dict[str, Any]], report.get("checks", []))
     verdict = str(report.get("verdict", "fail"))
-    width, row_h = 980, 30
-    height = 80 + max(1, len(checks)) * row_h
+    scale = 2
+    chip_w = text_width("not applicable", scale) + 16
+    lines = [
+        (
+            f"{check.get('id', '?')}  {check.get('subject') or ''}  {check.get('detail') or ''}"
+        ).rstrip()
+        for check in checks
+    ]
+    detail_w = max((text_width(line, scale) for line in lines), default=200)
+    width = 24 + chip_w + 24 + detail_w + 16
+    row_h = text_height(scale) + 14
+    height = 70 + max(1, len(checks)) * row_h + 16
     canvas = Canvas(min(width, MAX_DIM), min(height, MAX_DIM))
     banner = GREEN if verdict == "pass" else RED
-    canvas.fill_rect(0, 0, canvas.width, 44, banner)
+    canvas.fill_rect(0, 0, canvas.width, 48, banner)
     canvas.text(
-        12,
-        12,
+        16,
+        14,
         f"{report.get('design', '?')} gate report: {verdict.upper()} ({report.get('scope', '?')})",
         WHITE,
-        2,
+        scale,
     )
     chips = {"pass": GREEN, "fail": RED, "not_applicable": GREY}
-    for row, check in enumerate(checks):
-        y = 60 + row * row_h
+    for row, (check, line) in enumerate(zip(checks, lines, strict=True)):
+        y = 70 + row * row_h
         status = str(check.get("status", "fail"))
-        canvas.fill_rect(8, y, 110, 22, chips.get(status, GREY))
-        canvas.text(14, y + 6, status.replace("_", " "), WHITE, 1)
-        detail = str(check.get("detail") or "")
-        subject = str(check.get("subject") or "")
-        _clip_label(
-            canvas,
-            128,
-            y + 4,
-            f"{check.get('id', '?')}  {subject}  {detail}",
-            RED if status == "fail" else BLACK,
-            2,
-        )
+        canvas.fill_rect(12, y, chip_w, text_height(scale) + 8, chips.get(status, GREY))
+        canvas.text(20, y + 4, status.replace("_", " "), WHITE, scale)
+        canvas.text(12 + chip_w + 24, y + 4, line, RED if status == "fail" else BLACK, scale)
+    if not checks:
+        canvas.text(16, 70, "no checks", DARK_GREY, scale)
     return canvas
 
 
 RenderView = Literal["pinmap", "utilization", "timing", "floorplan", "waveform", "report"]
+
+
+def placed_cells(text: str, top: str) -> dict[str, Any]:
+    """Parse the placed netlist; degrade to regex when quotes break JSON."""
+    try:
+        return cast(dict[str, Any], json.loads(text))
+    except json.JSONDecodeError:
+        pass
+    # nextpnr writes attributes verbatim, so quotes inside HDL attributes
+    # can make the JSON unparseable; recover each cell's type and BEL.
+    types = [(m.start(), m.group(1)) for m in re.finditer(r'"type":\s*"([^"]+)"', text)]
+    cells: dict[str, Any] = {}
+    for i, match in enumerate(re.finditer(r'"NEXTPNR_BEL":\s*"([^"]+)"', text)):
+        cell_type = ""
+        for pos, value in reversed(types):
+            if pos < match.start():
+                cell_type = value
+                break
+        cells[f"cell{i}"] = {
+            "type": cell_type,
+            "attributes": {"NEXTPNR_BEL": match.group(1)},
+        }
+    return {"modules": {top: {"cells": cells}}}
 
 
 def render_view_pngs(
@@ -822,24 +1090,7 @@ def render_view_pngs(
     if want("floorplan"):
 
         def _floorplan() -> None:
-            text = placed.read_text(encoding="utf-8")
-            try:
-                data: dict[str, Any] = cast(dict[str, Any], json.loads(text))
-            except json.JSONDecodeError:
-                # nextpnr writes attributes verbatim, so quotes inside HDL
-                # attributes can make the JSON unparseable; degrade to a
-                # regex scan of the NEXTPNR_BEL strings only.
-                bels = re.findall(r'"NEXTPNR_BEL":\s*"([^"]+)"', text)
-                data = {
-                    "modules": {
-                        contract.top: {
-                            "cells": {
-                                f"cell{i}": {"type": "", "attributes": {"NEXTPNR_BEL": bel}}
-                                for i, bel in enumerate(bels)
-                            }
-                        }
-                    }
-                }
+            data = placed_cells(placed.read_text(encoding="utf-8"), contract.top)
             emit(
                 "floorplan",
                 out_dir / f"{contract.name}.fpga-floorplan.png",
@@ -906,10 +1157,13 @@ __all__ = [
     "floorplan_canvas",
     "parse_vcd",
     "pinmap_canvas",
+    "placed_cells",
     "related_check",
     "render_view_pngs",
     "report_canvas",
     "skipped_note",
+    "text_height",
+    "text_width",
     "timing_canvas",
     "utilization_canvas",
     "waveform_canvas",

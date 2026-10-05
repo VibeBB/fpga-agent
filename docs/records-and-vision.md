@@ -39,5 +39,16 @@ not look and decides from the JSON report alone.
 | `<name>.fpga-wave-<sim>.png` | protocol timing matches the spec, no `x`/`z` after reset, the testbench exercises its `expect` claims |
 | `<name>.fpga-report.png` | overall verdict and which stage a failure points back to |
 
+Render legibility is part of the contract with the vision model: text is
+a classic 5x7 font (real lowercase, so HDL/VCD names keep their case) at
+scale ≥ 2, pads and columns are sized from the longest content, and every
+canvas carries `layout_problems()` — an assertion the tests run on every
+view so text never overlaps, covers a bar or leaves the canvas. Waveform
+labels are scope-qualified when names collide (`inner.tx [8]`), the time
+axis uses engineering units (`0 us .. 200 us`), `$var string` values
+(NVC enums/booleans) draw as labelled bus boxes, and perimeter packages
+draw every package pin — user I/O or not — with a legend entry for every
+colour used.
+
 A render that contradicts the JSON report is a finding against the
 renderer — never a reason to change a verdict.
