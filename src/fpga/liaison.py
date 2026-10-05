@@ -31,7 +31,7 @@ from .workspace import workspace_path, workspace_root
 SCHEMA_VERSION = 2
 REQUEST_SUFFIX = ".ux-request.json"
 RESPONSE_SUFFIX = ".ux-response.json"
-_ID = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+_ID = r"^[a-z0-9][a-z0-9._-]{0,63}$"
 _SHA256 = r"^[0-9a-f]{64}$"
 
 Target = Literal[

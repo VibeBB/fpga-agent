@@ -379,3 +379,11 @@ def test_changed_artifacts_cover_directories(tmp_path: Path) -> None:
     request = liaison.inbox(tmp_path)["requests"][0]
     assert request["state"] == "stale"
     assert "out-dir" in cast(list[str], request["changed_artifacts"])
+
+
+def test_family_request_id_pattern_is_pinned(tmp_path: Path) -> None:
+    _request(tmp_path, "kettle.leds_v2")
+    _request(tmp_path, "Kettle-Upper")
+    result = liaison.inbox(tmp_path)
+    assert [r["id"] for r in result["requests"]] == ["kettle.leds_v2"]
+    assert len(result["malformed"]) == 1
