@@ -7,7 +7,8 @@ every entry point inside the pinned fpga-tools image, mounting the
 resolved source tree and the workspace so paths stay identical inside the
 container. The container runs with ``--network none``: the image carries the open-source
 FPGA toolchain (OSS CAD Suite, NVC) the gates need. ``program`` always runs
-on the host, because it needs the USB programmer.
+on the host, because it needs the USB programmer; it is human-only and is
+never forwarded to the image.
 
 Source resolution order (first directory containing fpga/__init__.py wins):
   1. $FPGA_SRC
@@ -19,8 +20,12 @@ Image resolution order (first hit wins):
   1. $FPGA_TOOLS_IMAGE (full ref, e.g. ghcr.io/.../fpga-tools@sha256:...)
   2. <plugin>/tools-image.json or repo docker/image-digests.json
      (image + digest, falling back to image + tag)
-  3. none resolvable -> host mode: the package runs on the host interpreter
-     and every missing tool fails its gate (``doctor`` reports which)
+  3. none resolvable -> fail closed: every command except ``program``
+     fails (``--warn`` prints the warn JSON and exits 0). The only
+     exception is when the launcher itself already runs inside the
+     fpga-tools image (``/opt/fpga/src/fpga/__init__.py`` and
+     ``/opt/oss-cad-suite/bin/yosys`` both exist), where it execs the
+     package in-process.
 
 Usage: mcp_server | prewarm | <fpga cli args...>. When ``--warn`` is
 present (SessionStart doctor mode), launcher failures print a warning and
@@ -60,6 +65,13 @@ _GH_AUTH_TIMEOUT_S = 15
 _VERIFY_ENV = "FPGA_VERIFY_ATTESTATION"
 _REPOSITORY = "VibeBB/fpga-agent"
 _PUBLISH_FILE = ".github/workflows/publish-fpga-images.yml"
+_IMAGE_SRC = Path("/opt/fpga/src/fpga/__init__.py")
+_IMAGE_YOSYS = Path("/opt/oss-cad-suite/bin/yosys")
+
+
+def running_inside_tools_image() -> bool:
+    """True when the launcher already runs inside the fpga-tools image."""
+    return _IMAGE_SRC.is_file() and _IMAGE_YOSYS.is_file()
 
 
 class ImagePin(TypedDict):
@@ -361,13 +373,11 @@ def main() -> int:
         return 2
     plugin_root = Path(__file__).resolve().parents[1]
     source = resolve_source(plugin_root)
-    pin = None if argv[0] == "program" else image_pin(plugin_root)
-    ref = pin["ref"] if pin is not None else None
-    if pin is None or ref is None:
-        if argv[0] == "prewarm":
-            return _warn_or_die("no fpga tools image pinned; host mode only", argv)
+    if argv[0] == "program":
+        # Programming is human-only and needs the USB programmer: it always
+        # runs on the host interpreter, never inside the tools image.
         if source is None:
-            return _warn_or_die("fpga package source not found and no image pinned", argv)
+            return _warn_or_die("fpga package source not found", argv)
         env = dict(os.environ)
         env["PYTHONPATH"] = os.pathsep.join(
             p for p in (str(source), env.get("PYTHONPATH", "")) if p
@@ -375,6 +385,27 @@ def main() -> int:
         command = inner_argv(argv, sys.executable)
         os.execvpe(command[0], command, env)
         return 0
+    pin = image_pin(plugin_root)
+    ref = pin["ref"] if pin is not None else None
+    if pin is None or ref is None:
+        if argv[0] == "prewarm":
+            return _warn_or_die("no fpga tools image pinned; cannot prewarm", argv)
+        if running_inside_tools_image():
+            if source is None:
+                return _warn_or_die("fpga package source not found in tools image", argv)
+            env = dict(os.environ)
+            env["PYTHONPATH"] = os.pathsep.join(
+                p for p in (str(source), env.get("PYTHONPATH", "")) if p
+            )
+            command = inner_argv(argv, sys.executable)
+            os.execvpe(command[0], command, env)
+            return 0
+        return _warn_or_die(
+            "no fpga tools image resolvable; fpga tools run only inside the "
+            "pinned fpga-tools image (set FPGA_TOOLS_IMAGE or pull the pinned "
+            "image with 'fpga_launcher.py prewarm')",
+            argv,
+        )
     try:
         _ensure_image(
             pin,
