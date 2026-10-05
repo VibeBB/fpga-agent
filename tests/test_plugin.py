@@ -46,6 +46,13 @@ def test_mcp_tools_registered_without_program() -> None:
         "fpga_build",
         "fpga_request",
         "fpga_profile",
+        "fpga_render",
+        "fpga_record_decision",
+        "fpga_record_impression",
+        "fpga_record_vision_review",
+        "fpga_records_status",
+        "fpga_ux_inbox",
+        "fpga_ux_respond",
     }
     assert mcp_server.dispatch("fpga_program", {})["verdict"] == "fail"
 

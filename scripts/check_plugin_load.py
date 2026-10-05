@@ -24,15 +24,27 @@ EXPECTED_SKILLS = {
     "fpga-verification",
     "fpga-workflow",
 }
-EXPECTED_COMMANDS = {"build", "design", "doctor", "gates", "pinmap", "simulate", "verify"}
+EXPECTED_COMMANDS = {
+    "build",
+    "design",
+    "doctor",
+    "gates",
+    "liaison",
+    "pinmap",
+    "records",
+    "render",
+    "simulate",
+    "verify",
+}
 EXPECTED_SESSION_START_HOOKS = {
     "fpga-doctor",
     "intake-attachments",
     "ensure-llm-profiles",
+    "require-records",
 }
 EXPECTED_USER_PROMPT_SUBMIT_HOOKS = {"intake-attachments"}
 EXPECTED_PRE_TOOL_USE_HOOKS = {"deny-programming", "protect-generated", "safety-rail"}
-EXPECTED_STOP_HOOKS = {"report-fpga-status", "intake-attachments"}
+EXPECTED_STOP_HOOKS = {"require-records", "report-fpga-status", "intake-attachments"}
 EXPECTED_POST_TOOL_USE_HOOKS = {
     "record-image-observation",
     "record-vision-tool-event",

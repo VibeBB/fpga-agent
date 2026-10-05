@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "plugin": "fpga",
+  "records_dir": "observations/fpga",
+  "artifact_globs": [
+    "**/*.fpga.json",
+    "**/*.fpga.pcf",
+    "**/*.fpga.lpf",
+    "**/*.fpga.cst",
+    "**/*.vhd",
+    "**/*.vhdl",
+    "**/*.v",
+    "**/*.sv",
+    "**/*.svh",
+    "**/*.sby",
+    "**/fpga-reports/*.fpga-report.json",
+    "**/fpga-reports/*.fpga-pinmap.json",
+    "**/fpga-reports/*.png",
+    "**/*.fpga-request.json",
+    "liaison/*.ux-response.json"
+  ],
+  "ignore_globs": [
+    "examples/**",
+    "tests/**",
+    ".devin/**",
+    "third_party/**",
+    "**/build/**",
+    ".venv/**"
+  ],
+  "max_stop_denials": 2,
+  "record_hint": "Use the MCP tools fpga_record_decision, fpga_record_impression and fpga_record_vision_review (or `python -m fpga record decision|impression|vision-review --json <file>`). Impressions need at least 400 characters and 3 sentences: what you noticed, what works, what worries you, how a maker or user would read it, and what to do next."
+}

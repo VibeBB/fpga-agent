@@ -18,6 +18,15 @@ from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 
 from . import __version__, service
+from .records import (
+    DecisionInput,
+    StageImpressionInput,
+    VisionReviewInput,
+    record_decision,
+    record_impression,
+    record_vision_review,
+    records_summary,
+)
 from .workspace import workspace_path
 
 server: Server = Server(f"fpga-mcp/{__version__}")
@@ -106,6 +115,30 @@ TOOLS: dict[str, tuple[str, dict[str, object], bool]] = {
     "fpga_profile": (
         "List bundled device profiles, or show one (package pins, resources)",
         _schema({"profile": {"type": "string"}}, []),
+        True,
+    ),
+    "fpga_record_decision": (
+        "Record a non-trivial design decision (question, first principles, "
+        "options, chosen option, 200+ char rationale, evidence, risks)",
+        DecisionInput.model_json_schema(),
+        False,
+    ),
+    "fpga_record_impression": (
+        "Record a long-form stage impression (400+ chars, 3+ sentences) bound "
+        "to the stage artifacts by sha256",
+        StageImpressionInput.model_json_schema(),
+        False,
+    ),
+    "fpga_record_vision_review": (
+        "Record findings plus a long-form impression after looking at an image; "
+        "bind to image_path or a vision source_event_id",
+        VisionReviewInput.model_json_schema(),
+        False,
+    ),
+    "fpga_records_status": (
+        "Counts of decision / impression / vision-review records and the last "
+        "Stop-hook verdict listing records this session still owes",
+        _schema({}, []),
         True,
     ),
 }
@@ -200,6 +233,10 @@ def dispatch(name: str, arguments: dict[str, object]) -> service.Json:
             failing_checks=_strs(arguments, "failing_checks"),
         ),
         "fpga_profile": lambda: service.profile_payload(_opt_str(arguments, "profile")),
+        "fpga_record_decision": lambda: record_decision(arguments),
+        "fpga_record_impression": lambda: record_impression(arguments),
+        "fpga_record_vision_review": lambda: record_vision_review(arguments),
+        "fpga_records_status": records_summary,
     }
     handler = handlers.get(name)
     if handler is None:

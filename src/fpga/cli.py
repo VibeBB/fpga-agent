@@ -15,6 +15,8 @@ Subcommands:
   program      host-only: program a board with openFPGALoader
   request      write a change request to a sibling agent
   profile      list bundled device profiles or print one
+  record       append a VibeBB Record Protocol record (decision, impression,
+               vision-review) or print the records status
 
 Every command prints a JSON payload; exit 0 only when verdict is pass.
 """
@@ -23,8 +25,9 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any, cast
 
 from . import service
 
@@ -65,7 +68,26 @@ def _parser() -> argparse.ArgumentParser:
     request.add_argument("--failing-check", dest="failing_checks", action="append", default=[])
     request.add_argument("--out", type=Path)
     sub.add_parser("profile").add_argument("id", nargs="?")
+    record = sub.add_parser("record", help="append a VibeBB Record Protocol record")
+    record.add_argument("kind", choices=("decision", "impression", "vision-review", "status"))
+    record.add_argument("--json", default=None, help="JSON object file with the record fields")
     return parser
+
+
+def _cmd_record(kind: str, json_arg: str | None) -> int:
+    from .records import RECORDERS, records_summary
+
+    if kind == "status":
+        return _emit(records_summary())
+    if not json_arg:
+        raise SystemExit("record decision|impression|vision-review requires --json")
+    try:
+        payload: object = json.loads(Path(json_arg).read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("record JSON must be an object")
+        return _emit(RECORDERS[kind](cast(Mapping[str, Any], payload)))
+    except (OSError, ValueError) as exc:
+        return _emit({"verdict": "fail", "stage": "record", "detail": str(exc)})
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -96,6 +118,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.contract, args.out, args.confirm_sha256, dry_run=args.dry_run
             )
         )
+    if command == "record":
+        return _cmd_record(args.kind, args.json)
     if command == "request":
         return _emit(
             service.request_payload(

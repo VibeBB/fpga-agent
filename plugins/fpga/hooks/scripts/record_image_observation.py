@@ -33,7 +33,14 @@ from _provenance import (
 
 EVENTS_ENV = "FPGA_IMAGE_OBSERVATIONS"
 EVENTS_RELATIVE_PATH = Path("observations/fpga/image-observations.jsonl")
-OBSERVED_TOOLS = {"file_editor"}
+OBSERVED_TOOLS = {
+    "file_editor",
+    "fpga_gates",
+    "fpga_build",
+    "fpga_sim",
+    "fpga_pinmap_export",
+    "fpga_render",
+}
 
 _IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg"}
 _IMAGE_PATH = re.compile(r"[^\s\"'<>]+?\.(?:png|jpe?g)", re.IGNORECASE)
