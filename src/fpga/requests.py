@@ -87,7 +87,13 @@ def write_request(
             raise ValueError(f"decision_ref {ref} is not a decision event_id")
     if not decision_refs:
         raise ValueError("a request needs at least one decision_ref")
-    inputs = [RequestInput(path=contract_path.name, sha256=sha256_file(contract_path))]
+    contract_in = workspace_path(contract_path, base)
+    inputs = [
+        RequestInput(
+            path=contract_in.relative_to(base).as_posix(),
+            sha256=sha256_file(contract_in),
+        )
+    ]
     for value in extra_inputs or []:
         path = workspace_path(value, base)
         if not path.is_file():

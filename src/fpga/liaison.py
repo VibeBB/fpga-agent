@@ -146,19 +146,28 @@ def _read_request(path: Path) -> UxRequest:
     return request
 
 
-def _valid_responses(directory: Path) -> dict[str, UxResponse]:
-    """request id -> response for every well-formed response file."""
+def _valid_responses(directory: Path) -> tuple[dict[str, UxResponse], list[dict[str, str]]]:
+    """request id -> response, plus every malformed response file."""
     found: dict[str, UxResponse] = {}
+    malformed: list[dict[str, str]] = []
     if not directory.is_dir():
-        return found
+        return found, malformed
     for path in sorted(directory.glob(f"*{RESPONSE_SUFFIX}")):
         try:
             response = UxResponse.model_validate(_load_json(path))
-        except Exception:
+        except Exception as exc:
+            malformed.append({"path": str(path), "error": str(exc)})
             continue
-        if response.request == path.name.removesuffix(RESPONSE_SUFFIX):
-            found[response.request] = response
-    return found
+        if response.request != path.name.removesuffix(RESPONSE_SUFFIX):
+            malformed.append(
+                {
+                    "path": str(path),
+                    "error": f"response request {response.request} does not match file stem",
+                }
+            )
+            continue
+        found[response.request] = response
+    return found, malformed
 
 
 def _input_stale(request: UxRequest, root: Path, response: UxResponse | None) -> list[str]:
@@ -179,11 +188,10 @@ def _input_stale(request: UxRequest, root: Path, response: UxResponse | None) ->
 
 def inbox(workspace: Path | str | None = None) -> dict[str, Any]:
     """Triage liaison requests for the FPGA agent."""
-    root = Path(workspace).resolve() if workspace is not None else workspace_root()
+    root = workspace_path(str(workspace)) if workspace is not None else workspace_root()
     directory = liaison_dir(root)
-    responses = _valid_responses(directory)
+    responses, malformed = _valid_responses(directory)
     requests: list[dict[str, Any]] = []
-    malformed: list[dict[str, Any]] = []
     counts = {"new": 0, "answered": 0, "stale": 0, "blocked": 0}
     if directory.is_dir():
         for path in sorted(directory.glob(f"*{REQUEST_SUFFIX}")):
@@ -211,12 +219,11 @@ def inbox(workspace: Path | str | None = None) -> dict[str, Any]:
                     except ValueError:
                         changed.append(artifact.path)
                         continue
-                    if not produced.exists() or (
-                        produced.is_file() and sha256_file(produced) != artifact.sha256
-                    ):
+                    if not produced.exists() or tree_sha256(produced) != artifact.sha256:
                         changed.append(artifact.path)
             problems = [f"input changed or missing: {p}" for p in stale_inputs]
-            if stale_inputs:
+            problems += [f"artifact changed or missing: {p}" for p in changed]
+            if stale_inputs or changed:
                 state = "stale"
             elif response is not None and response.responder == "fpga":
                 state = "answered"
@@ -261,7 +268,7 @@ def respond(
     questions_for_user: list[str] | None = None,
 ) -> dict[str, Any]:
     """Write ``liaison/<id>.ux-response.json`` after validating the refusal rules."""
-    root = Path(workspace).resolve() if workspace is not None else workspace_root()
+    root = workspace_path(str(workspace)) if workspace is not None else workspace_root()
     directory = liaison_dir(root)
     request_path = directory / f"{request_id}{REQUEST_SUFFIX}"
     if not request_path.is_file():

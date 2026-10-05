@@ -11,6 +11,11 @@ import pytest
 from fpga import liaison, records, service
 
 
+@pytest.fixture(autouse=True)
+def _workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENHANDS_PROJECT_DIR", str(tmp_path))
+
+
 def _sha(path: Path) -> str:
     return records.sha256_file(path)
 
@@ -320,3 +325,57 @@ def test_mcp_and_cli_roundtrip(
 def test_service_ux_respond_fail_closed(tmp_path: Path) -> None:
     payload = service.ux_respond_payload(tmp_path, {"request": "ghost", "status": "done"})
     assert payload["verdict"] == "fail"
+
+
+def test_inbox_lists_malformed_responses(tmp_path: Path) -> None:
+    directory = tmp_path / "liaison"
+    directory.mkdir()
+    (directory / "bad-json.ux-response.json").write_text("{not json", encoding="utf-8")
+    (directory / "bad-stem.ux-response.json").write_text(
+        json.dumps(
+            {
+                "request": "other-id",
+                "responder": "fpga",
+                "status": "accepted",
+                "responded_at": "2026-02-20T00:00:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = liaison.inbox(tmp_path)
+    malformed = cast(list[dict[str, Any]], result["malformed"])
+    names = {Path(str(m["path"])).name for m in malformed}
+    assert {"bad-json.ux-response.json", "bad-stem.ux-response.json"} <= names
+
+
+def test_workspace_outside_root_is_error(tmp_path: Path) -> None:
+    import tempfile
+
+    outside = Path(tempfile.mkdtemp())
+    with pytest.raises(ValueError, match="outside"):
+        liaison.inbox(outside)
+    with pytest.raises(ValueError, match="outside"):
+        liaison.respond(outside, "job", "accepted")
+    # inside paths still work
+    inside = tmp_path / "project"
+    inside.mkdir()
+    result = liaison.inbox(inside)
+    assert result["counts"]["new"] == 0
+
+
+def test_changed_artifacts_cover_directories(tmp_path: Path) -> None:
+    _request(tmp_path, "job-dir")
+    out_dir = tmp_path / "out-dir"
+    out_dir.mkdir()
+    (out_dir / "a.txt").write_text("v1", encoding="utf-8")
+    liaison.respond(
+        tmp_path,
+        "job-dir",
+        "accepted",
+        artifacts=["out-dir"],
+    )
+    assert liaison.inbox(tmp_path)["requests"][0]["state"] == "answered"
+    (out_dir / "a.txt").write_text("v2 changed", encoding="utf-8")
+    request = liaison.inbox(tmp_path)["requests"][0]
+    assert request["state"] == "stale"
+    assert "out-dir" in cast(list[str], request["changed_artifacts"])

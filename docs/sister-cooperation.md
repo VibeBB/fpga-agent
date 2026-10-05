@@ -16,9 +16,16 @@ UX-creator drops `liaison/<id>.ux-request.json` files in the workspace.
 - `blocked` — a `depends_on` id has no valid response file (any
   responder).
 
-Malformed files land in `malformed[]` when the raw `target_agent` is
-`fpga`, missing, or unreadable; requests aimed at other agents are
-skipped silently.
+Malformed files land in `malformed[]`: request files when the raw
+`target_agent` is `fpga`, missing, or unreadable (requests aimed at other
+agents are skipped silently), and every response file whose JSON or
+schema is broken or whose `request` does not match the file stem.
+
+Both `inbox` and `respond` resolve `workspace` inside
+`workspace_root()` — a path outside the root is a ValueError, and
+`respond` only writes inside the workspace. `stale` also covers changed
+deliverables: a response artifact whose tree-hash no longer matches puts
+the request back in `stale` and lists it in `changed_artifacts`.
 
 `fpga ux respond --json <file>` (MCP `fpga_ux_respond`) writes
 `liaison/<id>.ux-response.json` and refuses (ValueError / MCP isError /

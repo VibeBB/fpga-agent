@@ -4,100 +4,38 @@
   "artifact_kind": "fpga_contract",
   "name": "blinky",
   "description": "Counter on the six LEDs of a Sipeed Tang Nano 20K (Gowin GW2AR-18C)",
-  "device": {
-    "profile": "gowin-gw2ar18c-qn88p",
-    "ref": "U1"
-  },
+  "device": {"profile": "gowin-gw2ar18c-qn88p", "ref": "U1"},
   "top": "blinky",
-  "sources": [
-    {
-      "path": "rtl/blinky.v",
-      "language": "verilog"
-    }
-  ],
-  "clocks": [
-    {
-      "port": "clk",
-      "frequency_mhz": 27
-    }
-  ],
+  "sources": [{"path": "rtl/blinky.v", "language": "verilog"}],
+  "clocks": [{"port": "clk", "frequency_mhz": 27}],
   "pins": [
-    {
-      "port": "clk",
-      "package_pin": "4",
-      "io_standard": "LVCMOS33"
-    },
-    {
-      "port": "led_n[0]",
-      "package_pin": "15",
-      "io_standard": "LVCMOS33"
-    },
-    {
-      "port": "led_n[1]",
-      "package_pin": "16",
-      "io_standard": "LVCMOS33"
-    },
-    {
-      "port": "led_n[2]",
-      "package_pin": "17",
-      "io_standard": "LVCMOS33"
-    },
-    {
-      "port": "led_n[3]",
-      "package_pin": "18",
-      "io_standard": "LVCMOS33"
-    },
-    {
-      "port": "led_n[4]",
-      "package_pin": "19",
-      "io_standard": "LVCMOS33"
-    },
-    {
-      "port": "led_n[5]",
-      "package_pin": "20",
-      "io_standard": "LVCMOS33"
-    }
+    {"port": "clk", "package_pin": "4", "io_standard": "LVCMOS33"},
+    {"port": "led_n[0]", "package_pin": "15", "io_standard": "LVCMOS33"},
+    {"port": "led_n[1]", "package_pin": "16", "io_standard": "LVCMOS33"},
+    {"port": "led_n[2]", "package_pin": "17", "io_standard": "LVCMOS33"},
+    {"port": "led_n[3]", "package_pin": "18", "io_standard": "LVCMOS33"},
+    {"port": "led_n[4]", "package_pin": "19", "io_standard": "LVCMOS33"},
+    {"port": "led_n[5]", "package_pin": "20", "io_standard": "LVCMOS33"}
   ],
   "build": {
     "dir": "build",
     "constraints": "blinky.fpga.cst",
     "bitstream": "build/blinky.fs",
-    "parameters": {
-      "WIDTH": 27
-    }
+    "parameters": {"WIDTH": 27}
   },
   "simulations": [
     {
       "id": "count",
       "runner": "iverilog",
       "top": "blinky_tb",
-      "sources": [
-        {
-          "path": "tb/blinky_tb.v",
-          "language": "verilog"
-        }
-      ],
-      "expect": [
-        "PASS: blinky counts"
-      ],
-      "forbid": [
-        "FAIL"
-      ],
+      "sources": [{"path": "tb/blinky_tb.v", "language": "verilog"}],
+      "expect": ["PASS: blinky counts"],
+      "forbid": ["FAIL"],
       "waveform": true
     }
   ],
   "formal": [
-    {
-      "id": "increment",
-      "top": "blinky",
-      "mode": "prove",
-      "depth": 4,
-      "parameters": {
-        "WIDTH": 8
-      }
-    }
+    {"id": "increment", "top": "blinky", "mode": "prove", "depth": 4, "parameters": {"WIDTH": 8}}
   ],
-  "programmer": {
-    "board": "tangnano20k"
-  }
+  "programmer": {"board": "tangnano20k"}
 }
