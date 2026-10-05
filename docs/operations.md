@@ -105,6 +105,29 @@ image with `docker run --user`, and batch tooling has no health endpoint
 to probe. The waivers renew or get re-fixed by Dockerfile changes when
 they lapse.
 
+## Local verification
+
+pytest selects subsets directly for a faster local check — `-k <expr>`,
+a test path, or `-n 0` to disable the default `-n auto` workers:
+
+```bash
+uv run pytest -q tests/test_gates.py
+uv run pytest -q -k synth
+uv run pytest -q -n 0 tests/test_gates.py::test_loads
+```
+
+Run the full `uv run pytest -q` before submitting.
+
+Local `fpga-tools` builds can reuse the CI-warmed registry buildcache; it is
+a public `buildcache` tag, so no GHCR login is needed:
+
+```bash
+docker buildx build --load \
+  -f docker/fpga-tools.Dockerfile -t fpga-tools:local \
+  --cache-from type=registry,ref=ghcr.io/vibebb/fpga-tools:buildcache \
+  .
+```
+
 ## CI runner network auditing
 
 Every job in every workflow starts with `step-security/harden-runner` in
