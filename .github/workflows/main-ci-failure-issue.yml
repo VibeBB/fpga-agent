@@ -5,6 +5,7 @@ on:
   workflow_run:
     workflows:
       - "CI"
+      - "Cache sweep"
       - "Container hardening audit"
       - "Publish fpga images"
       - "Locked image check"
