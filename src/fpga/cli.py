@@ -15,6 +15,11 @@ Subcommands:
   program      host-only: program a board with openFPGALoader
   request      write a change request to a sibling agent
   profile      list bundled device profiles or print one
+  record       append a VibeBB Record Protocol record (decision, impression,
+               vision-review) or print the records status
+  render       re-render report PNGs from existing artifacts (no tool runs)
+  ux inbox     triage liaison requests UX-creator addressed to this agent
+  ux respond   write liaison/<id>.ux-response.json (--json carries the fields)
 
 Every command prints a JSON payload; exit 0 only when verdict is pass.
 """
@@ -23,8 +28,9 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any, cast
 
 from . import service
 
@@ -63,9 +69,50 @@ def _parser() -> argparse.ArgumentParser:
     request.add_argument("--rationale", required=True)
     request.add_argument("--net", dest="nets", action="append", default=[])
     request.add_argument("--failing-check", dest="failing_checks", action="append", default=[])
+    request.add_argument("--input", dest="extra_inputs", action="append", default=[])
+    request.add_argument(
+        "--decision-ref",
+        dest="decision_refs",
+        action="append",
+        required=True,
+        help="event_id of a record in observations/fpga/decisions.jsonl",
+    )
     request.add_argument("--out", type=Path)
     sub.add_parser("profile").add_argument("id", nargs="?")
+    record = sub.add_parser("record", help="append a VibeBB Record Protocol record")
+    record.add_argument("kind", choices=("decision", "impression", "vision-review", "status"))
+    record.add_argument("--json", default=None, help="JSON object file with the record fields")
+    render = sub.add_parser("render", help="re-render report PNGs from existing artifacts")
+    render.add_argument("contract", type=Path)
+    render.add_argument(
+        "--view",
+        choices=("pinmap", "utilization", "timing", "floorplan", "waveform", "report", "all"),
+        default="all",
+    )
+    render.add_argument("--out", type=Path)
+    ux = sub.add_parser("ux", help="SLP v2 liaison with UX-creator")
+    ux_sub = ux.add_subparsers(dest="ux_command", required=True)
+    ux_sub.add_parser("inbox").add_argument("--workspace", type=Path, default=None)
+    respond = ux_sub.add_parser("respond")
+    respond.add_argument("--workspace", type=Path, default=None)
+    respond.add_argument("--json", required=True, help="JSON file with the response fields")
     return parser
+
+
+def _cmd_record(kind: str, json_arg: str | None) -> int:
+    from .records import RECORDERS, records_summary
+
+    if kind == "status":
+        return _emit(records_summary())
+    if not json_arg:
+        raise SystemExit("record decision|impression|vision-review requires --json")
+    try:
+        payload: object = json.loads(Path(json_arg).read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("record JSON must be an object")
+        return _emit(RECORDERS[kind](cast(Mapping[str, Any], payload)))
+    except (OSError, ValueError) as exc:
+        return _emit({"verdict": "fail", "stage": "record", "detail": str(exc)})
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -96,6 +143,22 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.contract, args.out, args.confirm_sha256, dry_run=args.dry_run
             )
         )
+    if command == "record":
+        return _cmd_record(args.kind, args.json)
+    if command == "render":
+        return _emit(service.render_payload(args.contract, args.out, args.view))
+    if command == "ux":
+        if args.ux_command == "inbox":
+            return _emit(service.ux_inbox_payload(args.workspace))
+        try:
+            fields: object = json.loads(Path(args.json).read_text(encoding="utf-8"))
+            if not isinstance(fields, dict):
+                raise ValueError("ux respond --json must hold a JSON object")
+            return _emit(
+                service.ux_respond_payload(args.workspace, cast("dict[str, object]", fields))
+            )
+        except (OSError, ValueError) as exc:
+            return _emit({"verdict": "fail", "stage": "ux-respond", "detail": str(exc)})
     if command == "request":
         return _emit(
             service.request_payload(
@@ -107,6 +170,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 rationale=args.rationale,
                 nets=args.nets,
                 failing_checks=args.failing_checks,
+                extra_inputs=args.extra_inputs,
+                decision_refs=args.decision_refs,
             )
         )
     return _emit(service.profile_payload(args.id))

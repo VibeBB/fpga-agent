@@ -68,12 +68,16 @@ def constraints_text(contract: FpgaContract, profile: DeviceProfile) -> str:
 
 
 def pinmap_export(
-    contract: FpgaContract, profile: DeviceProfile, contract_sha256: str
+    contract: FpgaContract,
+    profile: DeviceProfile,
+    contract_sha256: str,
+    circuit_sha256: str | None = None,
 ) -> FpgaPinmap:
     used = {p.package_pin for p in contract.pins}
     return FpgaPinmap(
         design=contract.name,
         contract_sha256=contract_sha256,
+        circuit_sha256=circuit_sha256,
         device_ref=contract.device.ref,
         device_profile=profile.id,
         part=profile.part,

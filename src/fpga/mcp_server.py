@@ -7,9 +7,11 @@ judges the design itself. Board programming is deliberately not exposed.
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 from collections.abc import Callable, Mapping
 from pathlib import Path
+from typing import Any, cast
 
 from mcp import types
 from mcp.server import Server
@@ -18,6 +20,15 @@ from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 
 from . import __version__, service
+from .records import (
+    DecisionInput,
+    StageImpressionInput,
+    VisionReviewInput,
+    record_decision,
+    record_impression,
+    record_vision_review,
+    records_summary,
+)
 from .workspace import workspace_path
 
 server: Server = Server(f"fpga-mcp/{__version__}")
@@ -98,8 +109,10 @@ TOOLS: dict[str, tuple[str, dict[str, object], bool]] = {
                 "rationale": {"type": "string"},
                 "nets": _STRINGS,
                 "failing_checks": _STRINGS,
+                "inputs": _STRINGS,
+                "decision_refs": _STRINGS,
             },
-            ["contract_path", "target", "risk", "change", "rationale"],
+            ["contract_path", "target", "risk", "change", "rationale", "decision_refs"],
         ),
         False,
     ),
@@ -108,7 +121,105 @@ TOOLS: dict[str, tuple[str, dict[str, object], bool]] = {
         _schema({"profile": {"type": "string"}}, []),
         True,
     ),
+    "fpga_record_decision": (
+        "Record a non-trivial design decision (question, first principles, "
+        "options, chosen option, 200+ char rationale, evidence, risks)",
+        DecisionInput.model_json_schema(),
+        False,
+    ),
+    "fpga_record_impression": (
+        "Record a long-form stage impression (400+ chars, 3+ sentences) bound "
+        "to the stage artifacts by sha256",
+        StageImpressionInput.model_json_schema(),
+        False,
+    ),
+    "fpga_record_vision_review": (
+        "Record findings plus a long-form impression after looking at an image; "
+        "bind to image_path or a vision source_event_id",
+        VisionReviewInput.model_json_schema(),
+        False,
+    ),
+    "fpga_records_status": (
+        "Counts of decision / impression / vision-review records and the last "
+        "Stop-hook verdict listing records this session still owes",
+        _schema({}, []),
+        True,
+    ),
+    "fpga_ux_inbox": (
+        "Triage liaison/*.ux-request.json files addressed to the FPGA agent "
+        "(new / answered / stale / blocked, malformed files)",
+        _schema({"workspace": {"type": "string"}}, []),
+        True,
+    ),
+    "fpga_ux_respond": (
+        "Answer a UX-creator request with liaison/<id>.ux-response.json "
+        "(refuses stale inputs, unverifiable refs, or an unproven done)",
+        _schema(
+            {
+                "workspace": {"type": "string"},
+                "request": {"type": "string"},
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "accepted",
+                        "in_progress",
+                        "done",
+                        "rejected",
+                        "deferred",
+                        "needs_info",
+                    ],
+                },
+                "reason": {"type": "string"},
+                "artifacts": _STRINGS,
+                "gate_verdicts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "gate": {"type": "string"},
+                            "verdict": {"type": "string", "enum": ["pass", "fail", "unknown"]},
+                        },
+                        "required": ["gate", "verdict"],
+                        "additionalProperties": False,
+                    },
+                },
+                "gate_report": {"type": "string"},
+                "decision_refs": _STRINGS,
+                "impression_refs": _STRINGS,
+                "questions_for_user": _STRINGS,
+            },
+            ["request", "status"],
+        ),
+        False,
+    ),
+    "fpga_render": (
+        "Re-render pin map, floorplan, utilization, timing, waveform and "
+        "gate-report PNGs from existing artifacts without rerunning tools",
+        _schema(
+            {
+                **_CONTRACT,
+                **_OUT,
+                "view": {
+                    "type": "string",
+                    "enum": [
+                        "pinmap",
+                        "utilization",
+                        "timing",
+                        "floorplan",
+                        "waveform",
+                        "report",
+                        "all",
+                    ],
+                },
+            },
+            ["contract_path"],
+        ),
+        False,
+    ),
 }
+
+_MAX_IMAGES = 8
+_MAX_IMAGE_BYTES = 4 * 1024 * 1024
 
 
 def tool_specs() -> list[types.Tool]:
@@ -198,8 +309,23 @@ def dispatch(name: str, arguments: dict[str, object]) -> service.Json:
             rationale=_str(arguments, "rationale"),
             nets=_strs(arguments, "nets"),
             failing_checks=_strs(arguments, "failing_checks"),
+            extra_inputs=_strs(arguments, "inputs"),
+            decision_refs=_strs(arguments, "decision_refs"),
         ),
         "fpga_profile": lambda: service.profile_payload(_opt_str(arguments, "profile")),
+        "fpga_render": lambda: service.render_payload(
+            _contract(arguments),
+            _opt_path(arguments, "out_dir"),
+            _opt_str(arguments, "view") or "all",
+        ),
+        "fpga_record_decision": lambda: record_decision(arguments),
+        "fpga_record_impression": lambda: record_impression(arguments),
+        "fpga_record_vision_review": lambda: record_vision_review(arguments),
+        "fpga_records_status": records_summary,
+        "fpga_ux_inbox": lambda: service.ux_inbox_payload(_opt_path(arguments, "workspace")),
+        "fpga_ux_respond": lambda: service.ux_respond_payload(
+            _opt_path(arguments, "workspace"), arguments
+        ),
     }
     handler = handlers.get(name)
     if handler is None:
@@ -207,9 +333,42 @@ def dispatch(name: str, arguments: dict[str, object]) -> service.Json:
     return handler()
 
 
+def _image_contents(payload: dict[str, object]) -> list[types.ImageContent]:
+    """Attach each produced PNG inline so a vision model sees it."""
+    images = payload.get("images")
+    if not isinstance(images, list):
+        return []
+    contents: list[types.ImageContent] = []
+    notes: list[str] = []
+    for value in cast(list[Any], images):
+        if len(contents) >= _MAX_IMAGES:
+            notes.append(f"image limit reached; {value} not embedded")
+            continue
+        path = Path(str(value))
+        try:
+            data = path.read_bytes()
+        except OSError:
+            notes.append(f"{value} could not be read")
+            continue
+        if len(data) > _MAX_IMAGE_BYTES:
+            notes.append(f"{value} is {len(data)} bytes > {_MAX_IMAGE_BYTES}; not embedded")
+            continue
+        contents.append(
+            types.ImageContent(
+                type="image",
+                data=base64.b64encode(data).decode("ascii"),
+                mimeType="image/png",
+            )
+        )
+    if notes:
+        payload["image_notes"] = notes
+    return contents
+
+
 @server.call_tool()
 async def call_tool(name: str, arguments: dict[str, object]) -> types.CallToolResult:
     is_error = False
+    payload: dict[str, object]
     try:
         payload = await asyncio.to_thread(dispatch, name, arguments or {})
         if name not in TOOLS:
@@ -222,12 +381,12 @@ async def call_tool(name: str, arguments: dict[str, object]) -> types.CallToolRe
             "error_type": type(exc).__name__,
         }
         is_error = True
-    return types.CallToolResult(
-        content=[
-            types.TextContent(type="text", text=json.dumps(payload, ensure_ascii=False, indent=2))
-        ],
-        isError=is_error,
-    )
+    images = [] if is_error else _image_contents(payload)
+    content: list[Any] = [
+        types.TextContent(type="text", text=json.dumps(payload, ensure_ascii=False, indent=2)),
+        *images,
+    ]
+    return types.CallToolResult(content=content, isError=is_error)
 
 
 async def _run() -> None:

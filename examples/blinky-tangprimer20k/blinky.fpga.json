@@ -28,7 +28,8 @@
       "sources": [{"path": "tb/blinky_tb.vhdl", "language": "vhdl"}],
       "expect": ["PASS: blinky counts"],
       "forbid": ["FAIL"],
-      "stop_time": "10us"
+      "stop_time": "10us",
+      "waveform": true
     }
   ],
   "formal": [

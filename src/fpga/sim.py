@@ -57,14 +57,24 @@ def run_simulation(
         if sim.stop_time:
             argv.append(f"--stop-time={sim.stop_time}")
         if sim.waveform:
-            waveform = out_dir / f"sim-{sim.id}.fst"
-            argv += [f"--wave={waveform.as_posix()}", "--format=fst"]
+            waveform = out_dir / f"sim-{sim.id}.vcd"
+            argv += [f"--wave={waveform.as_posix()}", "--format=vcd"]
     else:
         work.mkdir(parents=True, exist_ok=True)
         image = work / f"{sim.top}.vvp"
         compile_argv = ["iverilog", "-g2012", "-o", image.as_posix(), "-s", sim.top]
         compile_argv += [f"-D{k}={v}" for k, v in contract.build.defines.items()]
         compile_argv += [p.as_posix() for p in all_files(unit_list)]
+        if sim.waveform:
+            waveform = out_dir / f"sim-{sim.id}.vcd"
+            dump = work / "fpga_wave_dump.v"
+            dump.write_text(
+                "module fpga_wave_dump; initial begin "
+                f'$dumpfile("{waveform.resolve().as_posix()}"); '
+                f"$dumpvars(0, {sim.top}); end endmodule\n",
+                encoding="utf-8",
+            )
+            compile_argv += ["-s", "fpga_wave_dump", dump.as_posix()]
         compiled = run_tool(compile_argv, root, transcript, TOOL_TIMEOUT_S)
         if not compiled.ok:
             return SimResult(False, f"compile: {compiled.detail}", compile_argv)

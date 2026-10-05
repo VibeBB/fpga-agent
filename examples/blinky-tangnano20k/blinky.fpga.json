@@ -30,7 +30,8 @@
       "top": "blinky_tb",
       "sources": [{"path": "tb/blinky_tb.v", "language": "verilog"}],
       "expect": ["PASS: blinky counts"],
-      "forbid": ["FAIL"]
+      "forbid": ["FAIL"],
+      "waveform": true
     }
   ],
   "formal": [

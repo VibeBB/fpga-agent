@@ -34,7 +34,14 @@ ARTIFACT_SUFFIXES = (
     ".fpga-report.json",
     ".fpga-report.md",
 )
-ARTIFACT_NAMES: tuple[str, ...] = ()
+ARTIFACT_NAMES: tuple[str, ...] = (
+    "decisions.jsonl",
+    "impressions.jsonl",
+    "vision-reviews.jsonl",
+    "vision-tool-events.jsonl",
+    "image-observations.jsonl",
+    "records-status.json",
+)
 ARTIFACT_PREFIXED = (("sim-", ".log"), ("formal-", ".log"))
 WRITE_TOOLS = {"file_editor", "apply_patch"}
 VIEW_ACTIONS = {"view", "read", "undo_edit"}
@@ -118,11 +125,15 @@ def _is_protected(value: str) -> bool:
     if base.endswith(ARTIFACT_SUFFIXES):
         return True
     parts = normalized.strip("/").split("/")
-    return (
+    if (
         len(parts) >= 3
         and parts[-3:-1] == ["observations", "fpga"]
         and parts[-1].endswith(".jsonl")
-    ) or parts[-3:] == ["intake", "attachments", "manifest.jsonl"]
+    ) or parts[-3:] == ["intake", "attachments", "manifest.jsonl"]:
+        return True
+    if len(parts) >= 2 and parts[-2] == "liaison" and parts[-1].endswith(".ux-response.json"):
+        return True
+    return len(parts) >= 2 and parts[-2] == "fpga-reports" and parts[-1].endswith(".png")
 
 
 def _is_artifact_write(payload: dict[str, Any]) -> bool:

@@ -33,6 +33,7 @@ class Paths:
     netlist: Path
     layout: Path
     report: Path
+    placed: Path
     constraints: Path
     bitstream: Path
 
@@ -44,6 +45,7 @@ def paths(contract: FpgaContract, contract_path: Path, profile: DeviceProfile) -
         netlist=build / f"{contract.name}.json",
         layout=build / f"{contract.name}{LAYOUT_SUFFIX[profile.family]}",
         report=build / f"{contract.name}.nextpnr-report.json",
+        placed=build / f"{contract.name}.placed.json",
         constraints=resolve(contract_path, contract.build.constraints),
         bitstream=resolve(contract_path, contract.build.bitstream),
     )
@@ -204,20 +206,26 @@ def pnr_argv(contract: FpgaContract, contract_path: Path, profile: DeviceProfile
         argv += ["--freq", f"{max(c.frequency_mhz for c in contract.clocks):g}"]
     constraints = out.constraints.as_posix()
     layout = out.layout.as_posix()
+    placed = out.placed.as_posix()
     if profile.family == "ice40":
-        argv += ["--pcf", constraints, "--asc", layout]
+        argv += ["--pcf", constraints, "--asc", layout, "--write", placed]
     elif profile.family == "ecp5":
-        argv += ["--lpf", constraints, "--textcfg", layout]
+        argv += ["--lpf", constraints, "--textcfg", layout, "--write", placed]
     else:
         argv += ["--vopt", f"cst={constraints}", "--write", layout]
     return argv
+
+
+def placed_json(out: Paths, family: str) -> Path:
+    """Post-P&R design JSON with NEXTPNR_BEL attributes (gowin reuses layout)."""
+    return out.layout if family == "gowin" else out.placed
 
 
 def place_and_route(
     contract: FpgaContract, contract_path: Path, profile: DeviceProfile, out_dir: Path
 ) -> ToolRun:
     out = paths(contract, contract_path, profile)
-    for stale in (out.layout, out.report):
+    for stale in (out.layout, out.report, out.placed):
         stale.unlink(missing_ok=True)
     log = out_dir / "pnr.log"
     log.unlink(missing_ok=True)

@@ -70,6 +70,7 @@ class FpgaPinmap(_Strict):
     artifact_kind: Literal["fpga_pinmap"] = "fpga_pinmap"
     design: str
     contract_sha256: str
+    circuit_sha256: str | None = None
     device_ref: str
     device_profile: str
     part: str

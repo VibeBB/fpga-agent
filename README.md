@@ -2,16 +2,33 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/VibeBB/fpga-agent)
 
-VibeBB FPGA plugin for OpenHands (Software Agent SDK). It designs,
-verifies and builds FPGA designs — HDL/RTL, testbenches, formal
-properties, constraints, bitstreams — together with the sibling plugins
-(`electrical-circuit-agent`, `firmware-agent`, `mechanical-agent`,
-`wire-agent`, `UX-creator-agent`, `document-agent`, ...).
+**VibeBB fpga-agent designs, checks and builds the programmable logic part of
+a maker product — no FPGA experience needed.** You bring a product idea; the
+plugin turns it into a verified FPGA bitstream and the paperwork (pin maps,
+timing reports, waveform pictures) that proves it. It works hand in hand with
+its sister plugins: the circuit agent places the chip on the board, the
+firmware agent drives it, and UX-creator coordinates the whole build.
 
-An FPGA contract `<name>.fpga.json` declares the device, top level,
-sources, external HDL libraries, clocks, pins, build, simulations and
-formal runs. Deterministic gates, all open-source tools, decide whether
-the design is acceptable:
+Site: <https://vibebb.org/>. License: BSD-3-Clause (VibeBB). Third-party tools
+are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## What you give and what you get back
+
+You give it a product brief and (optionally) the circuit connectivity export
+the circuit plugin produces. You get back:
+
+- a design contract `<name>.fpga.json` — the single source of truth for
+  device, pins, clocks, sources, simulations and budgets;
+- generated artifacts under `fpga-reports/`: the gate report
+  (`*.fpga-report.json`/`.md`), the pin map for the circuit agent
+  (`*.fpga-pinmap.json`/`.md`), constraint files, transcripts, and PNG
+  renders (pin map, floorplan, utilization, timing, per-simulation waveform,
+  and a report card) that the agent inspects with vision;
+- a bitstream sha256 hash that a human can later use to program the board.
+
+## How it decides pass/fail
+
+Deterministic gates — never the model's opinion — decide:
 
 | gate | checks |
 | --- | --- |
@@ -21,7 +38,7 @@ the design is acceptable:
 | `fpga.constraints` | PCF / LPF / CST matches the contract projection |
 | `fpga.netlist_match` | every pin on its circuit net, voltages, no unconstrained connected pin |
 | `fpga.lint` | NVC (VHDL) or Verilator (Verilog) |
-| `fpga.sim.<id>` | NVC or Icarus Verilog testbench prints the expected lines |
+| `fpga.sim.<id>` | NVC or Icarus Verilog testbench prints the expected lines; VCD captured |
 | `fpga.formal.<id>` | SymbiYosys prove / BMC / cover of PSL or SVA properties |
 | `fpga.synth` | Yosys (+ GHDL plugin for VHDL); synthesized ports equal the pinned ports |
 | `fpga.pnr` | nextpnr (`ice40`, `ecp5`, `himbaechel` for Gowin) |
@@ -29,29 +46,30 @@ the design is acceptable:
 | `fpga.utilization` | resources within budget |
 | `fpga.bitstream` | IceStorm / Trellis / Apicula packer output with the family preamble; sha256 recorded |
 
-Supported families: Lattice iCE40 and ECP5, Gowin GW1N and GW2A.
-Bundled device profiles: `ice40-up5k-sg48`, `ecp5-lfe5u-25f-cabga381`,
-`ecp5-lfe5u-85f-cabga381`, `gowin-gw1nr9c-qn88p`,
-`gowin-gw2ar18c-qn88p`, `gowin-gw2a18c-pbga256`.
+Everything the agent reasons about — decisions, stage impressions, vision
+reviews — is recorded as an append-only evidence trail under
+`observations/fpga/` and enforced by a Stop hook, so a session cannot finish
+while it still owes a record.
 
-## Layout
+## Working with sister plugins
 
-- `src/fpga/` — contract models, device profiles, gates, CLI, MCP server.
-- `plugins/fpga/` — the OpenHands plugin: agents (`fpga-architect`,
-  `fpga-developer`, `fpga-review`), commands (`doctor`, `design`,
-  `gates`, `pinmap`, `simulate`, `verify`, `build`), skills, hooks,
-  launcher, `.mcp.json`.
-- `examples/uart-echo-icebreaker/` — VHDL-2008 UART echo on iCE40 UP5K
-  using the [Colibri](https://gitlab.com/colibri-cern/colibri) UART,
-  linked to a circuit connectivity export.
-- `examples/blinky-ulx3s/` — Verilog on ECP5 85F with an SVA proof.
-- `examples/blinky-tangnano9k/` — VHDL on Gowin GW1NR-9 with a PSL proof.
-- `examples/blinky-tangnano20k/` — Verilog on Gowin GW2AR-18C with an SVA proof.
-- `examples/blinky-tangprimer20k/` — VHDL on Gowin GW2A-18C (PG256) with a PSL proof.
-- `docker/fpga-tools.Dockerfile` — pinned Ubuntu 26.04 toolchain image.
-- `docs/` — ADRs.
+Under UX-creator's Sister Liaison Protocol v2 the agent picks up jobs from
+`liaison/*.ux-request.json`, reports its state via `fpga ux inbox`, and
+answers with hashed artifacts, gate verdicts and record references via
+`fpga ux respond`. Outbound changes to other plugins travel as
+`*.fpga-request.json` requests (schema v2: hashed inputs + decision
+references). The agent never edits a sibling's inputs.
 
-## Quick start
+## Getting started (AgentCanvas / OpenHands)
+
+Install the plugin from `github:VibeBB/fpga-agent`, path `plugins/fpga`.
+The launcher runs all tools inside the pinned `fpga-tools` Docker image —
+it fails closed when the image cannot be resolved; it never silently falls
+back to host tools. Programming a board stays a human step on the host
+(`fpga program --confirm-sha256`), confirmed against the gate report's
+bitstream hash.
+
+Standalone quick start:
 
 ```bash
 uv sync --locked
@@ -62,31 +80,34 @@ python3 plugins/fpga/scripts/fpga_launcher.py doctor
 python3 plugins/fpga/scripts/fpga_launcher.py gates examples/uart-echo-icebreaker/uart-echo.fpga.json
 ```
 
-Without an image the launcher runs on the host and every missing tool
-fails its gate. CLI:
-`fpga {doctor,validate,check,gates,constraints,pinmap,lint,sim,formal,build,program,request,profile}`.
-MCP tools: `fpga_doctor`, `fpga_validate`, `fpga_check`, `fpga_gates`,
-`fpga_constraints`, `fpga_pinmap_export`, `fpga_lint`, `fpga_sim`,
-`fpga_formal`, `fpga_build`, `fpga_request`, `fpga_profile`.
+## Limits
 
-## Programming a board
+- Open toolchain only: Lattice iCE40/ECP5, Gowin GW1N/GW2A; bundled profiles
+  `ice40-up5k-sg48`, `ecp5-lfe5u-25f-cabga381`, `ecp5-lfe5u-85f-cabga381`,
+  `gowin-gw1nr9c-qn88p`, `gowin-gw2ar18c-qn88p`, `gowin-gw2a18c-pbga256`.
+  No vendor tools, no other families.
+- Single-corner timing, no power estimation (see
+  [docs/improvement-notes.md](docs/improvement-notes.md)).
+- The agent never programs hardware; generated artifacts are protected from
+  hand edits by hooks.
+- Records and renders are advisory evidence; gate verdicts stay the only
+  pass/fail authority.
 
-Programming is a human step on the host, never an agent or MCP action:
+## Repository layout
 
-```bash
-python -m fpga gates board.fpga.json          # must pass; records the bitstream sha256
-python -m fpga program board.fpga.json --confirm-sha256 <sha256> --dry-run
-python -m fpga program board.fpga.json --confirm-sha256 <sha256>
-```
-
-`program` refuses unless the last full gate report passed for the
-current contract and the bitstream on disk still has the reported hash.
+- `src/fpga/` — contract models, device profiles, gates, renders, records,
+  liaison, CLI, MCP server.
+- `plugins/fpga/` — the OpenHands plugin: agents (`fpga-architect`,
+  `fpga-developer`, `fpga-review`), commands (`doctor`, `design`, `gates`,
+  `pinmap`, `simulate`, `verify`, `build`, `render`, `liaison`, `records`),
+  skills, hooks, launcher, `.mcp.json`.
+- `examples/` — a UART echo on iCE40 plus blinky designs on ECP5 and Gowin
+  boards.
+- `docker/fpga-tools.Dockerfile` — pinned Ubuntu 26.04 toolchain image.
+- `docs/` — the full documentation tree; start at
+  [docs/README.md](docs/README.md).
 
 ## Development
-
-The workflow-lint check runs actionlint and zizmor. Releases verify CI,
-workflow lint, and a remote plugin install smoke test before creating a
-release.
 
 ```bash
 uv run ruff check . && uv run ruff format --check .
@@ -95,6 +116,10 @@ uv run pytest
 uv run python scripts/check_plugin_load.py
 uv run python scripts/verify_docs.py
 ```
+
+The workflow-lint check runs actionlint and zizmor. Releases verify CI,
+workflow lint, and a remote plugin install smoke test before creating a
+release. See [docs/development.md](docs/development.md).
 
 ### SBOM attestations
 
@@ -105,95 +130,70 @@ checks verify available SBOM attestations and warn when metadata is absent.
 
 ## License
 
-BSD-3-Clause. Third-party tools and libraries are listed in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+BSD-3-Clause. Copyright VibeBB.
 
 ## 日本語
 
-OpenHands（Software Agent SDK）向けの VibeBB FPGA プラグイン。姉妹プラグイン
-（`electrical-circuit-agent`、`firmware-agent`、`mechanical-agent`、
-`wire-agent`、`UX-creator-agent`、`document-agent` など）と連携して、
-FPGA 設計 — HDL/RTL、テストベンチ、形式プロパティ、制約、ビットストリーム — を
-設計・検証・ビルドします。
+**VibeBB fpga-agent は、メーカー製品のプログラマブルロジック部分を、FPGA の
+専門知識なしに設計・検証・ビルドします。** あなたが持ち込むのは製品アイデア。
+プラグインは検証済みの FPGA ビットストリームと、それを裏付ける資料
+（ピンマップ、タイミングレポート、波形画像）を返します。姉妹プラグインと
+連携して動きます: 回路エージェントがチップを基板に配置し、ファームウェア
+エージェントがそれを駆動し、UX-creator が全体を調整します。
 
-FPGA コントラクト `<name>.fpga.json` でデバイス、トップレベル、ソース、
-外部 HDL ライブラリ、クロック、ピン、ビルド、シミュレーション、形式検証を
-宣言します。オープンソースツールによる決定論的なゲートが設計の合否を
-判定します:
+サイト: <https://vibebb.org/>。ライセンス: BSD-3-Clause（VibeBB）。
 
-| ゲート | 検査内容 |
-| --- | --- |
-| `fpga.contract` | コントラクトのスキーマ、デバイスプロファイル、ファミリごとの出力サフィックス |
-| `fpga.provenance` | 外部ライブラリファイルの存在と、宣言ライセンスと一致する SPDX ヘッダ |
-| `fpga.pins` | パッケージのユーザー I/O、コンフィグ/JTAG ピンの確認、I/O 規格、プル抵抗 |
-| `fpga.constraints` | PCF / LPF / CST がコントラクト投影と一致 |
-| `fpga.netlist_match` | 全ピンが回路ネット上にあること、電圧、未制約の接続ピンなし |
-| `fpga.lint` | NVC（VHDL）または Verilator（Verilog） |
-| `fpga.sim.<id>` | NVC または Icarus Verilog のテストベンチが期待行を出力 |
-| `fpga.formal.<id>` | PSL/SVA プロパティの SymbiYosys prove / BMC / cover |
-| `fpga.synth` | Yosys（VHDL は GHDL プラグイン併用）。合成後ポートがピン固定ポートと一致 |
-| `fpga.pnr` | nextpnr（`ice40`、`ecp5`、Gowin 用 `himbaechel`） |
-| `fpga.timing` | 宣言された全クロックが周波数を満たすこと |
-| `fpga.utilization` | リソースが予算内 |
-| `fpga.bitstream` | IceStorm / Trellis / Apicula パッカー出力とファミリプリアンブル、sha256 記録 |
+### 渡すもの・返ってくるもの
 
-対応ファミリ: Lattice iCE40 / ECP5、Gowin GW1N / GW2A。
-同梱デバイスプロファイル: `ice40-up5k-sg48`、`ecp5-lfe5u-25f-cabga381`、
-`ecp5-lfe5u-85f-cabga381`、`gowin-gw1nr9c-qn88p`、
-`gowin-gw2ar18c-qn88p`、`gowin-gw2a18c-pbga256`。
+製品ブリーフと（任意で）回路プラグインが出力する回路接続エクスポートを渡します。
+返ってくるのは:
 
-### 構成
+- 設計コントラクト `<name>.fpga.json` — デバイス、ピン、クロック、ソース、
+  シミュレーション、予算の唯一の正典。
+- `fpga-reports/` 配下の生成物 — ゲートレポート（`*.fpga-report.json`/`.md`）、
+  回路エージェント向けピンマップ（`*.fpga-pinmap.json`/`.md`）、制約ファイル、
+  トランスクリプト、そしてエージェントがビジョンで確認する PNG レンダリング
+  （ピンマップ、フロアプラン、使用率、タイミング、シミュレーションごとの波形、
+  レポートカード）。
+- 後で人間がボードに書き込む際に使うビットストリームの sha256 ハッシュ。
 
-- `src/fpga/` — コントラクトモデル、デバイスプロファイル、ゲート、CLI、MCP サーバー。
-- `plugins/fpga/` — OpenHands プラグイン: エージェント
-  （`fpga-architect`、`fpga-developer`、`fpga-review`）、コマンド
-  （`doctor`、`design`、`gates`、`pinmap`、`simulate`、`verify`、`build`）、
-  スキル、フック、ランチャー、`.mcp.json`。
-- `examples/` — UART エコー（iCE40）と 4 種のブリンカー（ECP5/Gowin）の例。
-- `docker/fpga-tools.Dockerfile` — ピン固定済み Ubuntu 26.04 ツールチェーンイメージ。
-- `docs/` — ADR。
+### 合否の決め方
 
-### クイックスタート
+モデルの意見ではなく、決定論的なゲートが判定します（表は英語節と同じゲート
+一覧）。エージェントが検討した内容 — 決定、ステージ印象、ビジョンレビュー —
+は `observations/fpga/` 配下の追記専用ログとして残り、Stop フックが未記録の
+セッション終了を拒否します。
 
-```bash
-uv sync --locked
-python3 scripts/fetch_colibri.py   # third_party/ へのピン固定取得（gitignored）
-docker build -f docker/fpga-tools.Dockerfile -t fpga-tools:dev .
-export FPGA_TOOLS_IMAGE=fpga-tools:dev
-python3 plugins/fpga/scripts/fpga_launcher.py doctor
-python3 plugins/fpga/scripts/fpga_launcher.py gates examples/uart-echo-icebreaker/uart-echo.fpga.json
-```
+### 姉妹プラグインとの連携
 
-イメージがない場合、ランチャーはホスト上で実行し、不足ツールは各ゲートで失敗します。
+UX-creator の Sister Liaison Protocol v2 のもと、`liaison/*.ux-request.json`
+の仕事を `fpga ux inbox` で確認し、ハッシュ済み成果物・ゲート判定・記録参照を
+`fpga ux respond` で返します。他プラグインへの変更依頼は `*.fpga-request.json`
+（v2: ハッシュ済み入力 + 決定記録参照）として送ります。兄弟の入力を直接編集
+することはありません。
 
-### ボードへの書き込み
+### 始め方（AgentCanvas / OpenHands）
 
-プログラミングはホスト上の人間の操作であり、エージェントや MCP の操作ではありません:
+`github:VibeBB/fpga-agent`、パス `plugins/fpga` からインストールします。
+ランチャーはすべてのツールをピン固定の `fpga-tools` Docker イメージ内で
+実行し、イメージが解決できない場合はフェイルクローズします — ホスト側
+ツールへの暗黙のフォールバックはありません。ボードへの書き込みは常に
+ホスト上の人間の操作（`fpga program --confirm-sha256`）で、ゲートレポートの
+ビットストリームハッシュとの突き合わせが必須です。
 
-```bash
-python -m fpga gates board.fpga.json          # 必須。ビットストリームの sha256 を記録
-python -m fpga program board.fpga.json --confirm-sha256 <sha256> --dry-run
-python -m fpga program board.fpga.json --confirm-sha256 <sha256>
-```
+### 制約
 
-`program` は、最新のフルゲートレポートが現在のコントラクトに対して pass で、
-ディスク上のビットストリームが記録されたハッシュと一致しない限り拒否します。
-
-### 開発
-
-```bash
-uv run ruff check . && uv run ruff format --check .
-uv run pyright
-uv run pytest
-uv run python scripts/check_plugin_load.py
-uv run python scripts/verify_docs.py
-```
-
-workflow-lint チェックは actionlint と zizmor を実行します。リリースは
-CI、ワークフローリント、リモートプラグインインストールのスモークテストを
-確認してから作成されます。
+- オープンツールチェーンのみ: Lattice iCE40/ECP5、Gowin GW1N/GW2A。
+  同梱プロファイルは `ice40-up5k-sg48`、`ecp5-lfe5u-25f-cabga381`、
+  `ecp5-lfe5u-85f-cabga381`、`gowin-gw1nr9c-qn88p`、`gowin-gw2ar18c-qn88p`、
+  `gowin-gw2a18c-pbga256`。ベンダーツール・他ファミリは対象外。
+- シングルコーナーのタイミングのみ、消費電力推定なし。
+- エージェントはハードウェアに一切書き込みません。生成物はフックが手編集
+  から保護します。
+- 記録とレンダリングは助言的な証拠であり、合否の権限はゲート判定のみに
+  あります。
 
 ### ライセンス
 
-BSD-3-Clause。第三者ツールとライブラリは
+BSD-3-Clause。Copyright VibeBB。第三者ツールとライブラリは
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) に一覧があります。
