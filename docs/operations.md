@@ -156,10 +156,11 @@ SBOM chain, measurement, and smoke checks still run against it, but nothing
 is pushed, promoted (`:latest`), attested, locked, or dispatched, and no
 SARIF reaches code scanning. The run summary lists every skipped step.
 
-The verify job's pytest run enforces `--cov-fail-under=75` (measured
-~76.5% at adoption; `[tool.coverage.report] fail_under = 67` remains the
-local baseline), so the existing coverage measurement now gates
-regressions.
+The verify job runs pytest through `scripts/structural_coverage.py run`,
+which enforces `[tool.coverage.report] fail_under` (statement+branch) and
+the C0, C1, decision, C2, MC/DC and boundary floors in
+`[tool.vibebb-coverage]` (see [test-coverage.md](test-coverage.md) and
+ADR-0011, which supersedes the ADR-0007 line-coverage gate).
 
 SPDX generation prefers the GHCR registry source, writes temporary data under
 the runner's temporary directory, and disables file metadata. The publisher
