@@ -97,6 +97,12 @@ TOOLS: dict[str, tuple[str, dict[str, object], bool]] = {
         _schema({**_CONTRACT, **_OUT}, ["contract_path"]),
         False,
     ),
+    "fpga_production_export": (
+        "Export <name>.fpga-production.json (the gated bitstream and loader options) "
+        "for production-engineering-agent; never touches hardware",
+        _schema({**_CONTRACT, **_OUT}, ["contract_path"]),
+        False,
+    ),
     "fpga_request": (
         "Write a change request (*.fpga-request.json) to a sibling agent",
         _schema(
@@ -298,6 +304,9 @@ def dispatch(name: str, arguments: dict[str, object]) -> service.Json:
             _contract(arguments), _str(arguments, "formal"), _opt_path(arguments, "out_dir")
         ),
         "fpga_build": lambda: service.build_payload(
+            _contract(arguments), _opt_path(arguments, "out_dir")
+        ),
+        "fpga_production_export": lambda: service.production_payload(
             _contract(arguments), _opt_path(arguments, "out_dir")
         ),
         "fpga_request": lambda: service.request_payload(

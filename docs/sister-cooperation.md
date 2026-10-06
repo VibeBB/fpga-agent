@@ -54,6 +54,17 @@ files (`--input`), and ≥1 `decision_refs` validated against
 `observations/fpga/decisions.jsonl` — a request without a recorded
 justification cannot be written.
 
+## Production programming handoff
+
+`fpga production` / `fpga_production_export` writes
+`<design>.fpga-production.json` (`fpga_production`) after a passing full
+gate run: the bitstream path and sha256, the gate report and contract
+hashes, the device, `target` (`flash` or volatile `sram`) and the
+openFPGALoader argv. production-engineering-agent imports it with
+`prodeng import --from fpga-production`, binds it to a `programming`
+operation and re-checks the bitstream hash at its own gate. The agent still
+never programs hardware; the factory station runs the argv.
+
 ## Inbound circuit data
 
 `contract.circuit.connectivity` links the circuit plugin's connectivity
