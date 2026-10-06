@@ -297,6 +297,25 @@ def request_payload(
     return {"verdict": PASS, "stage": "request", "id": request.id, "written": [str(path)]}
 
 
+def production_payload(contract_path: Path, out_dir: Path | None) -> Json:
+    """Write ``<name>.fpga-production.json`` for production-engineering-agent."""
+    try:
+        contract, profile = _load(contract_path)
+        out = out_dir or default_out(contract_path)
+        artifact = program.production_export(contract, contract_path, profile, out)
+    except (OSError, ValueError, ValidationError) as exc:
+        return {"verdict": FAIL, "stage": "production", "detail": str(exc)}
+    path = out / f"{contract.name}.fpga-production.json"
+    write_text(path, artifact.model_dump_json(indent=2) + "\n")
+    return {
+        "verdict": PASS,
+        "stage": "production",
+        "bitstream_sha256": artifact.bitstream_sha256,
+        "target": artifact.target,
+        "written": [str(path)],
+    }
+
+
 def render_payload(contract_path: Path, out_dir: Path | None, view: str) -> Json:
     """Re-render the report images from existing artifacts without rerunning tools."""
     try:

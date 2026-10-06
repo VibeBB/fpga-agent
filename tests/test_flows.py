@@ -52,6 +52,9 @@ def test_program_dry_run_after_passing_gates(ulx3s: Path) -> None:
     ok = service.program_payload(ulx3s, None, report.bitstream_sha256, dry_run=True)
     assert ok["verdict"] == "pass"
     assert cast(list[str], ok["argv"])[:3] == ["openFPGALoader", "-b", "ulx3s"]
+    production = service.production_payload(ulx3s, None)
+    assert production["verdict"] == "pass"
+    assert production["bitstream_sha256"] == report.bitstream_sha256
     (ulx3s.parent / "build" / "blinky.bit").write_bytes(b"tampered")
     tampered = service.program_payload(ulx3s, None, report.bitstream_sha256, dry_run=True)
     assert tampered["verdict"] == "fail" and "bitstream changed" in str(tampered["detail"])

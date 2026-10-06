@@ -13,6 +13,8 @@ Subcommands:
   formal       run one declared SymbiYosys proof
   build        synthesis, place and route, bitstream (advisory)
   program      host-only: program a board with openFPGALoader
+  production   export <name>.fpga-production.json (gated bitstream + loader
+               options) for production-engineering-agent
   request      write a change request to a sibling agent
   profile      list bundled device profiles or print one
   record       append a VibeBB Record Protocol record (decision, impression,
@@ -47,7 +49,7 @@ def _parser() -> argparse.ArgumentParser:
     doctor.add_argument("--warn", action="store_true", help="always exit 0")
     for name in ("validate", "constraints"):
         sub.add_parser(name).add_argument("contract", type=Path)
-    for name in ("check", "gates", "pinmap", "lint", "build"):
+    for name in ("check", "gates", "pinmap", "lint", "build", "production"):
         command = sub.add_parser(name)
         command.add_argument("contract", type=Path)
         command.add_argument("--out", type=Path)
@@ -137,6 +139,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _emit(service.sim_payload(args.contract, args.id, args.out))
     if command == "formal":
         return _emit(service.formal_payload(args.contract, args.id, args.out))
+    if command == "production":
+        return _emit(service.production_payload(args.contract, args.out))
     if command == "program":
         return _emit(
             service.program_payload(

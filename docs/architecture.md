@@ -135,6 +135,9 @@ contract_sha256, circuit_sha256=None)`, `pinmap_markdown(pinmap)`,
 ### program.py
 `ProgramPlan`; `plan(contract, contract_path, out_dir, confirm_sha256)` —
 requires a passing gate report and a matching bitstream hash.
+`gated_bitstream(...)` holds that check; `production_export(contract,
+contract_path, profile, out_dir)` reuses it to build the
+`fpga-production.json` handoff without touching hardware.
 
 ### doctor.py
 `ToolCheck`; `checks()`.

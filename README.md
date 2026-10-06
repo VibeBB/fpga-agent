@@ -24,7 +24,9 @@ the circuit plugin produces. You get back:
   (`*.fpga-pinmap.json`/`.md`), constraint files, transcripts, and PNG
   renders (pin map, floorplan, utilization, timing, per-simulation waveform,
   and a report card) that the agent inspects with vision;
-- a bitstream sha256 hash that a human can later use to program the board.
+- a bitstream sha256 hash that a human can later use to program the board,
+  and `*.fpga-production.json`, which hands that gated bitstream and its
+  loader options to production-engineering-agent's programming step.
 
 ## How it decides pass/fail
 
