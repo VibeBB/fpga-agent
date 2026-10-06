@@ -17,7 +17,16 @@ from typing import Any, cast
 
 from .contract import FpgaContract, resolve
 from .devices import DeviceProfile
-from .hdl import Unit, all_files, ghdl_args, is_systemverilog, param_text, units, verilog_read
+from .hdl import (
+    Unit,
+    all_files,
+    ghdl_args,
+    include_dirs,
+    is_systemverilog,
+    param_text,
+    units,
+    verilog_read,
+)
 from .toolrun import ToolRun, run_tool
 
 NEXTPNR = {"ice40": "nextpnr-ice40", "ecp5": "nextpnr-ecp5", "gowin": "nextpnr-himbaechel"}
@@ -109,6 +118,7 @@ def lint(contract: FpgaContract, contract_path: Path, out_dir: Path) -> ToolRun:
     argv = ["verilator", "--lint-only", "-Wall", "-Wno-fatal", "--top-module", contract.top]
     if is_systemverilog(unit_list):
         argv.append("-sv")
+    argv += [f"-I{p.as_posix()}" for p in include_dirs(contract, contract_path)]
     argv += [f"-D{k}={v}" for k, v in contract.build.defines.items()]
     argv += [f"-G{k}={param_text(v)}" for k, v in contract.build.parameters.items()]
     argv += [p.as_posix() for p in all_files(unit_list)]
@@ -124,7 +134,9 @@ def synth_script(contract: FpgaContract, contract_path: Path, profile: DevicePro
     if contract.design_language == "vhdl":
         read = [f"ghdl {ghdl_args(contract, unit_list, contract.top, contract.build.parameters)}"]
     else:
-        read = verilog_read(contract, unit_list, formal=False)
+        read = verilog_read(
+            contract, unit_list, formal=False, includes=include_dirs(contract, contract_path)
+        )
         chparams = " ".join(
             f"-chparam {k} {param_text(v)}" for k, v in contract.build.parameters.items()
         )

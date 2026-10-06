@@ -41,6 +41,18 @@ def units(
     return result
 
 
+def include_dirs(contract: FpgaContract, contract_path: Path) -> list[Path]:
+    """Directories Verilog front ends search for `` `include `` files.
+
+    Only the generated register-constants header is included today; it is
+    never a source, so its directory has to be on every tool's search path.
+    """
+    regs = contract.registers
+    if regs is None or contract.design_language == "vhdl":
+        return []
+    return [resolve(contract_path, regs.hdl_package).parent]
+
+
 def all_files(unit_list: list[Unit]) -> list[Path]:
     return [path for unit in unit_list for path in unit.files]
 
@@ -75,9 +87,16 @@ def ghdl_args(
     return " ".join(parts)
 
 
-def verilog_read(contract: FpgaContract, unit_list: list[Unit], *, formal: bool) -> list[str]:
+def verilog_read(
+    contract: FpgaContract,
+    unit_list: list[Unit],
+    *,
+    formal: bool,
+    includes: list[Path] | None = None,
+) -> list[str]:
     """Yosys commands that read the Verilog/SystemVerilog design."""
-    defines = [f"-D{k}={v}" for k, v in contract.build.defines.items()]
+    defines = [f"-I{path.as_posix()}" for path in includes or []]
+    defines += [f"-D{k}={v}" for k, v in contract.build.defines.items()]
     if formal:
         defines.append("-DFORMAL")
     files = [path.as_posix() for path in all_files(unit_list)]

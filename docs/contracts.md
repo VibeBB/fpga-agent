@@ -25,7 +25,8 @@ with a letter (so the generated VHDL and C identifiers are legal and
 unambiguous). `i2c_address`
 is required for `i2c` and forbidden otherwise. `hdl_package` is the
 generated constants file: `*_regs_pkg.vhd` listed in `sources` for VHDL
-designs, or a `*_regs.vh` include (not a source) for Verilog designs.
+designs, or a `*_regs.vh` include (not a source) for Verilog designs; its
+directory is passed as `-I` to Verilator, Icarus Verilog and Yosys.
 
 ## Device profile (`src/fpga/devices/*.json`, generated)
 

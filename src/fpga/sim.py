@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .contract import FpgaContract, Simulation, resolve
 from .flow import TOOL_TIMEOUT_S, nvc_analyse, nvc_elaborate_argv
-from .hdl import all_files, units
+from .hdl import all_files, include_dirs, units
 from .toolrun import run_tool
 
 
@@ -63,6 +63,7 @@ def run_simulation(
         work.mkdir(parents=True, exist_ok=True)
         image = work / f"{sim.top}.vvp"
         compile_argv = ["iverilog", "-g2012", "-o", image.as_posix(), "-s", sim.top]
+        compile_argv += [f"-I{p.as_posix()}" for p in include_dirs(contract, contract_path)]
         compile_argv += [f"-D{k}={v}" for k, v in contract.build.defines.items()]
         compile_argv += [p.as_posix() for p in all_files(unit_list)]
         if sim.waveform:

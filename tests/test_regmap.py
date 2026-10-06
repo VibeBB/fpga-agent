@@ -306,3 +306,31 @@ def test_colliding_generated_names_rejected(verilog: Path, registers: list[dict[
     data["registers"]["registers"] = registers
     with pytest.raises(ValidationError, match="collides"):
         FpgaContract.model_validate(data)
+
+
+def test_include_dir_reaches_every_verilog_front_end(verilog: Path) -> None:
+    from fpga.devices import load_profile
+    from fpga.flow import synth_script
+    from fpga.hdl import include_dirs
+
+    contract = load_contract(verilog)
+    rtl = (verilog.parent / "rtl").resolve()
+    assert include_dirs(contract, verilog) == [rtl]
+    profile = load_profile(contract.device.profile, [verilog.parent])
+    script = synth_script(contract, verilog, profile)
+    assert f"-I{rtl.as_posix()}" in script
+
+
+def test_vhdl_needs_no_include_dir(vhdl: Path) -> None:
+    from fpga.hdl import include_dirs
+
+    assert include_dirs(load_contract(vhdl), vhdl) == []
+
+
+@pytest.mark.skipif(shutil.which("verilator") is None, reason="needs verilator")
+def test_verilator_lint_resolves_generated_include(verilog: Path, tmp_path: Path) -> None:
+    from fpga.flow import lint
+
+    assert service.regmap_payload(verilog, None)["verdict"] == "pass"
+    run = lint(load_contract(verilog), verilog, tmp_path)
+    assert run.ok, run.detail
