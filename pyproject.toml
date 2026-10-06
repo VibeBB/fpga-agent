@@ -57,15 +57,15 @@ branch = true
 # main minus one point for interpreter variance. Raise them, never lower.
 # Measured as CI's verify job runs: no FPGA toolchain on PATH (the `tools`
 # tests run in the e2e image, which is not coverage-gated).
-c0 = 81
+c0 = 82
 c1 = 67
-decision = 58
+decision = 59
 c2 = 56
-mcdc = 33
-boundary = 21
+mcdc = 34
+boundary = 24
 
 [tool.coverage.report]
-fail_under = 78
+fail_under = 79
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

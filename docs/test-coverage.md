@@ -99,3 +99,24 @@ find what they missed.
 - **Mutation testing**: a mutant (a flipped comparison, a removed condition)
   that survives the suite marks an assertion that is missing even though the
   line is covered. Mutation runs are advisory evidence, not a CI gate.
+
+## Reference suite
+
+`tests/test_gate_boundaries.py` applies these techniques to the
+deterministic gates in `src/fpga/gates.py` and the budget contract in
+`src/fpga/contract.py`, following the family pattern set by wire-agent:
+
+- 3-value boundaries (`math.nextafter`) for the achieved versus required
+  clock frequency, unconstrained clock nets, the default logic budget, an
+  authored RAM budget, and the `Budget` percent bounds;
+- equivalence classes for clock-net matching (global-buffer prefixes,
+  suffixes, hierarchical names, and look-alike names that must not match);
+- decision tables for resource class x availability x usage, and for pin
+  rules per family (iCE40 I/O standard and pull-down, ECP5 I/O standards,
+  unknown and configuration pins with and without acknowledgement);
+- fail-closed cases: a missing `achieved` field counts as 0 MHz and an
+  empty utilization report fails, while a clock on a general pin is
+  evidence only.
+
+CI's verify job has no OSS CAD Suite, NVC or `rsvg-convert`, so the floors
+are measured with them removed from `PATH`.
