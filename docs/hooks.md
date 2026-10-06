@@ -16,7 +16,7 @@ Declared in `plugins/fpga/hooks/hooks.json`; scripts live under
 
 | hook | matcher | behavior |
 | --- | --- | --- |
-| `protect-generated` | file_editor, apply_patch, terminal | denies hand edits of generated artifacts: `*.fpga.pcf/lpf/cst`, `*.fpga-pinmap.*`, `*.fpga-report.*`, `sim-*.log`, `formal-*.log`, `observations/fpga/*.jsonl`, `records-status.json`, `liaison/*.ux-response.json`, `fpga-reports/*.png` |
+| `protect-generated` | file_editor, apply_patch, terminal | denies hand edits of generated artifacts: `*.fpga.pcf/lpf/cst`, `*.fpga-pinmap.*`, `*.fpga-regmap.json`, `*_regs_pkg.vhd`, `*_regs.vh`, `*.fpga-report.*`, `sim-*.log`, `formal-*.log`, `observations/fpga/*.jsonl`, `records-status.json`, `liaison/*.ux-response.json`, `fpga-reports/*.png` |
 | `safety-rail` | terminal | blocks destructive shell commands |
 | `deny-programming` | terminal | denies programmer invocations for agents |
 

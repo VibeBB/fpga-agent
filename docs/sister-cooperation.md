@@ -54,6 +54,23 @@ files (`--input`), and ≥1 `decision_refs` validated against
 `observations/fpga/decisions.jsonl` — a request without a recorded
 justification cannot be written.
 
+## Firmware register map (`src/fpga/regmap.py`)
+
+When the host MCU talks to the FPGA over SPI, I2C or UART, the contract's
+`registers` section is the single source for both sides. `fpga regmap`
+writes the HDL constants file (`registers.hdl_package`: a VHDL package or
+a Verilog include) and `<name>.fpga-regmap.json` (`fpga_regmap`).
+firmware-agent pins the export by sha256 in its contract `fpga` link and
+generates its C header from it, so the firmware and the RTL use the same
+addresses, reset values and field masks.
+
+The `fpga.regmap` gate fails when the constants file is missing, differs
+from the current contract (edit the contract and run `fpga regmap`; never
+hand-edit), or no design source uses it (`use work.<name>_regs_pkg.all;`
+or `` `include "<name>_regs.vh" ``). A changed export changes its sha256,
+so firmware's `fw.fpga_regmap` gate fails until the firmware side re-pins
+it and regenerates its header.
+
 ## Inbound circuit data
 
 `contract.circuit.connectivity` links the circuit plugin's connectivity

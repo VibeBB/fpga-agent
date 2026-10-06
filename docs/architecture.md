@@ -10,7 +10,7 @@ stdlib + pydantic v2 + mcp) wrapped by an OpenHands plugin
 src/fpga/
 ├── contract.py    # FpgaContract schema — the source of truth
 ├── devices.py     # generated DeviceProfile models + loaders
-├── interchange.py # circuit connectivity input + fpga_pinmap output schemas
+├── interchange.py # circuit connectivity input + fpga_pinmap/fpga_regmap output schemas
 ├── hdl.py         # HDL unit ordering, VHDL/Verilog arg builders
 ├── flow.py        # lint / synth / P&R / pack subprocess flows
 ├── sim.py         # simulation runners (NVC, Icarus) + VCD capture
@@ -22,6 +22,7 @@ src/fpga/
 ├── liaison.py     # SLP v2 UX-creator request/response handling
 ├── requests.py    # outbound *.fpga-request.json (schema v2)
 ├── projections.py # constraint-file and pinmap text projections
+├── regmap.py      # register map: fpga_regmap export, HDL constants, binding check
 ├── program.py     # host-only openFPGALoader planning
 ├── doctor.py      # toolchain probe
 ├── toolrun.py     # subprocess runner with timeout + transcript
@@ -131,6 +132,12 @@ extra_inputs, decision_refs, root)`.
 `constraints_text(contract, profile)`, `pinmap_export(contract, profile,
 contract_sha256, circuit_sha256=None)`, `pinmap_markdown(pinmap)`,
 `write_text(path, text)`.
+
+### regmap.py
+`regmap_export(contract, contract_sha256)`, `package_name(contract)`,
+`hdl_package_text(contract)` (VHDL package or Verilog include, chosen by
+the design language), `regmap_problems(contract, contract_path)` — the
+`fpga.regmap` gate's missing/stale/unused checks.
 
 ### program.py
 `ProgramPlan`; `plan(contract, contract_path, out_dir, confirm_sha256)` —

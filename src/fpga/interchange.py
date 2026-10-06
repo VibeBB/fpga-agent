@@ -80,6 +80,44 @@ class FpgaPinmap(_Strict):
     free_pins: list[str]
 
 
+class RegmapField(_Strict):
+    name: str
+    lsb: int
+    width: int
+    mask: int
+    access: Literal["ro", "rw", "wo", "w1c"]
+    description: str
+
+
+class RegmapRegister(_Strict):
+    name: str
+    offset: int
+    access: Literal["ro", "rw", "wo", "w1c"]
+    reset: int
+    description: str
+    fields: list[RegmapField]
+
+
+class FpgaRegmap(_Strict):
+    """``<name>.fpga-regmap.json`` exported for firmware-agent.
+
+    Field ``access`` is resolved (a field without its own inherits the
+    register's) and ``mask`` is precomputed so the reader re-derives nothing.
+    """
+
+    schema_version: Literal[1] = 1
+    system: Literal["fpga"] = "fpga"
+    artifact_kind: Literal["fpga_regmap"] = "fpga_regmap"
+    design: str
+    contract_sha256: str
+    device_ref: str
+    bus: Literal["spi", "i2c", "uart"]
+    i2c_address: int | None
+    data_width: int
+    address_width: int
+    registers: list[RegmapRegister]
+
+
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 

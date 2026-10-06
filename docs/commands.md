@@ -10,6 +10,7 @@ only `terminal`.
 | `design` | guided contract + pin plan | architect entry point |
 | `gates` | `fpga gates <contract>` | authoritative run; inspect every returned PNG and record a vision review per image |
 | `pinmap` | `fpga pinmap <contract>` | writes `*.fpga-pinmap.{json,md,png}` for the circuit agent; vision-review the render |
+| `regmap` | `fpga regmap <contract>` | writes `registers.hdl_package` and `*.fpga-regmap.json` for firmware-agent |
 | `simulate` | `fpga sim <contract> --id <sim>` | transcript plus VCD waveform and its render; vision-review it |
 | `verify` | review checklist | fpga-review entry point |
 | `build` | `fpga build <contract>` | advisory synth/P&R/pack; vision-review the renders |

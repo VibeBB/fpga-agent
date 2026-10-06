@@ -29,6 +29,7 @@ from .projections import (
     pinmap_markdown,
     write_text,
 )
+from .regmap import regmap_problems
 from .sim import run_simulation
 from .toolrun import ToolRun
 
@@ -224,6 +225,17 @@ def check_constraints(contract: FpgaContract, profile: DeviceProfile, contract_p
             ["stale; regenerate with `fpga constraints`"],
         )
     return _check("fpga.constraints", contract.build.constraints, [])
+
+
+def check_regmap(contract: FpgaContract, contract_path: Path) -> Check:
+    """The RTL uses the current generated register constants."""
+    regs = contract.registers
+    if regs is None:
+        raise ValueError("contract declares no registers")
+    evidence = [f"bus={regs.bus}", f"registers={len(regs.registers)}"]
+    return _check(
+        "fpga.regmap", regs.hdl_package, regmap_problems(contract, contract_path), evidence
+    )
 
 
 def check_netlist_match(
@@ -433,6 +445,8 @@ def run_gates(
         check_pins(contract, profile),
         check_constraints(contract, profile, contract_path),
     ]
+    if contract.registers is not None:
+        checks.append(check_regmap(contract, contract_path))
     if contract.circuit is None:
         checks.append(_na("fpga.netlist_match", "contract links no circuit connectivity"))
     elif circuit is None:

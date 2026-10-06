@@ -47,6 +47,7 @@ it and are write-protected by the `protect-generated` hook.
 | `fpga.pins` | every package pin is a user I/O of the profile, config/JTAG pins are acknowledged, I/O standards and pulls are valid for the family |
 | `fpga.constraints` | the constraint file matches the contract projection byte for byte |
 | `fpga.netlist_match` | every pin lands on its declared circuit net, voltages fit the I/O maximum, and no connected circuit pin is left unconstrained |
+| `fpga.regmap` | when `registers` is set: `registers.hdl_package` matches `fpga regmap` output and a design source uses it |
 | `fpga.lint` | NVC analysis/elaboration (VHDL) or Verilator `--lint-only` (Verilog) is clean |
 | `fpga.sim.<id>` | the simulator prints every `expect` line in order, no `forbid` line, and exits 0 before the timeout |
 | `fpga.formal.<id>` | SymbiYosys reports `PASS` for the declared mode and depth |

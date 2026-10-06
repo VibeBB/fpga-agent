@@ -75,6 +75,11 @@ TOOLS: dict[str, tuple[str, dict[str, object], bool]] = {
         _schema({**_CONTRACT, **_OUT}, ["contract_path"]),
         False,
     ),
+    "fpga_regmap_export": (
+        "Write the HDL register constants and <name>.fpga-regmap.json for firmware-agent",
+        _schema({**_CONTRACT, **_OUT}, ["contract_path"]),
+        False,
+    ),
     "fpga_lint": (
         "Analyse and elaborate the design top (NVC for VHDL, Verilator for Verilog)",
         _schema({**_CONTRACT, **_OUT}, ["contract_path"]),
@@ -286,6 +291,9 @@ def dispatch(name: str, arguments: dict[str, object]) -> service.Json:
         ),
         "fpga_constraints": lambda: service.constraints_payload(_contract(arguments)),
         "fpga_pinmap_export": lambda: service.pinmap_payload(
+            _contract(arguments), _opt_path(arguments, "out_dir")
+        ),
+        "fpga_regmap_export": lambda: service.regmap_payload(
             _contract(arguments), _opt_path(arguments, "out_dir")
         ),
         "fpga_lint": lambda: service.lint_payload(
