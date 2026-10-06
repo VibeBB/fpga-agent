@@ -54,6 +54,30 @@ files (`--input`), and ≥1 `decision_refs` validated against
 `observations/fpga/decisions.jsonl` — a request without a recorded
 justification cannot be written.
 
+## simulation-agent thermal handoff (`src/fpga/sim_thermal.py`)
+
+The FPGA package is often the hottest part on the board, and only
+simulation-agent solves junction temperature. A contract with a `thermal`
+section hands it over:
+
+1. `fpga sim-request <contract> [--out DIR]` / `fpga_sim_thermal_request`
+   writes `<name>.thermal.sim.json` and `<name>.thermal.sim-request.json`
+   (default `fpga-reports/`, which must be inside the workspace).
+2. simulation-agent answers with `sim respond <request>`, writing
+   `<name>.thermal.sim-response.json` beside the request and a hashed
+   `sim-report.json`.
+3. `fpga.sim_thermal` (every `check`/`gates` run) and `fpga sim-check` /
+   `fpga_sim_thermal_check` read `thermal.response_path`:
+   - request file changed, not an fpga/thermal request, request ID or brief
+     sha256 the **current** contract would not emit (stale), report changed,
+     or report/response verdict mismatch → fail;
+   - response unset, missing or malformed, `needs_info`/`deferred`, report
+     missing or outside the workspace → `unknown` (`sim-check`) — the binary
+     fpga gate fails closed with an `unknown:` detail;
+   - otherwise each simulation `thermal.*` result is reported with
+     simulation's verdict, measured temperature, limit, margin and guidance.
+     A simulation fail is never promoted.
+
 ## Inbound circuit data
 
 `contract.circuit.connectivity` links the circuit plugin's connectivity

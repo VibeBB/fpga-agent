@@ -382,6 +382,30 @@ def check_bitstream(
     )
 
 
+def sim_thermal_checks(contract: FpgaContract, contract_path: Path) -> list[Check]:
+    """``fpga.sim_thermal``: simulation-agent's hash-bound junction-temperature answer.
+
+    fpga gates are binary, so a simulation ``unknown`` (missing, deferred or
+    unreadable answer) fails closed with an ``unknown:`` detail.
+    """
+    from .sim_thermal import resolve_response, thermal_findings
+    from .workspace import workspace_root
+
+    findings = thermal_findings(
+        contract, resolve_response(contract, contract_path), workspace_root()
+    )
+    return [
+        Check(
+            id="fpga.sim_thermal",
+            subject=subject,
+            status="pass" if status == "pass" else "fail",
+            detail=f"unknown: {detail}" if status == "unknown" else detail,
+            evidence=[] if measured is None else [f"measured={measured:.6g}"],
+        )
+        for subject, status, measured, detail in findings
+    ]
+
+
 def _load_inputs(
     contract_path: Path, profile_dirs: list[Path]
 ) -> tuple[FpgaContract, DeviceProfile, CircuitConnectivity | None, str | None, str | None]:
@@ -441,6 +465,8 @@ def run_gates(
         )
     else:
         checks.append(check_netlist_match(contract, profile, circuit))
+    if contract.thermal is not None:
+        checks += sim_thermal_checks(contract, contract_path)
     bitstream_sha: str | None = None
     renders: list[RenderRef] = []
     if full:

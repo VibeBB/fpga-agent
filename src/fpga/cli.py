@@ -14,6 +14,8 @@ Subcommands:
   build        synthesis, place and route, bitstream (advisory)
   program      host-only: program a board with openFPGALoader
   request      write a change request to a sibling agent
+  sim-request  write the FPGA package thermal brief + request for simulation-agent
+  sim-check    read simulation-agent's hash-bound thermal answer
   profile      list bundled device profiles or print one
   record       append a VibeBB Record Protocol record (decision, impression,
                vision-review) or print the records status
@@ -78,6 +80,10 @@ def _parser() -> argparse.ArgumentParser:
         help="event_id of a record in observations/fpga/decisions.jsonl",
     )
     request.add_argument("--out", type=Path)
+    sim_request = sub.add_parser("sim-request")
+    sim_request.add_argument("contract", type=Path)
+    sim_request.add_argument("--out", type=Path)
+    sub.add_parser("sim-check").add_argument("contract", type=Path)
     sub.add_parser("profile").add_argument("id", nargs="?")
     record = sub.add_parser("record", help="append a VibeBB Record Protocol record")
     record.add_argument("kind", choices=("decision", "impression", "vision-review", "status"))
@@ -137,6 +143,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _emit(service.sim_payload(args.contract, args.id, args.out))
     if command == "formal":
         return _emit(service.formal_payload(args.contract, args.id, args.out))
+    if command == "sim-request":
+        return _emit(service.sim_request_payload(args.contract, args.out))
+    if command == "sim-check":
+        return _emit(service.sim_check_payload(args.contract))
     if command == "program":
         return _emit(
             service.program_payload(

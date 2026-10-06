@@ -20,6 +20,8 @@ closed. Read-only tools set `readOnlyHint`.
 | `fpga_formal` | **contract_path**, **formal**, out_dir | prove/bmc/cover status + transcript | unknown id → `fail` |
 | `fpga_build` | **contract_path**, out_dir | implementation checks + renders + images | advisory |
 | `fpga_request` | **contract_path**, **target**, **risk**, **change**, **rationale**, **decision_refs**, nets, failing_checks, inputs, out_dir | writes `<design>.<id>.fpga-request.json` (v2) | unverifiable/missing decision_ref or input → `fail` |
+| `fpga_sim_thermal_request` | **contract_path**, out_dir | writes `<name>.thermal.sim.json` + `<name>.thermal.sim-request.json` for simulation-agent | no `thermal` section or out_dir outside the workspace → `fail` |
+| `fpga_sim_thermal_check` | **contract_path** | per-result `checks` from the hash-bound simulation answer | stale/tampered → `fail`; missing/deferred → `unknown`; read-only |
 | `fpga_profile` | profile | bundled ids or one profile | unknown id → `fail` |
 | `fpga_render` | **contract_path**, view, out_dir | `rendered`/`skipped` lists + images | never fails on render errors |
 | `fpga_record_decision` | DecisionInput fields | appended decision record + `event_id` | validation → `fail` |

@@ -37,6 +37,7 @@ Deterministic gates — never the model's opinion — decide:
 | `fpga.pins` | user I/O of the package, config/JTAG pins acknowledged, I/O standards, pulls |
 | `fpga.constraints` | PCF / LPF / CST matches the contract projection |
 | `fpga.netlist_match` | every pin on its circuit net, voltages, no unconstrained connected pin |
+| `fpga.sim_thermal` | only with a `thermal` section: simulation-agent's hash-bound junction-temperature answer passes; stale, tampered, missing or deferred answers fail |
 | `fpga.lint` | NVC (VHDL) or Verilator (Verilog) |
 | `fpga.sim.<id>` | NVC or Icarus Verilog testbench prints the expected lines; VCD captured |
 | `fpga.formal.<id>` | SymbiYosys prove / BMC / cover of PSL or SVA properties |

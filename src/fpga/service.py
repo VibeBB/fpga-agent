@@ -25,7 +25,9 @@ from .interchange import sha256_file
 from .projections import constraints_text, pinmap_export, pinmap_markdown, write_text
 from .requests import write_request
 from .sim import run_simulation
+from .sim_thermal import thermal_check, write_sim_request
 from .toolrun import run_tool
+from .workspace import workspace_path, workspace_root
 
 type Json = dict[str, object]
 
@@ -295,6 +297,28 @@ def request_payload(
     except (OSError, ValueError, ValidationError) as exc:
         return {"verdict": FAIL, "stage": "request", "detail": str(exc)}
     return {"verdict": PASS, "stage": "request", "id": request.id, "written": [str(path)]}
+
+
+def sim_request_payload(contract_path: Path, out_dir: Path | None) -> Json:
+    """Write the simulation-agent thermal brief and request for the FPGA package."""
+    try:
+        contract = load_contract(contract_path)
+        if contract.thermal is None:
+            raise ValueError("contract has no thermal section")
+        root = workspace_root()
+        out = workspace_path(out_dir or default_out(contract_path), root=root)
+        return write_sim_request(contract, out, root=root)
+    except (OSError, ValueError, ValidationError) as exc:
+        return {"verdict": FAIL, "stage": "sim-request", "detail": str(exc)}
+
+
+def sim_check_payload(contract_path: Path) -> Json:
+    """Read simulation-agent's hash-bound thermal answer (pass, fail or unknown)."""
+    try:
+        contract = load_contract(contract_path)
+    except (OSError, ValueError, ValidationError) as exc:
+        return {"verdict": FAIL, "stage": "sim-check", "detail": str(exc)}
+    return thermal_check(contract, contract_path, workspace_root())
 
 
 def render_payload(contract_path: Path, out_dir: Path | None, view: str) -> Json:

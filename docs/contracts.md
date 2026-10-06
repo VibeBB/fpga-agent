@@ -12,7 +12,22 @@ net, io_standard, pull}]`, `build {dir, constraints, bitstream, budget,
 pnr_seed}`, `simulations [{id, runner(nvc|iverilog), top, files, expect[],
 forbid[], timeout_s, waveform}]`, `formal [{id, mode, top, sources,
 parameters, timeout_s}]`, `circuit {connectivity, unused_pins[]}`,
-`programmer {board, cable, write_flash}`.
+`programmer {board, cable, write_flash}`, `thermal {ambient_c, power_w,
+tj_max_c, derating_margin_c, theta_ja_c_per_w | theta_jc/theta_cs/theta_sa,
+source, response_path}` (authored package facts — `power_w` from the vendor
+power estimator or a measurement named in `source`; `tj_max_c −
+derating_margin_c` must exceed `ambient_c`; `response_path` is relative to
+the contract).
+
+## `*.thermal.sim.json` / `*.thermal.sim-request.json` / `*.thermal.sim-response.json`
+
+`fpga sim-request` writes a simulation-agent brief (schema_version 1) whose
+`thermal.components` holds one component — `device.ref` with the authored
+power, junction limit, margin and theta path — and a v1 request
+(`from_system: fpga`, `kind: thermal`, `request_id
+<name>-thermal-<brief sha256[:12]>`). `response_path` is not part of the
+brief. The answer is read through `SimResponse`, a strict mirror of
+simulation-agent `SimulationResponse` v2 (`src/fpga/sim_thermal.py`).
 
 ## Device profile (`src/fpga/devices/*.json`, generated)
 
