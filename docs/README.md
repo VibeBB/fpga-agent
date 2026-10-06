@@ -17,6 +17,7 @@ Start with the repository [README](../README.md) for the product overview.
 - [Performance and limits](performance-and-limits.md) — timeouts and caps
 - [Operations](operations.md) — images, pins, releases
 - [Development](development.md) — verification commands and setup
+- [Test coverage and test design](test-coverage.md) — C0/C1/C2/MCC/MC/DC and boundary coverage, floors, test-design techniques
 - [Improvement notes](improvement-notes.md) — known gaps and open work
 - [Dependency updates](dependency-updates.md) — pinned-version policy
 
@@ -32,6 +33,7 @@ Start with the repository [README](../README.md) for the product overview.
 - [ADR-0008](adr/ADR-0008-published-image-digest-lock.md) — published image digest lock
 - [ADR-0009](adr/ADR-0009-attest-published-tools-images.md) — attest published tools images
 - [ADR-0010](adr/ADR-0010-records-vision-liaison.md) — VRP records, PNG renders, SLP v2, fail-closed launcher
+- [ADR-0011](adr/ADR-0011-structural-coverage.md) — structural coverage gate (C0, C1, C2, MC/DC, boundaries)
 
 ## Skills
 
