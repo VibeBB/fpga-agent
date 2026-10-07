@@ -101,39 +101,33 @@ jobs:
       # so they run as one parallel group (implicit wait at the end).
       - parallel:
           - name: Scan pinned image (Trivy SARIF)
-            uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-            with:
-              scan-type: image
-              cache-dir: ${{ runner.temp }}/trivy-cache-sarif
-              # The digest is frozen; the vulnerability DB is not — this scan
-              # surfaces newly disclosed CVEs against the shipped tools image.
-              scan-ref: ${{ env.PINNED_IMAGE }}
-              version: v0.75.0
-              scanners: vuln,secret,misconfig
-              severity: CRITICAL,HIGH
-              ignore-unfixed: true
-              exit-code: '0'
-              format: sarif
-              output: trivy-image.sarif
-              limit-severities-for-sarif: true
-              skip-setup-trivy: true
-          - name: Scan pinned image (Trivy JSON, full)
-            uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-            with:
-              scan-type: image
-              cache-dir: ${{ runner.temp }}/trivy-cache-json
-              scan-ref: ${{ env.PINNED_IMAGE }}
-              version: v0.75.0
-              scanners: vuln,secret,misconfig,license
-              exit-code: '0'
-              format: json
-              output: trivy-image.json
-              skip-setup-trivy: true
-          - name: Run Docker CIS compliance report
             env:
-              TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache
+              TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache-sarif
+            # The digest is frozen; the vulnerability DB is not — this scan
+            # surfaces newly disclosed CVEs against the shipped tools image.
             run: |
               set -euo pipefail
+              mkdir -p "$TRIVY_CACHE_DIR"
+              cp -a "$RUNNER_TEMP/trivy-cache/." "$TRIVY_CACHE_DIR/"
+              trivy image --scanners vuln,secret,misconfig \
+                --severity CRITICAL,HIGH --ignore-unfixed \
+                --format sarif --output trivy-image.sarif "$PINNED_IMAGE"
+          - name: Scan pinned image (Trivy JSON, full)
+            env:
+              TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache-json
+            run: |
+              set -euo pipefail
+              mkdir -p "$TRIVY_CACHE_DIR"
+              cp -a "$RUNNER_TEMP/trivy-cache/." "$TRIVY_CACHE_DIR/"
+              trivy image --scanners vuln,secret,misconfig,license \
+                --format json --output trivy-image.json "$PINNED_IMAGE"
+          - name: Run Docker CIS compliance report
+            env:
+              TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache-cis
+            run: |
+              set -euo pipefail
+              mkdir -p "$TRIVY_CACHE_DIR"
+              cp -a "$RUNNER_TEMP/trivy-cache/." "$TRIVY_CACHE_DIR/"
               # Returns 0 when the report carries at least one CIS check result
               # (a silently-empty report is a scanner anomaly, not coverage).
               cis_nonempty() {
@@ -173,10 +167,12 @@ jobs:
               done
           - name: Scan Dockerfile config (Trivy misconfig)
             env:
-              # Private dir: this leg runs concurrently with the CIS scan.
+              # Private dir: this leg runs concurrently with the other scans.
               TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache-misconfig
             run: |
               set -euo pipefail
+              mkdir -p "$TRIVY_CACHE_DIR"
+              cp -a "$RUNNER_TEMP/trivy-cache/." "$TRIVY_CACHE_DIR/"
               # `trivy image --scanners misconfig` emits no Misconfigurations
               # for this image class — the Dockerfile config scan is the real
               # misconfig coverage aggregated below.
