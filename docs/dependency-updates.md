@@ -46,7 +46,7 @@ an owner to revisit it by the listed date.
 
 | Surface | Name | Latest | Re-check | Reason |
 | --- | --- | --- | --- | --- |
-| pypi | mcp | 2.3.0 | 2027-04-01 | `openhands-sdk` 1.52.0 -> `fastmcp<4` -> `fastmcp-slim` requires `mcp>=1.24.0,<2.0`; mcp 2.x cannot coexist with the SDK pin. |
+| pypi | mcp | 2.3.0 | 2027-04-01 | `openhands-sdk` 1.53.0 -> `fastmcp<4` -> `fastmcp-slim` requires `mcp>=1.24.0,<2.0`; mcp 2.x cannot coexist with the SDK pin. |
 
 | docker-arg | OSS_CAD_SUITE_RELEASE | 2026-10-03 | 2027-01-03 | Vendored python2.7/3.11 site-packages carry 6 upstream CVEs waived in `.trivyignore`; re-scan on every suite bump. |
 
@@ -67,6 +67,13 @@ an owner to revisit it by the listed date.
 | --- | --- | --- | --- |
 | openhands-sdk / openhands-tools | 1.51.0 -> 1.52.0 | adopted | Per-commit review in `research/sdk-v1.52.0-feature-evaluation.md`; everything repo-facing adopted implicitly or not applicable (bug fixes + agent-server/TS-client housekeeping, no plugin-surface change). |
 | mcp | stays `>=1.29,<2` | deferred | `fastmcp<4` constraint in openhands-sdk 1.52.0 still caps `mcp<2.0`; deferral reason refreshed to cite 1.52.0. |
+
+## Decisions — 2026-10-07 round (SDK 1.53.0)
+
+| Component | Change | Decision | Reason |
+| --- | --- | --- | --- |
+| openhands-sdk / openhands-tools | 1.52.0 -> 1.53.0 | adopted | Per-commit review in `research/sdk-v1.53.0-feature-evaluation.md`; everything repo-facing adopted implicitly or not applicable (one skills-scan fix lands with the pin; canvas-extension icon, release CI and docs/test sweeps carry no plugin-surface change). |
+| mcp | stays `>=1.29,<2` | deferred | `fastmcp<4` constraint in openhands-sdk 1.53.0 still caps `mcp<2.0`; deferral reason refreshed to cite 1.53.0. |
 
 ## Decisions — 2026-10-04 round (GitHub Actions latest-state wave)
 
