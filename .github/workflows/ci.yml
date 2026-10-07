@@ -115,12 +115,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.12", "3.13", "3.14"]
-        include:
-          # Forward-compatibility canary ahead of the 2026-10-09 stable
-          # release: step-level continue-on-error keeps the leg green while
-          # the last step reports the failure as an annotation.
-          - python-version: "3.15"
-            experimental: true
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
@@ -132,46 +126,37 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         id: setup-uv
-        continue-on-error: ${{ matrix.experimental || false }}
         with:
           python-version: ${{ matrix.python-version }}
           cache-suffix: verify-${{ matrix.python-version }}
       - name: Sync dependencies
         id: sync-dependencies
-        continue-on-error: ${{ matrix.experimental || false }}
         run: uv sync --locked
       - name: Fetch Colibri
         id: fetch-colibri
-        continue-on-error: ${{ matrix.experimental || false }}
         run: python3 scripts/fetch_colibri.py
       # The seven check legs only read the synced venv and the fetched
       # Colibri tree — no outputs cross legs — so each runs as a
-      # background step (the ids stay top-level so the canary report's
-      # steps.<id>.outcome references still resolve) and the wait below
-      # joins them before the report and end of job.
+      # background step (the ids stay top-level so actionlint still
+      # resolves them) and the wait below joins them before the end of job.
       - name: Ruff
         id: ruff
-        continue-on-error: ${{ matrix.experimental || false }}
         background: true
         run: uv run ruff check . && uv run ruff format --check .
       - name: Pyright
         id: pyright
-        continue-on-error: ${{ matrix.experimental || false }}
         background: true
         run: uv run pyright
       - name: Shared hooks
         id: shared-hooks
-        continue-on-error: ${{ matrix.experimental || false }}
         background: true
         run: uv run python scripts/check_shared_hooks.py
       - name: Check shared workflows
         id: check-shared-workflows
-        continue-on-error: ${{ matrix.experimental || false }}
         background: true
         run: uv run python scripts/check_shared_workflows.py
       - name: Pytest
         id: pytest
-        continue-on-error: ${{ matrix.experimental || false }}
         background: true
         # Floor is below the ~76.5% this job measures (tools-marked tests
         # only run in e2e, which has the OSS CAD Suite) but above the
@@ -180,21 +165,87 @@ jobs:
         run: uv run python scripts/structural_coverage.py run --json out/structural-coverage.json
       - name: Plugin load (OpenHands SDK)
         id: plugin-load-openhands-sdk
-        continue-on-error: ${{ matrix.experimental || false }}
         background: true
         env:
           OPENHANDS_SUPPRESS_BANNER: "1"
         run: uv run --group sdk-check python scripts/check_plugin_load.py
       - name: Docs
         id: docs
-        continue-on-error: ${{ matrix.experimental || false }}
         background: true
         run: uv run python scripts/verify_docs.py
       - name: Wait for checks
         wait: [ruff, pyright, shared-hooks, check-shared-workflows, pytest, plugin-load-openhands-sdk, docs]
 
+  # Forward-compatibility canary ahead of the next stable release. Runs
+  # sequentially: a tolerated step failure inside a background leg can end
+  # the run as failure even when every job is green (observed on main),
+  # so the canary keeps ordinary steps plus per-step continue-on-error
+  # and reports failures as an annotation instead.
+  canary:
+    name: verify (3.15)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env:
+      # The canary leg builds sdists (e.g. fastuuid's pinned PyO3)
+      # against a pre-release CPython; abi3 forward-compat mode lets
+      # the wheel target the stable ABI instead of refusing at build
+      # time.
+      PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
+    steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+          disable-telemetry: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        id: setup-uv
+        continue-on-error: true
+        with:
+          python-version: "3.15"
+          cache-suffix: verify-3.15
+      - name: Sync dependencies
+        id: sync-dependencies
+        continue-on-error: true
+        run: uv sync --locked
+      - name: Fetch Colibri
+        id: fetch-colibri
+        continue-on-error: true
+        run: python3 scripts/fetch_colibri.py
+      - name: Ruff
+        id: ruff
+        continue-on-error: true
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Pyright
+        id: pyright
+        continue-on-error: true
+        run: uv run pyright
+      - name: Shared hooks
+        id: shared-hooks
+        continue-on-error: true
+        run: uv run python scripts/check_shared_hooks.py
+      - name: Check shared workflows
+        id: check-shared-workflows
+        continue-on-error: true
+        run: uv run python scripts/check_shared_workflows.py
+      - name: Pytest
+        id: pytest
+        continue-on-error: true
+        run: uv run python scripts/structural_coverage.py run --json out/structural-coverage.json
+      - name: Plugin load (OpenHands SDK)
+        id: plugin-load-openhands-sdk
+        continue-on-error: true
+        env:
+          OPENHANDS_SUPPRESS_BANNER: "1"
+        run: uv run --group sdk-check python scripts/check_plugin_load.py
+      - name: Docs
+        id: docs
+        continue-on-error: true
+        run: uv run python scripts/verify_docs.py
       - name: Report 3.15 canary outcome
-        if: matrix.experimental && (steps.setup-uv.outcome == 'failure' || steps.sync-dependencies.outcome == 'failure' || steps.fetch-colibri.outcome == 'failure' || steps.ruff.outcome == 'failure' || steps.pyright.outcome == 'failure' || steps.shared-hooks.outcome == 'failure' || steps.check-shared-workflows.outcome == 'failure' || steps.pytest.outcome == 'failure' || steps.plugin-load-openhands-sdk.outcome == 'failure' || steps.docs.outcome == 'failure')
+        if: always() && (steps.setup-uv.outcome == 'failure' || steps.sync-dependencies.outcome == 'failure' || steps.fetch-colibri.outcome == 'failure' || steps.ruff.outcome == 'failure' || steps.pyright.outcome == 'failure' || steps.shared-hooks.outcome == 'failure' || steps.check-shared-workflows.outcome == 'failure' || steps.pytest.outcome == 'failure' || steps.plugin-load-openhands-sdk.outcome == 'failure' || steps.docs.outcome == 'failure')
         run: |
           echo "::warning::Python 3.15 canary leg failed — forward-compat signal, not a gate failure"
   # prodeng-style guard: the pin-PR script drives branch protection and
