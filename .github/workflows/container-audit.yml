@@ -87,54 +87,47 @@ jobs:
         with:
           path: ${{ runner.temp }}/trivy-cache
           key: ${{ steps.trivy-db-week.outputs.key }}
-      - name: Warm the Trivy DB before the parallel scans
+      - name: Warm the Trivy DB for the raw-trivy scan legs
         env:
           TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache
-        # Populate the shared cache dir serially so the scan legs below
-        # only ever read the DB (concurrent DB downloads in one cache dir
-        # are not safe).
+        # Populate the raw-trivy legs' cache dir serially so those
+        # legs only ever read the DB. The trivy-action legs restore
+        # their own DB into per-leg cache-dir paths instead:
+        # concurrent DB updates in one cache dir race on
+        # db/metadata.json and corrupt it.
         run: trivy image --download-db-only
-      # The five scans read the same pinned image or Dockerfile and the
-      # now-warm shared vulnerability DB, and each writes a disjoint
-      # report path, so they run as one parallel group (implicit wait at
-      # the end).
+      # The scans read the same pinned image, each writes a disjoint
+      # report path, and each trivy process writes to its own cache dir,
+      # so they run as one parallel group (implicit wait at the end).
       - parallel:
           - name: Scan pinned image (Trivy SARIF)
-            uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
             env:
-              TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache
-            with:
-              scan-type: image
-              # The digest is frozen; the vulnerability DB is not — this scan
-              # surfaces newly disclosed CVEs against the shipped tools image.
-              scan-ref: ${{ env.PINNED_IMAGE }}
-              version: v0.75.0
-              scanners: vuln,secret,misconfig
-              severity: CRITICAL,HIGH
-              ignore-unfixed: true
-              exit-code: '0'
-              format: sarif
-              output: trivy-image.sarif
-              limit-severities-for-sarif: true
-              skip-setup-trivy: true
-          - name: Scan pinned image (Trivy JSON, full)
-            uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-            env:
-              TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache
-            with:
-              scan-type: image
-              scan-ref: ${{ env.PINNED_IMAGE }}
-              version: v0.75.0
-              scanners: vuln,secret,misconfig,license
-              exit-code: '0'
-              format: json
-              output: trivy-image.json
-              skip-setup-trivy: true
-          - name: Run Docker CIS compliance report
-            env:
-              TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache
+              TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache-sarif
+            # The digest is frozen; the vulnerability DB is not — this scan
+            # surfaces newly disclosed CVEs against the shipped tools image.
             run: |
               set -euo pipefail
+              mkdir -p "$TRIVY_CACHE_DIR"
+              cp -a "$RUNNER_TEMP/trivy-cache/." "$TRIVY_CACHE_DIR/"
+              trivy image --scanners vuln,secret,misconfig \
+                --severity CRITICAL,HIGH --ignore-unfixed \
+                --format sarif --output trivy-image.sarif "$PINNED_IMAGE"
+          - name: Scan pinned image (Trivy JSON, full)
+            env:
+              TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache-json
+            run: |
+              set -euo pipefail
+              mkdir -p "$TRIVY_CACHE_DIR"
+              cp -a "$RUNNER_TEMP/trivy-cache/." "$TRIVY_CACHE_DIR/"
+              trivy image --scanners vuln,secret,misconfig,license \
+                --format json --output trivy-image.json "$PINNED_IMAGE"
+          - name: Run Docker CIS compliance report
+            env:
+              TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache-cis
+            run: |
+              set -euo pipefail
+              mkdir -p "$TRIVY_CACHE_DIR"
+              cp -a "$RUNNER_TEMP/trivy-cache/." "$TRIVY_CACHE_DIR/"
               # Returns 0 when the report carries at least one CIS check result
               # (a silently-empty report is a scanner anomaly, not coverage).
               cis_nonempty() {
@@ -163,10 +156,10 @@ jobs:
                 # Retry once on an empty result set before letting the
                 # aggregation guard below fail the job — a transient
                 # zero-result scan on a healthy digest was observed on
-                # 2026-10-03. The group shares TRIVY_CACHE_DIR, so the retry
-                # cannot purge it under the sibling scans; a fresh private
-                # cache keeps the guarantee that a poisoned weekly cache
-                # cannot produce the same empty report twice (run 37168758428).
+                # 2026-10-03. Purging the shared dir mid-scan would race
+                # with whatever it contains, so the retry swaps to a fresh
+                # private cache: a poisoned weekly cache cannot produce the
+                # same empty report twice (run 37168758428).
                 echo "::warning::Docker CIS scan produced no results (attempt $attempt)"
                 export TRIVY_CACHE_DIR="$RUNNER_TEMP/trivy-cache-cis-retry"
                 rm -rf "$TRIVY_CACHE_DIR"
@@ -174,9 +167,12 @@ jobs:
               done
           - name: Scan Dockerfile config (Trivy misconfig)
             env:
-              TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache
+              # Private dir: this leg runs concurrently with the other scans.
+              TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache-misconfig
             run: |
               set -euo pipefail
+              mkdir -p "$TRIVY_CACHE_DIR"
+              cp -a "$RUNNER_TEMP/trivy-cache/." "$TRIVY_CACHE_DIR/"
               # `trivy image --scanners misconfig` emits no Misconfigurations
               # for this image class — the Dockerfile config scan is the real
               # misconfig coverage aggregated below.
