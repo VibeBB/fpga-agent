@@ -273,7 +273,8 @@ def main() -> int:
             " sim-*.log, formal-*.log, observations/fpga/*.jsonl,"
             " intake/attachments/manifest.jsonl) are generated records or projections"
             " and must not be edited directly; regenerate deterministic projections"
-            " with `fpga constraints`, `fpga pinmap`, `fpga regmap`, `fpga production` or `fpga gates`",
+            " with `fpga constraints`, `fpga pinmap`, `fpga regmap`,"
+            " `fpga production` or `fpga gates`",
             file=sys.stderr,
         )
         return 2
