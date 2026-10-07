@@ -16,6 +16,7 @@ closed. Read-only tools set `readOnlyHint`.
 | `fpga_constraints` | **contract_path** | rewrites the contract's constraint file | fail on bad contract |
 | `fpga_pinmap_export` | **contract_path**, out_dir | `*.fpga-pinmap.{json,md,png}` + images | fail on bad contract |
 | `fpga_regmap_export` | **contract_path**, out_dir | `registers.hdl_package` + `*.fpga-regmap.json` | fail on bad contract or no `registers` |
+| `fpga_production_export` | **contract_path**, out_dir | `<name>.fpga-production.json` for production-engineering-agent | no passing full gate report, changed contract/bitstream or no programmer → `fail` |
 | `fpga_lint` | **contract_path**, out_dir | lint transcript | tool failure → `fail` |
 | `fpga_sim` | **contract_path**, **simulation**, out_dir | matched/missing `expect` lines, transcript, `sim-<id>.vcd` + wave PNG | unknown id → `fail` |
 | `fpga_formal` | **contract_path**, **formal**, out_dir | prove/bmc/cover status + transcript | unknown id → `fail` |

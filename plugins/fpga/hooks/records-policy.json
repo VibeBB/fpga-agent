@@ -16,6 +16,7 @@
     "**/fpga-reports/*.fpga-report.json",
     "**/fpga-reports/*.fpga-pinmap.json",
     "**/fpga-reports/*.fpga-regmap.json",
+    "**/fpga-reports/*.fpga-production.json",
     "**/fpga-reports/*.png",
     "**/*.fpga-request.json",
     "liaison/*.ux-response.json"

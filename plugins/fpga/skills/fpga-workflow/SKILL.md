@@ -34,7 +34,11 @@ it and are write-protected by the `protect-generated` hook.
    `fpga-reports/<name>.fpga-report.{json,md}` plus the pin map export.
 7. **Circuit confirmation** — hand `<name>.fpga-pinmap.json` to the circuit
    agent.
-8. **Programming** — a human runs `fpga program <contract>
+8. **Production handoff** — after a passing `fpga gates`, run
+   `fpga production <contract>` so production-engineering-agent can bind
+   the gated bitstream to its programming operation. Set
+   `programmer.write_flash` for products: an `sram` target is volatile.
+9. **Programming** — a human runs `fpga program <contract>
    --confirm-sha256 <bitstream sha256>` on the host. Agents never program
    hardware.
 
