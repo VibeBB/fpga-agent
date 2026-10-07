@@ -2,12 +2,21 @@
 
 Declared in `plugins/fpga/hooks/hooks.json`; scripts live under
 `plugins/fpga/hooks/scripts/` and run through the launcher resolver.
+Every hook resolves the plugin root from `$FPGA_PLUGIN_ROOT`,
+`${OPENHANDS_PROJECT_DIR}/plugins/fpga`, `~/.agents/plugins/fpga`,
+`~/.openhands/plugins/installed/fpga`, `${HOME}/plugins/installed/fpga`
+or `${OH_PERSISTENCE_DIR}/plugins/installed/fpga`. The two extra
+candidates resolve the plugin inside an OpenHands docker conversation
+runtime (inner `HOME=/var/openhands/.openhands`), where
+`fpga_launcher.py` then fails closed with guidance — docker is
+unavailable there by design.
 
 ## session_start (in order)
 
 | hook | behavior |
 | --- | --- |
-| `ensure-llm-profiles` | seeds the vision-capable LLM profile used by `VisionInspectTool` |
+| `ensure-llm-profiles` | seeds `vibebb-author`/`vibebb-review`/`oracle` LLM profiles from the active profile when missing (shared canonical hook) |
+| `ensure-agent-profiles` | writes `~/.openhands/agent-profiles/vibebb-fpga.json` when missing: openhands-kind, `llm_profile_ref=vibebb-author`, MCP scoped to `fpga`, no secrets (shared canonical hook) |
 | `require-records` | denies resuming when owed records would be lost (shared canonical hook) |
 | `fpga-doctor` | one-shot toolchain probe summary |
 | `intake-attachments` | materializes user-attached images under `intake/attachments/` with a `manifest.jsonl` |
@@ -35,6 +44,7 @@ Declared in `plugins/fpga/hooks/hooks.json`; scripts live under
 | `report-fpga-status` | prints the session's artifact status summary |
 
 Shared hooks (`_records.py`, `require_records.py`, `safety_rail.py`,
-`protect_generated.py`, `intake_attachments.py`, `ensure_llm_profiles.py`)
+`protect_generated.py`, `intake_attachments.py`, `ensure_llm_profiles.py`,
+`ensure_agent_profiles.py`)
 are canonical across the VibeBB family — `scripts/check_shared_hooks.py`
 verifies them by normalized-AST sha256; never edit them in one repo only.
