@@ -23,6 +23,8 @@ jobs:
   changes:
     runs-on: ubuntu-26.04
     timeout-minutes: 10
+    # No actions/cache usage: forbid restore and save entirely.
+    cache-mode: none
     outputs:
       code: ${{ steps.scope.outputs.code }}
       pinscript: ${{ steps.scope.outputs.pinscript }}
@@ -80,6 +82,8 @@ jobs:
   dockerfile-lint:
     runs-on: ubuntu-26.04
     timeout-minutes: 10
+    # No actions/cache usage: forbid restore and save entirely.
+    cache-mode: none
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
@@ -89,7 +93,11 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
+      # Hadolint is read-only on docker/**: overlap it with the BuildKit
+      # setup + --check and join it before the job ends.
       - name: Lint Dockerfiles with hadolint
+        id: hadolint
+        background: true
         uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
           dockerfile: docker/fpga-tools.Dockerfile
@@ -97,6 +105,8 @@ jobs:
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Run BuildKit checks
         run: docker build --check -f docker/fpga-tools.Dockerfile .
+      - name: Wait for hadolint
+        wait: hadolint
 
   verify:
     runs-on: ubuntu-26.04
@@ -134,25 +144,35 @@ jobs:
         id: fetch-colibri
         continue-on-error: ${{ matrix.experimental || false }}
         run: python3 scripts/fetch_colibri.py
+      # The seven check legs only read the synced venv and the fetched
+      # Colibri tree — no outputs cross legs — so each runs as a
+      # background step (the ids stay top-level so the canary report's
+      # steps.<id>.outcome references still resolve) and the wait below
+      # joins them before the report and end of job.
       - name: Ruff
         id: ruff
         continue-on-error: ${{ matrix.experimental || false }}
+        background: true
         run: uv run ruff check . && uv run ruff format --check .
       - name: Pyright
         id: pyright
         continue-on-error: ${{ matrix.experimental || false }}
+        background: true
         run: uv run pyright
       - name: Shared hooks
         id: shared-hooks
         continue-on-error: ${{ matrix.experimental || false }}
+        background: true
         run: uv run python scripts/check_shared_hooks.py
       - name: Check shared workflows
         id: check-shared-workflows
         continue-on-error: ${{ matrix.experimental || false }}
+        background: true
         run: uv run python scripts/check_shared_workflows.py
       - name: Pytest
         id: pytest
         continue-on-error: ${{ matrix.experimental || false }}
+        background: true
         # Floor is below the ~76.5% this job measures (tools-marked tests
         # only run in e2e, which has the OSS CAD Suite) but above the
         # [tool.coverage.report] fail_under=67 baseline so the existing
@@ -161,13 +181,17 @@ jobs:
       - name: Plugin load (OpenHands SDK)
         id: plugin-load-openhands-sdk
         continue-on-error: ${{ matrix.experimental || false }}
+        background: true
         env:
           OPENHANDS_SUPPRESS_BANNER: "1"
         run: uv run --group sdk-check python scripts/check_plugin_load.py
       - name: Docs
         id: docs
         continue-on-error: ${{ matrix.experimental || false }}
+        background: true
         run: uv run python scripts/verify_docs.py
+      - name: Wait for checks
+        wait: [ruff, pyright, shared-hooks, check-shared-workflows, pytest, plugin-load-openhands-sdk, docs]
 
       - name: Report 3.15 canary outcome
         if: matrix.experimental && (steps.setup-uv.outcome == 'failure' || steps.sync-dependencies.outcome == 'failure' || steps.fetch-colibri.outcome == 'failure' || steps.ruff.outcome == 'failure' || steps.pyright.outcome == 'failure' || steps.shared-hooks.outcome == 'failure' || steps.check-shared-workflows.outcome == 'failure' || steps.pytest.outcome == 'failure' || steps.plugin-load-openhands-sdk.outcome == 'failure' || steps.docs.outcome == 'failure')
@@ -236,7 +260,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # The image build only gates the in-image legs below: run it as a
+      # background step so the host-side Colibri fetch overlaps it, and
+      # join it before the first leg that needs fpga-tools:ci.
       - name: Build fpga-tools image
+        id: build-tools
+        background: true
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
@@ -260,6 +289,11 @@ jobs:
                 || 'type=gha,mode=max,ignore-error=true' }}
       - name: Fetch Colibri
         run: python3 scripts/fetch_colibri.py
+      - name: Wait for the tools image
+        wait: build-tools
+      # The gates and the pytest tools leg both write
+      # examples/*/fpga-reports/ for the same contracts, so they stay
+      # sequential (unique-output rule for parallel legs).
       - name: Full gates in the image (no network)
         env:
           FPGA_TOOLS_IMAGE: fpga-tools:ci
