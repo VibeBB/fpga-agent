@@ -16,7 +16,9 @@ from scripts.check_dependency_updates import (
     _github_latest_tag,  # pyright: ignore[reportPrivateUsage]
     check_action_inputs,
     check_docker_args,
+    check_python_versions,
     check_git_clones,
+    check_python_versions,
     check_github_actions,
     check_workflow_downloads,
     main,
@@ -202,3 +204,44 @@ def test_main_reports_unknown_count_in_json(
     report = tmp_path / "report.json"
     assert main(["--repo-root", str(tmp_path), "--json", str(report)]) == 0
     assert json.loads(report.read_text(encoding="utf-8"))["unknown_count"] == 1
+
+
+def test_python_versions_skip_older_legs_when_source_covers_latest(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nrequires-python = ">=3.12"\n', encoding="utf-8"
+    )
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "ci.yml").write_text(
+        "jobs:\n  verify:\n    strategy:\n      matrix:\n        python-version: [\"3.12\", \"3.13\", \"3.14\", \"3.15\"]\n",
+        encoding="utf-8",
+    )
+    statuses = check_python_versions(
+        tmp_path, list_remote_tags=lambda url: ["v3.12.0", "v3.13.0", "v3.14.0", "v3.15.0"]
+    )
+    ci_statuses = [status for status in statuses if status.source.endswith("ci.yml")]
+    assert ci_statuses
+    assert all(not status.outdated for status in ci_statuses)
+
+
+def test_python_versions_still_flag_source_without_latest(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nrequires-python = ">=3.12"\n', encoding="utf-8"
+    )
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "ci.yml").write_text(
+        "jobs:\n  verify:\n    steps:\n      - uses: actions/setup-python@x\n"
+        '        with:\n          python-version: "3.12"\n',
+        encoding="utf-8",
+    )
+    statuses = check_python_versions(
+        tmp_path, list_remote_tags=lambda url: ["v3.12.0", "v3.13.0", "v3.14.0", "v3.15.0"]
+    )
+    ci_statuses = [status for status in statuses if status.source.endswith("ci.yml")]
+    assert ci_statuses
+    assert all(status.outdated for status in ci_statuses)
