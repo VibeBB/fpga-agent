@@ -18,8 +18,10 @@ PLUGIN_DIR = REPO_ROOT / "plugins" / "fpga"
 EXPECTED_AGENTS = {"fpga-architect", "fpga-developer", "fpga-review"}
 EXPECTED_SKILLS = {
     "fpga-contract",
+    "fpga-contract-rules",
     "fpga-device-pins",
     "fpga-external-libraries",
+    "fpga-out-rules",
     "fpga-sibling-cooperation",
     "fpga-verification",
     "fpga-workflow",
@@ -40,6 +42,7 @@ EXPECTED_SESSION_START_HOOKS = {
     "fpga-doctor",
     "intake-attachments",
     "ensure-llm-profiles",
+    "ensure-agent-profiles",
     "require-records",
 }
 EXPECTED_USER_PROMPT_SUBMIT_HOOKS = {"intake-attachments"}
