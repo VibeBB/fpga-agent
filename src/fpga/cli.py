@@ -8,6 +8,8 @@ Subcommands:
                timing, utilization, bitstream
   constraints  regenerate the contract's PCF/LPF/CST constraint file
   pinmap       export <name>.fpga-pinmap.json for electrical-circuit-agent
+  regmap       write the HDL register constants and <name>.fpga-regmap.json
+               for firmware-agent
   lint         analyse and elaborate the design top (NVC or Verilator)
   sim          run one declared simulation
   formal       run one declared SymbiYosys proof
@@ -49,7 +51,7 @@ def _parser() -> argparse.ArgumentParser:
     doctor.add_argument("--warn", action="store_true", help="always exit 0")
     for name in ("validate", "constraints"):
         sub.add_parser(name).add_argument("contract", type=Path)
-    for name in ("check", "gates", "pinmap", "lint", "build", "production"):
+    for name in ("check", "gates", "pinmap", "regmap", "lint", "build", "production"):
         command = sub.add_parser(name)
         command.add_argument("contract", type=Path)
         command.add_argument("--out", type=Path)
@@ -131,6 +133,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _emit(service.constraints_payload(args.contract))
     if command == "pinmap":
         return _emit(service.pinmap_payload(args.contract, args.out))
+    if command == "regmap":
+        return _emit(service.regmap_payload(args.contract, args.out))
     if command == "lint":
         return _emit(service.lint_payload(args.contract, args.out))
     if command == "build":

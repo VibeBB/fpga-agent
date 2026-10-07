@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .contract import Formal, FpgaContract, resolve
-from .hdl import ghdl_args, param_text, units, verilog_read
+from .hdl import ghdl_args, include_dirs, param_text, units, verilog_read
 from .toolrun import run_tool
 
 
@@ -31,7 +31,9 @@ def sby_text(contract: FpgaContract, contract_path: Path, run: Formal) -> str:
     if contract.design_language == "vhdl":
         read = [f"ghdl {ghdl_args(contract, unit_list, run.top, run.parameters)}"]
     else:
-        read = verilog_read(contract, unit_list, formal=True)
+        read = verilog_read(
+            contract, unit_list, formal=True, includes=include_dirs(contract, contract_path)
+        )
         chparams = " ".join(f"-chparam {k} {param_text(v)}" for k, v in run.parameters.items())
         read.append(f"hierarchy -check -top {run.top} {chparams}".rstrip())
     return "\n".join(

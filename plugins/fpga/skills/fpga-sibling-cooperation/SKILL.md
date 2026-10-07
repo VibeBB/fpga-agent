@@ -18,6 +18,7 @@ Cooperation is JSON files in the shared workspace — never code imports.
 | --- | --- | --- | --- |
 | in | `<design>.firmware.json` (`circuit_firmware_connectivity`) | `circuit firmware-export` | `fpga.netlist_match` |
 | out | `<name>.fpga-pinmap.json` (`fpga_pinmap`) | `fpga pinmap` / `fpga gates` | the circuit agent |
+| out | `<name>.fpga-regmap.json` (`fpga_regmap`) | `fpga regmap` | firmware `fw.fpga_regmap` |
 | out | `<name>.fpga-production.json` (`fpga_production`) | `fpga production` after a passing `fpga gates` | production-engineering-agent's programming operation |
 | out | `<design>.<id>.fpga-request.json` (`fpga_request`) | `fpga request` | the target sibling |
 | out | `<name>.fpga-report.json` (`fpga_gate_report`) | `fpga gates` | firmware, production, doc |
