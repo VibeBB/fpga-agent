@@ -127,6 +127,18 @@ TOOLS: dict[str, tuple[str, dict[str, object], bool]] = {
         ),
         False,
     ),
+    "fpga_sim_thermal_request": (
+        "Write <name>.thermal.sim.json and its *.sim-request.json for simulation-agent "
+        "(junction temperature of the FPGA package from authored thermal facts)",
+        _schema({**_CONTRACT, **_OUT}, ["contract_path"]),
+        False,
+    ),
+    "fpga_sim_thermal_check": (
+        "Read simulation-agent's hash-bound thermal answer; stale or tampered answers fail, "
+        "missing or deferred ones are unknown",
+        _schema(_CONTRACT, ["contract_path"]),
+        True,
+    ),
     "fpga_profile": (
         "List bundled device profiles, or show one (package pins, resources)",
         _schema({"profile": {"type": "string"}}, []),
@@ -329,6 +341,10 @@ def dispatch(name: str, arguments: dict[str, object]) -> service.Json:
             extra_inputs=_strs(arguments, "inputs"),
             decision_refs=_strs(arguments, "decision_refs"),
         ),
+        "fpga_sim_thermal_request": lambda: service.sim_request_payload(
+            _contract(arguments), _opt_path(arguments, "out_dir")
+        ),
+        "fpga_sim_thermal_check": lambda: service.sim_check_payload(_contract(arguments)),
         "fpga_profile": lambda: service.profile_payload(_opt_str(arguments, "profile")),
         "fpga_render": lambda: service.render_payload(
             _contract(arguments),

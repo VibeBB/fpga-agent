@@ -21,6 +21,8 @@ Cooperation is JSON files in the shared workspace — never code imports.
 | out | `<name>.fpga-regmap.json` (`fpga_regmap`) | `fpga regmap` | firmware `fw.fpga_regmap` |
 | out | `<name>.fpga-production.json` (`fpga_production`) | `fpga production` after a passing `fpga gates` | production-engineering-agent's programming operation |
 | out | `<design>.<id>.fpga-request.json` (`fpga_request`) | `fpga request` | the target sibling |
+| out | `<name>.thermal.sim.json` + `<name>.thermal.sim-request.json` | `fpga sim-request` / `fpga_sim_thermal_request` | simulation-agent `sim respond` |
+| in | `<name>.thermal.sim-response.json` (`thermal.response_path`) | simulation-agent | `fpga.sim_thermal`, `fpga sim-check` |
 | out | `<name>.fpga-report.json` (`fpga_gate_report`) | `fpga gates` | firmware, production, doc |
 
 The circuit connectivity export lists the FPGA as one of its devices

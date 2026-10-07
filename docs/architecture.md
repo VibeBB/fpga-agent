@@ -83,10 +83,16 @@ Constant: `TOOL_TIMEOUT_S = 1800`.
 `contract_files`, `check_contract`, `spdx_ids`, `check_provenance`,
 `check_pins`, `check_constraints`, `check_netlist_match`,
 `check_synth_ports`, `check_timing`, `check_utilization`, `check_bitstream`,
+`sim_thermal_checks` (`fpga.sim_thermal`, static scope, only with `thermal`),
 `run_gates(contract_path, out_dir, full=)`, `simulation_checks`,
 `formal_checks`, `implementation_checks`, `report_markdown(report)`,
 `write_outputs(contract_path, report, out_dir)` — writes the JSON/Markdown
 report, the pin map export, and `*.fpga-pinmap.png` / `*.fpga-report.png`.
+
+### sim_thermal.py
+`SimResponse` (strict mirror of simulation-agent `SimulationResponse` v2),
+`thermal_brief`, `expected_request`, `write_sim_request`, `resolve_response`,
+`thermal_findings`, `thermal_check` — the FPGA package thermal handoff.
 
 ### render.py
 `Canvas` (fill_rect, rect, line, 5x7 text, `png_bytes()` — deterministic

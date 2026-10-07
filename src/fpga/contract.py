@@ -173,6 +173,37 @@ class Programmer(_Strict):
     write_flash: bool = False
 
 
+class Thermal(_Strict):
+    """Authored package thermal facts handed to simulation-agent; nothing is estimated here.
+
+    ``power_w`` comes from the vendor power estimator or a measurement named in
+    ``source``; the theta path is passed on as authored, and simulation-agent
+    reports a package without one as ``unknown``.
+    """
+
+    ambient_c: float
+    power_w: float = Field(ge=0)
+    tj_max_c: float
+    derating_margin_c: float = Field(default=0, ge=0)
+    theta_ja_c_per_w: float | None = Field(default=None, ge=0)
+    theta_jc: float | None = Field(default=None, ge=0)
+    theta_cs: float | None = Field(default=None, ge=0)
+    theta_sa: float | None = Field(default=None, ge=0)
+    source: str = Field(min_length=1)
+    response_path: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def _theta_path(self) -> Thermal:
+        if self.tj_max_c - self.derating_margin_c <= self.ambient_c:
+            raise ValueError("tj_max_c minus derating_margin_c must exceed ambient_c")
+        return self
+
+    @field_validator("response_path")
+    @classmethod
+    def _response(cls, value: str | None) -> str | None:
+        return None if value is None else _relative(value)
+
+
 Access = Literal["ro", "rw", "wo", "w1c"]
 REG_NAME = r"^[a-z](?:_?[a-z0-9])*$"
 
@@ -284,6 +315,7 @@ class FpgaContract(_Strict):
     formal: list[Formal] = Field(default_factory=list[Formal])
     circuit: CircuitLink | None = None
     programmer: Programmer | None = None
+    thermal: Thermal | None = None
     registers: RegisterMap | None = None
 
     @model_validator(mode="after")

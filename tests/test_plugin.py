@@ -47,6 +47,8 @@ def test_mcp_tools_registered_without_program() -> None:
         "fpga_build",
         "fpga_production_export",
         "fpga_request",
+        "fpga_sim_thermal_request",
+        "fpga_sim_thermal_check",
         "fpga_profile",
         "fpga_render",
         "fpga_record_decision",
