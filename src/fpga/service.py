@@ -23,6 +23,7 @@ from .gates import (
 )
 from .interchange import sha256_file
 from .projections import constraints_text, pinmap_export, pinmap_markdown, write_text
+from .regmap import hdl_package_text, regmap_export
 from .requests import write_request
 from .sim import run_simulation
 from .sim_thermal import thermal_check, write_sim_request
@@ -136,6 +137,33 @@ def pinmap_payload(contract_path: Path, out_dir: Path | None) -> Json:
     payload: Json = {"verdict": PASS, "stage": "pinmap", "written": [str(p) for p in written]}
     payload["images"] = _images(written)
     return payload
+
+
+def regmap_payload(contract_path: Path, out_dir: Path | None) -> Json:
+    """Write the HDL register constants and ``<name>.fpga-regmap.json`` for firmware-agent."""
+    try:
+        contract = load_contract(contract_path)
+        if contract.registers is None:
+            raise ValueError("contract declares no registers")
+    except (OSError, ValueError, ValidationError) as exc:
+        return {"verdict": FAIL, "stage": "regmap", "detail": str(exc)}
+    out = out_dir or default_out(contract_path)
+    package = write_text(
+        resolve(contract_path.resolve(), contract.registers.hdl_package),
+        hdl_package_text(contract),
+    )
+    export = regmap_export(contract, sha256_file(contract_path))
+    path = write_text(
+        out / f"{contract.name}.fpga-regmap.json",
+        json.dumps(export.model_dump(mode="json"), indent=2, ensure_ascii=False) + "\n",
+    )
+    return {
+        "verdict": PASS,
+        "stage": "regmap",
+        "bus": export.bus,
+        "registers": len(export.registers),
+        "written": [str(package), str(path)],
+    }
 
 
 def sim_payload(contract_path: Path, sim_id: str, out_dir: Path | None) -> Json:

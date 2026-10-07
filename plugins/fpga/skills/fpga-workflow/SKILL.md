@@ -52,6 +52,7 @@ it and are write-protected by the `protect-generated` hook.
 | `fpga.constraints` | the constraint file matches the contract projection byte for byte |
 | `fpga.netlist_match` | every pin lands on its declared circuit net, voltages fit the I/O maximum, and no connected circuit pin is left unconstrained |
 | `fpga.sim_thermal` | only with a `thermal` section: simulation-agent answered the request the current contract emits, request and report are unchanged, and every `thermal.*` result passes (an `unknown` answer fails closed) |
+| `fpga.regmap` | when `registers` is set: `registers.hdl_package` matches `fpga regmap` output and a design source uses it |
 | `fpga.lint` | NVC analysis/elaboration (VHDL) or Verilator `--lint-only` (Verilog) is clean |
 | `fpga.sim.<id>` | the simulator prints every `expect` line in order, no `forbid` line, and exits 0 before the timeout |
 | `fpga.formal.<id>` | SymbiYosys reports `PASS` for the declared mode and depth |

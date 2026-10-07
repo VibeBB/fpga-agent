@@ -28,6 +28,21 @@ power, junction limit, margin and theta path — and a v1 request
 <name>-thermal-<brief sha256[:12]>`). `response_path` is not part of the
 brief. The answer is read through `SimResponse`, a strict mirror of
 simulation-agent `SimulationResponse` v2 (`src/fpga/sim_thermal.py`).
+`programmer {board, cable, write_flash}`, `registers {bus(spi|i2c|uart),
+i2c_address, data_width(8|16|32), address_width, hdl_package, registers
+[{name, offset, access(ro|rw|wo|w1c), reset, description, fields [{name,
+lsb, width, access, description}]}]}`.
+
+`registers` is optional. `offset` is the register address on the host bus
+and must fit `address_width`; names and offsets are unique; `reset` fits
+`data_width`; fields stay inside the register and never overlap; names
+are lowercase letters and digits joined by single underscores, starting
+with a letter (so the generated VHDL and C identifiers are legal and
+unambiguous). `i2c_address`
+is required for `i2c` and forbidden otherwise. `hdl_package` is the
+generated constants file: `*_regs_pkg.vhd` listed in `sources` for VHDL
+designs, or a `*_regs.vh` include (not a source) for Verilog designs; its
+directory is passed as `-I` to Verilator, Icarus Verilog and Yosys.
 
 ## Device profile (`src/fpga/devices/*.json`, generated)
 
@@ -49,6 +64,15 @@ signal_class}]}]`.
 checked against, null when none), `device_ref`, `device_profile`, `part`,
 `package`, `io_voltage_max_v`, `pins [{port, package_pin, net,
 io_standard, pull}]`, `free_pins[]`.
+
+## `*.fpga-regmap.json` — FpgaRegmap (schema_version 1)
+
+Written by `fpga regmap` for firmware-agent: `artifact_kind:
+"fpga_regmap"`, `design`, `contract_sha256`, `device_ref`, `bus`,
+`i2c_address`, `data_width`, `address_width`, `registers [{name, offset,
+access, reset, description, fields [{name, lsb, width, mask, access,
+description}]}]` sorted by offset. Field `access` is resolved (inherited
+from the register when the field has none) and `mask` is precomputed.
 
 ## `*.fpga-production.json` — FpgaProduction (schema_version 1)
 

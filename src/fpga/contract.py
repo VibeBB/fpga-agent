@@ -204,6 +204,100 @@ class Thermal(_Strict):
         return None if value is None else _relative(value)
 
 
+Access = Literal["ro", "rw", "wo", "w1c"]
+REG_NAME = r"^[a-z](?:_?[a-z0-9])*$"
+
+
+class RegisterField(_Strict):
+    name: str = Field(pattern=REG_NAME)
+    lsb: int = Field(ge=0)
+    width: int = Field(ge=1)
+    access: Access | None = None
+    description: str = ""
+
+
+class Register(_Strict):
+    name: str = Field(pattern=REG_NAME)
+    offset: int = Field(ge=0)
+    access: Access
+    reset: int = Field(default=0, ge=0)
+    description: str = ""
+    fields: list[RegisterField] = Field(default_factory=list[RegisterField])
+
+
+class RegisterMap(_Strict):
+    """Registers the host MCU reaches over ``bus``; ``offset`` is the register address.
+
+    ``hdl_package`` is the generated constants file the RTL must use (a VHDL
+    package listed in ``sources`` or a Verilog include), so the HDL and the
+    firmware header come from the same numbers.
+    """
+
+    bus: Literal["spi", "i2c", "uart"]
+    i2c_address: int | None = Field(default=None, ge=0x08, le=0x77)
+    data_width: Literal[8, 16, 32]
+    address_width: int = Field(ge=1, le=16)
+    hdl_package: str
+    registers: list[Register] = Field(min_length=1)
+
+    _hdl_package = field_validator("hdl_package")(_relative)
+
+    @model_validator(mode="after")
+    def _layout(self) -> RegisterMap:
+        if (self.bus == "i2c") != (self.i2c_address is not None):
+            raise ValueError("registers: i2c_address is required for i2c and only for i2c")
+        names = [r.name for r in self.registers]
+        offsets = [str(r.offset) for r in self.registers]
+        for label, values in (("register name", names), ("register offset", offsets)):
+            duplicates = sorted({v for v in values if values.count(v) > 1})
+            if duplicates:
+                raise ValueError(f"duplicate {label}: {', '.join(duplicates)}")
+        for reg in self.registers:
+            if reg.offset >= 1 << self.address_width:
+                raise ValueError(
+                    f"register {reg.name}: offset {reg.offset} needs more than "
+                    f"{self.address_width} address bits"
+                )
+            if reg.reset >= 1 << self.data_width:
+                raise ValueError(f"register {reg.name}: reset does not fit {self.data_width} bits")
+            used = 0
+            field_names = [f.name for f in reg.fields]
+            if len(set(field_names)) != len(field_names):
+                raise ValueError(f"register {reg.name}: duplicate field name")
+            for fld in reg.fields:
+                if fld.lsb + fld.width > self.data_width:
+                    raise ValueError(
+                        f"register {reg.name}.{fld.name}: bits {fld.lsb}+{fld.width} "
+                        f"exceed {self.data_width}"
+                    )
+                mask = ((1 << fld.width) - 1) << fld.lsb
+                if used & mask:
+                    raise ValueError(f"register {reg.name}.{fld.name}: overlaps another field")
+                used |= mask
+        _unique_identifiers(self.registers)
+        return self
+
+
+def _unique_identifiers(registers: list[Register]) -> None:
+    """Reject maps whose generated HDL or firmware C names would collide.
+
+    ``a`` + field ``b_lsb`` and register ``a_b`` + field ``lsb`` both yield
+    ``A_B_LSB_...`` style names, so every suffix the generators emit is
+    enumerated here once.
+    """
+    seen: dict[str, str] = {}
+    for reg in registers:
+        base = reg.name.upper()
+        names = [base, f"{base}_ADDR", f"{base}_RESET", f"{base}_WRITABLE"]
+        for fld in reg.fields:
+            stem = f"{base}_{fld.name.upper()}"
+            names += [f"{stem}_{s}" for s in ("LSB", "WIDTH", "SHIFT", "MASK")]
+        for name in names:
+            owner = seen.setdefault(name, reg.name)
+            if owner != reg.name or names.count(name) > 1:
+                raise ValueError(f"register {reg.name}: generated name {name} collides")
+
+
 class FpgaContract(_Strict):
     schema_version: Literal[1] = SCHEMA_VERSION
     system: Literal["fpga"] = "fpga"
@@ -222,6 +316,7 @@ class FpgaContract(_Strict):
     circuit: CircuitLink | None = None
     programmer: Programmer | None = None
     thermal: Thermal | None = None
+    registers: RegisterMap | None = None
 
     @model_validator(mode="after")
     def _invariants(self) -> FpgaContract:
@@ -255,6 +350,16 @@ class FpgaContract(_Strict):
                 raise ValueError(f"simulation {sim.id}: {family} designs run on {expected}")
             if any(_family(s.language) != family for s in sim.sources):
                 raise ValueError(f"simulation {sim.id}: testbench language differs from design")
+        if self.registers is not None:
+            package = self.registers.hdl_package
+            suffixes = ("_regs_pkg.vhd",) if family == "vhdl" else ("_regs.vh",)
+            if not package.endswith(suffixes):
+                raise ValueError(f"registers.hdl_package must end with {' or '.join(suffixes)}")
+            listed = any(s.path == package for s in self.sources)
+            if family == "vhdl" and not listed:
+                raise ValueError("registers.hdl_package must be listed in sources")
+            if family == "verilog" and listed:
+                raise ValueError("registers.hdl_package is a Verilog include, not a source")
         for run in self.formal:
             if any(_family(s.language) != family for s in run.sources):
                 raise ValueError(f"formal {run.id}: property language differs from design")
