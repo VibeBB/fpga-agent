@@ -37,8 +37,8 @@ COPY --from=uv /uv /uvx /usr/local/bin/
 # is down for minutes (archive.ubuntu.com outage killed several builds).
 # Retry the whole update+install round with bounded backoff.
 RUN for attempt in 1 2 3 4 5; do \
-        apt-get -o Acquire::Retries=5 update \
-        && apt-get -o Acquire::Retries=5 install --no-install-recommends -y \
+        apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update \
+        && apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install --no-install-recommends -y \
             ca-certificates \
             curl \
             git \
@@ -75,8 +75,8 @@ RUN curl --fail --location --silent --show-error \
         "https://github.com/nickg/nvc/releases/download/r${NVC_VERSION}/${NVC_ASSET}" \
     && echo "${NVC_SHA256}  /tmp/nvc.deb" | sha256sum --check \
     && for attempt in 1 2 3 4 5; do \
-        apt-get -o Acquire::Retries=5 update \
-        && apt-get -o Acquire::Retries=5 install --no-install-recommends -y /tmp/nvc.deb \
+        apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update \
+        && apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install --no-install-recommends -y /tmp/nvc.deb \
         && break; \
         [ "$attempt" = 5 ] && exit 1; \
         echo "::warning::apt update+install attempt ${attempt} failed; retrying"; \
