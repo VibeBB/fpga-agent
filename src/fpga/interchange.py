@@ -80,6 +80,34 @@ class FpgaPinmap(_Strict):
     free_pins: list[str]
 
 
+class FpgaProduction(_Strict):
+    """``<name>.fpga-production.json``: the gated bitstream and how to load it,
+    exported for production-engineering-agent's programming operation.
+
+    ``bitstream`` and the last ``argv`` element are relative to the directory
+    holding this file.
+    """
+
+    schema_version: Literal[1] = 1
+    system: Literal["fpga"] = "fpga"
+    artifact_kind: Literal["fpga_production"] = "fpga_production"
+    design: str
+    contract_sha256: str
+    gate_report_sha256: str
+    device_ref: str
+    device_profile: str
+    part: str
+    package: str
+    bitstream: str
+    bitstream_sha256: str
+    bitstream_bytes: int
+    target: Literal["sram", "flash"]
+    tool: Literal["openFPGALoader"] = "openFPGALoader"
+    board: str | None
+    cable: str | None
+    argv: list[str]
+
+
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 

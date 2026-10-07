@@ -50,6 +50,17 @@ checked against, null when none), `device_ref`, `device_profile`, `part`,
 `package`, `io_voltage_max_v`, `pins [{port, package_pin, net,
 io_standard, pull}]`, `free_pins[]`.
 
+## `*.fpga-production.json` — FpgaProduction (schema_version 1)
+
+`fpga production` writes it only when the last full gate report passed for
+the current contract and the bitstream still has the reported sha256.
+`design`, `contract_sha256`, `gate_report_sha256`, `device_ref`,
+`device_profile`, `part`, `package`, `bitstream` (relative to the file's
+directory), `bitstream_sha256`, `bitstream_bytes`, `target` (`flash` when
+`programmer.write_flash`, else volatile `sram`), `tool` (`openFPGALoader`),
+`board`, `cable`, `argv` (the loader command, run from the file's
+directory).
+
 ## `*.fpga-report.json` — GateReport (schema_version 2)
 
 `design`, `scope`, `contract_sha256`, `circuit_sha256`,

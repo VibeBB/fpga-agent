@@ -3,7 +3,7 @@
 
 Generated files include the constraint files ``*.fpga.pcf``,
 ``*.fpga.lpf`` and ``*.fpga.cst``, ``*.fpga-pinmap.json``,
-``*.fpga-pinmap.md``, ``*.fpga-report.json/.md``, ``sim-*.log`` and
+``*.fpga-pinmap.md``, ``*.fpga-production.json``, ``*.fpga-report.json/.md``, ``sim-*.log`` and
 ``formal-*.log`` transcripts, ``observations/fpga/*.jsonl``, and
 ``intake/attachments/manifest.jsonl``. Editing projections by hand breaks
 the contract-is-truth invariant; generated evidence records are not edited
@@ -31,6 +31,7 @@ ARTIFACT_SUFFIXES = (
     ".fpga.cst",
     ".fpga-pinmap.json",
     ".fpga-pinmap.md",
+    ".fpga-production.json",
     ".fpga-report.json",
     ".fpga-report.md",
 )
@@ -263,10 +264,11 @@ def main() -> int:
     if _is_artifact_write(payload):
         print(
             "generated FPGA artifacts (*.fpga.pcf/.lpf/.cst, *.fpga-pinmap.*,"
-            " *.fpga-report.*, sim-*.log, formal-*.log, observations/fpga/*.jsonl,"
+            " *.fpga-production.json, *.fpga-report.*, sim-*.log, formal-*.log,"
+            " observations/fpga/*.jsonl,"
             " intake/attachments/manifest.jsonl) are generated records or projections"
             " and must not be edited directly; regenerate deterministic projections"
-            " with `fpga constraints`, `fpga pinmap` or `fpga gates`",
+            " with `fpga constraints`, `fpga pinmap`, `fpga production` or `fpga gates`",
             file=sys.stderr,
         )
         return 2

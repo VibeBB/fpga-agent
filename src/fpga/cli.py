@@ -13,6 +13,8 @@ Subcommands:
   formal       run one declared SymbiYosys proof
   build        synthesis, place and route, bitstream (advisory)
   program      host-only: program a board with openFPGALoader
+  production   export <name>.fpga-production.json (gated bitstream + loader
+               options) for production-engineering-agent
   request      write a change request to a sibling agent
   sim-request  write the FPGA package thermal brief + request for simulation-agent
   sim-check    read simulation-agent's hash-bound thermal answer
@@ -49,7 +51,7 @@ def _parser() -> argparse.ArgumentParser:
     doctor.add_argument("--warn", action="store_true", help="always exit 0")
     for name in ("validate", "constraints"):
         sub.add_parser(name).add_argument("contract", type=Path)
-    for name in ("check", "gates", "pinmap", "lint", "build"):
+    for name in ("check", "gates", "pinmap", "lint", "build", "production"):
         command = sub.add_parser(name)
         command.add_argument("contract", type=Path)
         command.add_argument("--out", type=Path)
@@ -147,6 +149,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _emit(service.sim_request_payload(args.contract, args.out))
     if command == "sim-check":
         return _emit(service.sim_check_payload(args.contract))
+    if command == "production":
+        return _emit(service.production_payload(args.contract, args.out))
     if command == "program":
         return _emit(
             service.program_payload(
