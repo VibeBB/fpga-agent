@@ -124,3 +124,20 @@ def test_launcher_program_stays_on_host(monkeypatch: pytest.MonkeyPatch) -> None
     assert len(exec_calls) == 1
     assert exec_calls[0][0] != "docker"
     assert exec_calls[0][1:] == ["-m", "fpga.cli", "program", "x.fpga.json"]
+
+
+def test_container_user_rootless(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Rootless daemons get 0:0 — the host uid maps to an unusable subuid."""
+    import os
+
+    module = _launcher_module()
+    monkeypatch.setattr(
+        module,
+        "_docker_info_security_options",
+        lambda: '["name=seccomp,profile=builtin","name=rootless","name=cgroupns"]',
+    )
+    assert module._container_user() == "0:0"
+    argv = module.docker_argv(image="img", source=None, inner_argv=["doctor"])
+    assert argv[argv.index("--user") + 1] == "0:0"
+    monkeypatch.setattr(module, "_docker_info_security_options", lambda: None)
+    assert module._container_user() == f"{os.getuid()}:{os.getgid()}"
