@@ -71,7 +71,7 @@ The first publish-gate run against the pushed digest (2026-10-03)
 surfaced 9 HIGH findings — 6 unique CVEs — all inside the
 OSS CAD Suite's vendored `python2.7`/`python3.11` site-packages
 (`Flask` 2.1.2, `Werkzeug` 2.3.7, `pip` 19.2.3, `setuptools` 41.2.0 and
-65.5.0). The pinned release (`OSS_CAD_SUITE_RELEASE=2026-10-03`) still
+65.5.0). The pinned release (`OSS_CAD_SUITE_RELEASE=2026-10-07`) still
 vendors the same interpreters, so no in-repo upgrade can clear them and
 nothing in the image invokes Flask/Werkzeug or the vendored
 pip/setuptools; the IDs carry `.trivyignore` waivers expiring 2027-01-03

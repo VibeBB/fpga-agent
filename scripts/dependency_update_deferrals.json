@@ -10,7 +10,7 @@
     {
       "surface": "docker-arg",
       "name": "OSS_CAD_SUITE_RELEASE",
-      "latest": "2026-10-03",
+      "latest": "2026-10-07",
       "review_by": "2027-01-03",
       "reason": "The pinned suite tarball vendors python2.7/python3.11 site-packages carrying 6 upstream-borne CVEs (9 Trivy findings) that no in-repo change can fix; they are waived in .trivyignore until 2027-01-03. On the next OSS_CAD_SUITE_RELEASE bump, re-scan the image and drop the waivers that upstream's rebuilt pythons cleared."
     },
@@ -34,6 +34,20 @@
       "latest": "v6.1.0",
       "review_by": "2027-01-04",
       "reason": "v6 is a brand-new major of actions/cache; the trivy DB cache in container-audit.yml works on v4.3.0. Bump family-wide after an upstream changelog review of the v5/v6 breaking changes."
+    },
+    {
+      "surface": "python-version",
+      "name": "Python version (pyproject.toml)",
+      "latest": "3.14",
+      "review_by": "2027-01-08",
+      "reason": "3.12/3.13 remain the supported floor; 3.14+ is exercised by the canary legs"
+    },
+    {
+      "surface": "python-version",
+      "name": "Python version (ci.yml)",
+      "latest": "3.14",
+      "review_by": "2027-01-08",
+      "reason": "3.12/3.13 remain the supported floor; 3.14+ is exercised by the canary legs"
     }
   ]
 }
