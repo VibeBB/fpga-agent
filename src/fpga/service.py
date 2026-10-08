@@ -82,6 +82,37 @@ def _images(written: list[Path]) -> list[str]:
     return [str(p) for p in written if p.suffix == ".png" and p.is_file()]
 
 
+_VISION_CHECKLIST_TOKENS: tuple[tuple[str, str], ...] = (
+    (".fpga-pinmap", "pinmap"),
+    (".fpga-floorplan", "floorplan"),
+    (".fpga-utilization", "utilization"),
+    (".fpga-timing", "timing"),
+    (".fpga-wave", "waveform"),
+    (".fpga-report", "report"),
+)
+
+
+def _checklist_slug(image: str) -> str:
+    """Best-effort checklist slug for a report raster, by file name."""
+    stem = Path(image).stem.lower()
+    for token, checklist in _VISION_CHECKLIST_TOKENS:
+        if token in stem:
+            return checklist
+    return "render"
+
+
+def vision_points(images: list[str]) -> list[dict[str, str]]:
+    """Vision-review packet for the renders a payload already lists."""
+    return [
+        {
+            "image_path": image,
+            "checklist": _checklist_slug(image),
+            "record_with": "fpga_record_vision_review",
+        }
+        for image in images
+    ]
+
+
 def gates_payload(contract_path: Path, out_dir: Path | None, *, full: bool) -> Json:
     out = out_dir or default_out(contract_path)
     report = run_gates(contract_path, out, full=full)
@@ -91,6 +122,7 @@ def gates_payload(contract_path: Path, out_dir: Path | None, *, full: bool) -> J
     images = _images(written)
     if images:
         payload["images"] = images
+        payload["vision_points"] = vision_points(images)
     return payload
 
 
@@ -135,7 +167,10 @@ def pinmap_payload(contract_path: Path, out_dir: Path | None) -> Json:
             "render_errors": [str(exc)],
         }
     payload: Json = {"verdict": PASS, "stage": "pinmap", "written": [str(p) for p in written]}
-    payload["images"] = _images(written)
+    images = _images(written)
+    payload["images"] = images
+    if images:
+        payload["vision_points"] = vision_points(images)
     return payload
 
 
@@ -194,7 +229,9 @@ def sim_payload(contract_path: Path, sim_id: str, out_dir: Path | None) -> Json:
 
             png_path = out / f"{contract.name}.fpga-wave-{sim.id}.png"
             write_png(waveform_canvas(result.waveform, f"{contract.name} wave {sim.id}"), png_path)
-            payload["images"] = [str(png_path)]
+            images = [str(png_path)]
+            payload["images"] = images
+            payload["vision_points"] = vision_points(images)
         except Exception as exc:
             payload["render_errors"] = [str(exc)]
     return payload
@@ -265,7 +302,9 @@ def build_payload(contract_path: Path, out_dir: Path | None) -> Json:
     )
     if rendered:
         payload["renders"] = rendered
-        payload["images"] = [str(item["path"]) for item in rendered]
+        images = [str(item["path"]) for item in rendered]
+        payload["images"] = images
+        payload["vision_points"] = vision_points(images)
     if skipped:
         payload["render_errors"] = skipped
     return payload
@@ -393,7 +432,8 @@ def render_payload(contract_path: Path, out_dir: Path | None, view: str) -> Json
         "stage": "render",
         "rendered": rendered,
         "skipped": skipped,
-        "images": [str(item["path"]) for item in rendered],
+        "images": (images := [str(item["path"]) for item in rendered]),
+        "vision_points": vision_points(images),
     }
 
 
