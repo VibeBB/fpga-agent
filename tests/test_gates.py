@@ -241,3 +241,27 @@ def test_report_schema_round_trip(ulx3s: Path) -> None:
     )
     assert report.verdict == payload["verdict"] == "pass"
     assert (ulx3s.parent / "fpga-reports" / "blinky.fpga-pinmap.json").is_file()
+
+
+def test_vision_points_name_checklist_and_record_tool() -> None:
+    images = [
+        "fpga-reports/blinky.fpga-pinmap.png",
+        "fpga-reports/blinky.fpga-wave-uart.png",
+        "fpga-reports/blinky.fpga-timing.png",
+    ]
+    points = service.vision_points(images)
+
+    assert [p["image_path"] for p in points] == images
+    assert [p["checklist"] for p in points] == ["pinmap", "waveform", "timing"]
+    assert all(p["record_with"] == "fpga_record_vision_review" for p in points)
+
+
+def test_pinmap_payload_carriesvision_points(ulx3s: Path) -> None:
+    payload = service.pinmap_payload(ulx3s, None)
+
+    images = [str(p) for p in payload["images"]]  # type: ignore[index]
+    assert images and images[0].endswith(".fpga-pinmap.png")
+    points = payload["vision_points"]
+    assert [p["image_path"] for p in points] == images  # type: ignore[union-attr]
+    assert points[0]["checklist"] == "pinmap"  # type: ignore[index]
+    assert points[0]["record_with"] == "fpga_record_vision_review"  # type: ignore[index]
