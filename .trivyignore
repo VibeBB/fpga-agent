@@ -5,7 +5,7 @@
 # --- python site-packages vendored inside oss-cad-suite (fpga-tools) ---
 # The sha256-pinned OSS CAD Suite tarball ships its own python2.7 and
 # python3.11 trees under /opt/oss-cad-suite/lib; the pinned release
-# (2026-10-03) still vendors these interpreters, so the upstream-borne
+# (2026-10-07) still vendors these interpreters, so the upstream-borne
 # findings are expected to persist — the real fix is a future suite
 # release that rebuilds its bundled pythons. They are waived per-CVE
 # until 2027-01-03 and re-verified by the publish-gate Trivy scan on
