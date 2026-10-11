@@ -14,6 +14,7 @@ src/fpga/
 ├── hdl.py         # HDL unit ordering, VHDL/Verilog arg builders
 ├── flow.py        # lint / synth / P&R / pack subprocess flows
 ├── sim.py         # simulation runners (NVC, Icarus) + VCD capture
+├── coverage.py    # simulation line/branch coverage (Verilator, NVC)
 ├── formal.py      # SymbiYosys run generation and driver
 ├── gates.py       # authoritative gate checks + GateReport v2
 ├── render.py      # stdlib PNG renderer: pinmap/utilization/timing/
@@ -74,6 +75,14 @@ Constant: `TOOL_TIMEOUT_S = 1800`.
 `run_simulation(contract, contract_path, sim, out_dir)` — NVC sims write
 `sim-<id>.vcd` via `--wave --format=vcd`; Icarus sims compile a generated
 `fpga_wave_dump.v` with `$dumpvars(0, <top>)`.
+
+### coverage.py
+`CoverageResult`; `verilator_counts(text, measured)`,
+`cobertura_counts(text, root, measured)`,
+`run_coverage(contract, contract_path, sim, out_dir)` — rebuilds a Verilog
+testbench with Verilator `--binary --timing --coverage-line` (Icarus has no
+coverage) or elaborates a VHDL one with NVC `--cover=statement,branch` and
+exports Cobertura XML; counts only the `coverage.measure` design sources.
 
 ### formal.py
 `FormalResult`; `sby_text(contract, contract_path, run)`, `run_formal(...)`.

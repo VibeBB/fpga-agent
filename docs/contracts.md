@@ -10,7 +10,7 @@ truth is the code.
 files[]}]`, `clocks [{port, frequency_mhz, margin_pct}]`, `pins [{port, package_pin,
 net, io_standard, pull}]`, `build {dir, constraints, bitstream, budget,
 pnr_seed}`, `simulations [{id, runner(nvc|iverilog), top, files, expect[],
-forbid[], timeout_s, waveform}]`, `formal [{id, mode, top, sources,
+forbid[], timeout_s, waveform, coverage?}]`, `formal [{id, mode, top, sources,
 parameters, timeout_s}]`, `circuit {connectivity, unused_pins[]}`,
 `programmer {board, cable, write_flash}`, `thermal {ambient_c, power_w,
 tj_max_c, derating_margin_c, theta_ja_c_per_w | theta_jc/theta_cs/theta_sa,
@@ -27,7 +27,15 @@ contract clock, coefficients per used nextpnr cell type, copied from the
 vendor power calculator) must not exceed `power_w`; a used cell type
 without a coefficient, a missing utilization or no clock fails. nextpnr
 itself reports no power, so this is the cross-check that the power handed
-to simulation-agent is not understated.
+to simulation-agent is not understated. `simulations[].coverage {measure[],
+min_line_pct, min_branch_pct, rationale}` adds gate `fpga.coverage.<id>`:
+the testbench is re-run with coverage (Verilator `--coverage-line` for
+Verilog, NVC `--cover=statement,branch` for VHDL) and the line (C0) and
+branch (C1) percentages over the `measure` files — design sources only,
+never testbench code — must reach the floors. Verilator counts each
+if/else or case arm; NVC counts a decision as covered only when every
+outcome ran. A failing run, a missing tool, unreadable coverage data or no
+point in the measured files fails the gate.
 
 ## `*.thermal.sim.json` / `*.thermal.sim-request.json` / `*.thermal.sim-response.json`
 

@@ -34,6 +34,7 @@ Start with the repository [README](../README.md) for the product overview.
 - [ADR-0009](adr/ADR-0009-attest-published-tools-images.md) — attest published tools images
 - [ADR-0010](adr/ADR-0010-records-vision-liaison.md) — VRP records, PNG renders, SLP v2, fail-closed launcher
 - [ADR-0011](adr/ADR-0011-structural-coverage.md) — structural coverage gate (C0, C1, C2, MC/DC, boundaries)
+- [ADR-0012](adr/ADR-0012-simulation-coverage.md) — line/branch coverage of product RTL simulations
 
 ## Skills
 

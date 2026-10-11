@@ -55,6 +55,7 @@ it and are write-protected by the `protect-generated` hook.
 | `fpga.regmap` | when `registers` is set: `registers.hdl_package` matches `fpga regmap` output and a design source uses it |
 | `fpga.lint` | NVC analysis/elaboration (VHDL) or Verilator `--lint-only` (Verilog) is clean |
 | `fpga.sim.<id>` | the simulator prints every `expect` line in order, no `forbid` line, and exits 0 before the timeout |
+| `fpga.coverage.<id>` | only with `simulations[].coverage`: the re-run testbench passes and line/branch coverage of the `measure` design sources reaches `min_line_pct`/`min_branch_pct` |
 | `fpga.formal.<id>` | SymbiYosys reports `PASS` for the declared mode and depth |
 | `fpga.synth` | Yosys synthesizes the top and its ports equal the pinned ports |
 | `fpga.pnr` | nextpnr places and routes the design |

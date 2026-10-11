@@ -28,6 +28,19 @@ triggers:
 - `waveform: true` records `fpga-reports/sim-<id>.fst` (NVC) for GTKWave
   or Surfer.
 
+## Coverage (`fpga.coverage.<id>`)
+
+- Add `coverage {measure, min_line_pct, min_branch_pct, rationale}` to a
+  simulation to measure how much of the design its testbench exercises.
+  `measure` lists design sources only; testbench lines never count.
+- Verilog is re-run on Verilator (`--binary --timing --coverage-line`), so
+  keep testbenches Verilator-clean: `timescale`, `#` delays and `$finish`
+  work; avoid Icarus-only system tasks. VHDL runs on NVC.
+- Branch coverage needs both arms of every `if`/`case`: drive each
+  boundary (below, at and above a compare limit) from the testbench.
+- Pick floors from the risk of the block and justify them in `rationale`;
+  never lower a floor to pass — add stimulus instead.
+
 ## Formal (`fpga.formal.<id>`)
 
 - VHDL: PSL comments in the architecture, read through the GHDL Yosys
