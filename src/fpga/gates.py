@@ -5,7 +5,7 @@ Static gates (no toolchain): ``fpga.contract``, ``fpga.provenance``,
 ``fpga.pins``, ``fpga.constraints``, ``fpga.netlist_match``.
 Toolchain gates: ``fpga.lint``, ``fpga.sim.<id>``, ``fpga.formal.<id>``,
 ``fpga.synth``, ``fpga.pnr``, ``fpga.timing``, ``fpga.utilization``,
-``fpga.bitstream``.
+``fpga.power`` (when ``thermal.estimate`` is declared), ``fpga.bitstream``.
 """
 
 from __future__ import annotations
@@ -376,6 +376,43 @@ def check_utilization(
     return _check("fpga.utilization", profile.part, problems, evidence)
 
 
+def check_power(contract: FpgaContract, report: dict[str, Any]) -> Check | None:
+    """``fpga.power``: the authored ``thermal.power_w`` must cover the cell-count estimate."""
+    thermal = contract.thermal
+    if thermal is None or thermal.estimate is None:
+        return None
+    estimate = thermal.estimate
+    utilization = cast(dict[str, dict[str, int]], report.get("utilization", {}))
+    problems: list[str] = []
+    if not utilization:
+        problems.append("nextpnr report has no utilization")
+    if not contract.clocks:
+        problems.append("no clock declared to scale dynamic power")
+    if problems:
+        return _check("fpga.power", contract.device.ref, problems)
+    mhz = max(clock.frequency_mhz for clock in contract.clocks)
+    dynamic_uw = 0.0
+    evidence = [f"static {estimate.static_w:g} W, {mhz:g} MHz, toggle {estimate.toggle_rate:g}"]
+    for cell, entry in sorted(utilization.items()):
+        used = int(entry.get("used", 0))
+        if used == 0:
+            continue
+        coefficient = estimate.uw_per_mhz.get(cell)
+        if coefficient is None:
+            problems.append(f"{cell}: {used} used but no uw_per_mhz coefficient")
+            continue
+        cell_uw = used * coefficient * mhz * estimate.toggle_rate
+        dynamic_uw += cell_uw
+        evidence.append(f"{cell}={used} x {coefficient:g} uW/MHz -> {cell_uw / 1e6:.6f} W")
+    total_w = round(estimate.static_w + dynamic_uw / 1e6, 9)
+    evidence.append(f"estimate {total_w:.6f} W vs authored power_w {thermal.power_w:g} W")
+    if not problems and total_w > thermal.power_w:
+        problems.append(
+            f"authored power_w {thermal.power_w:g} W understates the estimate {total_w:.6f} W"
+        )
+    return _check("fpga.power", contract.device.ref, problems, evidence)
+
+
 def check_bitstream(
     contract: FpgaContract, profile: DeviceProfile, bitstream: Path, run: ToolRun
 ) -> tuple[Check, str | None]:
@@ -636,11 +673,13 @@ def implementation_checks(
         ]
     packed = flow.pack(contract, contract_path, profile, out_dir)
     bitstream_check, _ = check_bitstream(contract, profile, out.bitstream, packed)
+    power = check_power(contract, report)
     return [
         synth_check,
         pnr_check,
         check_timing(contract, report),
         check_utilization(contract, profile, report),
+        *([power] if power is not None else []),
         bitstream_check,
     ]
 
