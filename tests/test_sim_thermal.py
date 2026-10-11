@@ -9,6 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from fpga import cli, mcp_server
+from fpga._envelope import sidecar_path, write_envelope
 from fpga.contract import FpgaContract, load_contract
 from fpga.gates import run_gates
 from fpga.sim_thermal import (
@@ -88,6 +89,7 @@ def _answer(
     path = resolve_response(contract, contract_path)
     assert path is not None
     path.write_text(json.dumps(response), encoding="utf-8")
+    write_envelope(path, "sim", [], root)
     return path
 
 
@@ -154,10 +156,14 @@ def test_round_trip_pass_and_gate(ulx3s: Path, monkeypatch: pytest.MonkeyPatch) 
     request = json.loads(path.with_name("blinky.thermal.sim-request.json").read_text("utf-8"))
     assert (request["from_system"], request["kind"]) == ("fpga", "thermal")
     assert request["brief_path"] == "examples/blinky-ulx3s/fpga-reports/blinky.thermal.sim.json"
-    assert _status(contract, path, root) == {"response": "pass", "U1.tj": "pass"}
+    assert _status(contract, path, root) == {
+        "response": "pass",
+        "U1.tj": "pass",
+        "provenance": "pass",
+    }
     checks = [c for c in run_gates(ulx3s, root / "gates", full=False).checks]
     sim = [c for c in checks if c.id == "fpga.sim_thermal"]
-    assert [c.status for c in sim] == ["pass", "pass"]
+    assert [c.status for c in sim] == ["pass", "pass", "pass"]
     assert sim[1].evidence == ["measured=80"]
 
 
@@ -318,3 +324,17 @@ def test_request_without_thermal_section_fails(
     assert cli.main(["sim-request", str(ulx3s)]) == 1
     assert "no thermal section" in json.loads(capsys.readouterr().out)["detail"]
     assert all(c.id != "fpga.sim_thermal" for c in run_gates(ulx3s, ulx3s.parent / "g").checks)
+
+
+def test_response_provenance_missing_or_foreign_is_not_a_pass(
+    ulx3s: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = _root(ulx3s, monkeypatch)
+    contract = _with_thermal(ulx3s)
+    path = _answer(root, contract, ulx3s, PASSING)
+    sidecar = sidecar_path(path)
+    body = json.loads(sidecar.read_text(encoding="utf-8"))
+    sidecar.write_text(json.dumps(body | {"producer": "circuit"}), encoding="utf-8")
+    assert _status(contract, path, root)["provenance"] == "fail"
+    sidecar.unlink()
+    assert _status(contract, path, root)["provenance"] == "unknown"
