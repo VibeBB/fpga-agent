@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
 
 from fpga import flow, service
-from fpga.contract import load_contract
+from fpga.contract import FpgaContract, load_contract
 from fpga.devices import load_profile
 from fpga.gates import Check, GateReport, check_timing, check_utilization, run_gates
 from fpga.projections import constraints_text
@@ -265,3 +267,23 @@ def test_pinmap_payload_carriesvision_points(ulx3s: Path) -> None:
     assert [p["image_path"] for p in points] == images  # type: ignore[union-attr]
     assert points[0]["checklist"] == "pinmap"  # type: ignore[index]
     assert points[0]["record_with"] == "fpga_record_vision_review"  # type: ignore[index]
+
+
+@pytest.mark.parametrize(("achieved", "status"), [(27.5, "pass"), (27.49, "fail")])
+def test_timing_corner_margin_boundary(ulx3s: Path, achieved: float, status: str) -> None:
+    contract = load_contract(ulx3s)
+    clocks = [clock.model_copy(update={"margin_pct": 10}) for clock in contract.clocks]
+    banded = contract.model_copy(update={"clocks": clocks})
+    report = _report({"$glbnet$clk_25mhz": {"achieved": achieved, "constraint": 25.0}})
+    check = check_timing(banded, report)
+    assert check.status == status
+    text = check.detail + " ".join(check.evidence)
+    assert "27.5 MHz" in text and "+10% corner margin" in text
+
+
+def test_timing_corner_margin_rejects_out_of_range(ulx3s: Path) -> None:
+    data = json.loads(ulx3s.read_text(encoding="utf-8"))
+    for bad in (-1, 100):
+        data["clocks"][0]["margin_pct"] = bad
+        with pytest.raises(ValidationError):
+            FpgaContract.model_validate(data)

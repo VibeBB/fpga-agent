@@ -332,13 +332,15 @@ def check_timing(contract: FpgaContract, report: dict[str, Any]) -> Check:
             continue
         for net in nets:
             achieved = float(fmax[net].get("achieved", 0.0))
+            band = f" (+{clock.margin_pct:g}% corner margin)" if clock.margin_pct else ""
             evidence.append(
-                f"{clock.port}: {achieved:.2f} MHz achieved, {clock.frequency_mhz:g} MHz required"
+                f"{clock.port}: {achieved:.2f} MHz achieved, "
+                f"{clock.required_mhz:g} MHz required{band}"
             )
-            if achieved < clock.frequency_mhz:
+            if achieved < clock.required_mhz:
                 problems.append(
                     f"clock {clock.port} ({net}) reaches {achieved:.2f} MHz "
-                    f"< {clock.frequency_mhz:g} MHz"
+                    f"< {clock.required_mhz:g} MHz{band}"
                 )
     for net, entry in fmax.items():
         achieved, constraint = (
