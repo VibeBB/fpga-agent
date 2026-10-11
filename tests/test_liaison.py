@@ -227,6 +227,33 @@ def test_respond_refuses_unknown_refs(tmp_path: Path) -> None:
         )
 
 
+def test_respond_refuses_refs_into_broken_chain(tmp_path: Path) -> None:
+    _request(tmp_path, "job-chain")
+    decision = _decision(tmp_path)
+    log = records.records_dir(tmp_path) / "decisions.jsonl"
+    intact = log.read_text(encoding="utf-8")
+    forged = json.loads(intact.splitlines()[-1]) | {"event_id": "a" * 64}
+    log.write_text(intact + json.dumps(forged) + "\n", encoding="utf-8")
+    for ref in ("a" * 64, decision):
+        with pytest.raises(ValueError, match="fails integrity"):
+            liaison.respond(
+                tmp_path,
+                "job-chain",
+                "deferred",
+                reason="waiting on a sibling response for now",
+                decision_refs=[ref],
+            )
+    log.write_text(intact, encoding="utf-8")
+    with pytest.raises(ValueError, match="decision_ref"):
+        liaison.respond(
+            tmp_path,
+            "job-chain",
+            "deferred",
+            reason="waiting on a sibling response for now",
+            decision_refs=["a" * 64],
+        )
+
+
 def test_respond_refuses_stale_inputs(tmp_path: Path) -> None:
     input_file = tmp_path / "input.txt"
     input_file.write_text("v1", encoding="utf-8")

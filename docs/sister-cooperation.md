@@ -52,7 +52,9 @@ for one of the ten siblings (`bard`, `circuit`, `dashboard`, `doc`,
 always carries the contract's sha256 in `inputs`, any extra hashed input
 files (`--input`), and ≥1 `decision_refs` validated against
 `observations/fpga/decisions.jsonl` — a request without a recorded
-justification cannot be written.
+justification cannot be written. Refs resolve only against an intact VRP v2
+chain: a log that fails `verify_log` (forged, edited or truncated lines)
+refuses every ref into it, for requests and liaison responses alike.
 
 ## simulation-agent thermal handoff (`src/fpga/sim_thermal.py`)
 
