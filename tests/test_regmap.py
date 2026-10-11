@@ -11,6 +11,7 @@ import pytest
 from pydantic import ValidationError
 
 from fpga import mcp_server, service
+from fpga._envelope import check_envelope, sidecar_path
 from fpga.contract import FpgaContract, load_contract
 from fpga.gates import run_gates
 from fpga.interchange import sha256_file
@@ -334,3 +335,19 @@ def test_verilator_lint_resolves_generated_include(verilog: Path, tmp_path: Path
     assert service.regmap_payload(verilog, None)["verdict"] == "pass"
     run = lint(load_contract(verilog), verilog, tmp_path)
     assert run.ok, run.detail
+
+
+def test_regmap_sidecar_checks_and_refuses_a_broken_log(
+    verilog: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("OPENHANDS_PROJECT_DIR", str(tmp_path))
+    assert service.regmap_payload(verilog, None)["verdict"] == "pass"
+    regmap = verilog.parent / "fpga-reports" / "blinky.fpga-regmap.json"
+    assert check_envelope(regmap, "fpga", tmp_path)[0] == "pass"
+    log = tmp_path / "observations" / "fpga" / "decisions.jsonl"
+    log.parent.mkdir(parents=True)
+    log.write_text("{not json\n", encoding="utf-8")
+    refused = service.regmap_payload(verilog, None)
+    assert refused["verdict"] == "fail"
+    assert str(refused["detail"]).startswith("provenance refused")
+    assert not sidecar_path(regmap).exists()

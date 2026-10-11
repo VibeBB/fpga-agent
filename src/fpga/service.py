@@ -19,6 +19,7 @@ from .gates import (
     Check,
     implementation_checks,
     run_gates,
+    write_envelope_v3,
     write_outputs,
 )
 from .interchange import sha256_file
@@ -48,6 +49,25 @@ def _circuit_sha(contract: FpgaContract, contract_path: Path) -> str | None:
         return None
     path = resolve(contract_path.resolve(), contract.circuit.connectivity)
     return sha256_file(path) if path.is_file() else None
+
+
+def _sources(contract: FpgaContract, contract_path: Path) -> list[Path]:
+    """The contract plus the circuit connectivity it links, when present."""
+    sources = [contract_path]
+    if contract.circuit is not None:
+        path = resolve(contract_path.resolve(), contract.circuit.connectivity)
+        if path.is_file():
+            sources.append(path)
+    return sources
+
+
+def _envelope_v3(artifact: Path, sources: list[Path], stage: str) -> Json | None:
+    """Write the envelope v3 sidecar; a refusal becomes the stage's fail payload."""
+    try:
+        write_envelope_v3(artifact, sources)
+    except ValueError as exc:
+        return {"verdict": FAIL, "stage": stage, "detail": f"provenance refused: {exc}"}
+    return None
 
 
 def doctor_payload() -> Json:
@@ -151,6 +171,9 @@ def pinmap_payload(contract_path: Path, out_dir: Path | None) -> Json:
         out / f"{contract.name}.fpga-pinmap.json",
         json.dumps(pinmap.model_dump(mode="json"), indent=2, ensure_ascii=False) + "\n",
     )
+    refused = _envelope_v3(json_path, _sources(contract, contract_path), "pinmap")
+    if refused is not None:
+        return refused
     md_path = write_text(out / f"{contract.name}.fpga-pinmap.md", pinmap_markdown(pinmap))
     written = [json_path, md_path]
     try:
@@ -192,6 +215,9 @@ def regmap_payload(contract_path: Path, out_dir: Path | None) -> Json:
         out / f"{contract.name}.fpga-regmap.json",
         json.dumps(export.model_dump(mode="json"), indent=2, ensure_ascii=False) + "\n",
     )
+    refused = _envelope_v3(path, [contract_path], "regmap")
+    if refused is not None:
+        return refused
     return {
         "verdict": PASS,
         "stage": "regmap",
@@ -398,6 +424,9 @@ def production_payload(contract_path: Path, out_dir: Path | None) -> Json:
         return {"verdict": FAIL, "stage": "production", "detail": str(exc)}
     path = out / f"{contract.name}.fpga-production.json"
     write_text(path, artifact.model_dump_json(indent=2) + "\n")
+    refused = _envelope_v3(path, [contract_path], "production")
+    if refused is not None:
+        return refused
     return {
         "verdict": PASS,
         "stage": "production",

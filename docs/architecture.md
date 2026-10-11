@@ -20,6 +20,7 @@ src/fpga/
 ├── render.py      # stdlib PNG renderer: pinmap/utilization/timing/
 │                  # floorplan/waveform/report views
 ├── records.py     # VibeBB Record Protocol v2 writers and loaders
+├── _envelope.py   # interchange envelope v3 sidecars (write + import check)
 ├── _vrp.py        # vendored VRP v2 core (mirror of the canonical _records.py hook)
 ├── liaison.py     # SLP v2 UX-creator request/response handling
 ├── requests.py    # outbound *.fpga-request.json (schema v2)

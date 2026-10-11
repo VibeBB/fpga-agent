@@ -11,6 +11,7 @@ Toolchain gates: ``fpga.lint``, ``fpga.sim.<id>``, ``fpga.coverage.<id>``
 
 from __future__ import annotations
 
+import contextlib
 import json
 import re
 from pathlib import Path
@@ -139,6 +140,40 @@ def spdx_ids(path: Path) -> list[str]:
         if match:
             found += [t for t in SPDX_TOKEN.findall(match.group(1)) if t not in SPDX_OPERATORS]
     return found
+
+
+def check_circuit_provenance(
+    contract: FpgaContract, contract_path: Path, circuit_sha: str | None
+) -> Check:
+    """Interchange envelope v3 sidecar of the pinned circuit connectivity.
+
+    fpga gates are binary, so a missing sidecar (``unknown``) fails closed
+    with an ``unknown:`` detail.
+    """
+    from ._envelope import check_envelope
+    from .workspace import workspace_root
+
+    assert contract.circuit is not None
+    path = resolve(contract_path, contract.circuit.connectivity)
+    status, detail = check_envelope(path, "circuit", workspace_root(), circuit_sha)
+    return Check(
+        id="fpga.import_provenance",
+        subject=contract.circuit.connectivity,
+        status="pass" if status == "pass" else "fail",
+        detail=f"unknown: {detail}" if status == "unknown" else detail,
+    )
+
+
+def write_envelope_v3(artifact: Path, sources: list[Path]) -> None:
+    """Write the envelope v3 sidecar; a broken fpga decision log removes it."""
+    from ._envelope import sidecar_path, write_envelope
+    from .workspace import workspace_root
+
+    try:
+        write_envelope(artifact, "fpga", sources, workspace_root())
+    except ValueError:
+        sidecar_path(artifact).unlink(missing_ok=True)
+        raise
 
 
 def check_provenance(contract: FpgaContract, contract_path: Path) -> Check:
@@ -520,6 +555,8 @@ def run_gates(
         )
     else:
         checks.append(check_netlist_match(contract, profile, circuit))
+    if contract.circuit is not None and circuit is not None:
+        checks.append(check_circuit_provenance(contract, contract_path, circuit_sha))
     if contract.thermal is not None:
         checks += sim_thermal_checks(contract, contract_path)
     bitstream_sha: str | None = None
@@ -734,17 +771,20 @@ def write_outputs(contract_path: Path, report: GateReport, out_dir: Path) -> lis
     except (OSError, ValueError, ValidationError):
         return written
     circuit_sha: str | None = None
+    sources = [contract_path]
     if contract.circuit is not None:
         circuit_path = resolve(contract_path, contract.circuit.connectivity)
         if circuit_path.is_file():
             circuit_sha = sha256_file(circuit_path)
+            sources.append(circuit_path)
     pinmap = pinmap_export(contract, profile, sha256_file(contract_path), circuit_sha)
-    written.append(
-        write_text(
-            out_dir / f"{contract.name}.fpga-pinmap.json",
-            json.dumps(pinmap.model_dump(mode="json"), indent=2, ensure_ascii=False) + "\n",
-        )
+    pinmap_path = write_text(
+        out_dir / f"{contract.name}.fpga-pinmap.json",
+        json.dumps(pinmap.model_dump(mode="json"), indent=2, ensure_ascii=False) + "\n",
     )
+    written.append(pinmap_path)
+    with contextlib.suppress(ValueError):  # no sidecar: the import check fails closed
+        write_envelope_v3(pinmap_path, sources)
     written.append(write_text(out_dir / f"{contract.name}.fpga-pinmap.md", pinmap_markdown(pinmap)))
     try:
         from .render import pinmap_canvas, report_canvas, write_png

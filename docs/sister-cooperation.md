@@ -108,6 +108,24 @@ openFPGALoader argv. production-engineering-agent imports it with
 operation and re-checks the bitstream hash at its own gate. The agent still
 never programs hardware; the factory station runs the argv.
 
+## Interchange envelope v3
+
+`<name>.fpga-pinmap.json`, `<name>.fpga-regmap.json` and
+`<name>.fpga-production.json` each get a sidecar
+`<artifact>.provenance.json` (`src/fpga/_envelope.py`): `envelope_version`
+3, `producer: "fpga"`, the artifact sha256, the source files (the contract,
+plus the linked circuit connectivity for the pinmap) with their sha256, and
+`decision_refs` — fpga decision ids whose evidence cites a source at its
+current hash. The artifact bodies are unchanged. A broken
+`observations/fpga/decisions.jsonl` chain refuses the export (the stage
+fails and any old sidecar is removed).
+
+The `fpga.import_provenance` gate checks the sidecar beside the linked
+circuit connectivity: producer `circuit`, the artifact hash against the
+pinned file, its sources, and its `decision_refs` against circuit's intact
+decision log. fpga gates are binary, so a missing sidecar or log fails
+closed with an `unknown:` detail.
+
 ## Inbound circuit data
 
 `contract.circuit.connectivity` links the circuit plugin's connectivity
