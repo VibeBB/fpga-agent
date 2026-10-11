@@ -61,3 +61,8 @@ the contract (POSIX, no absolute paths).
   extra `sources`, and `parameters` to shrink generics for the proof.
 - `programmer` names an openFPGALoader `board` or `cable`; `write_flash`
   writes SPI flash instead of SRAM.
+- `thermal.estimate` (optional): `static_w`, `toggle_rate`, and
+  `uw_per_mhz` per nextpnr cell type, all copied from the vendor power
+  calculator named in `source`. `fpga.power` fails when the estimate from
+  the placed cell counts exceeds `thermal.power_w`; raise `power_w` (and
+  re-hand it to simulation-agent), never lower the coefficients.

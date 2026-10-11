@@ -180,6 +180,28 @@ class Programmer(_Strict):
     write_flash: bool = False
 
 
+class PowerEstimate(_Strict):
+    """Cited coefficients for a bottom-up power estimate from placed-cell counts.
+
+    nextpnr reports no power; ``uw_per_mhz`` is the dynamic power of one used
+    cell per MHz at 100 % toggle, copied with ``static_w`` from the vendor
+    power calculator named in ``source``.
+    """
+
+    static_w: float = Field(ge=0)
+    toggle_rate: float = Field(gt=0, le=1)
+    uw_per_mhz: dict[str, float] = Field(min_length=1)
+    source: str = Field(min_length=1)
+
+    @field_validator("uw_per_mhz")
+    @classmethod
+    def _positive(cls, value: dict[str, float]) -> dict[str, float]:
+        bad = sorted(cell for cell, coefficient in value.items() if coefficient <= 0)
+        if bad:
+            raise ValueError(f"uw_per_mhz must be > 0: {', '.join(bad)}")
+        return value
+
+
 class Thermal(_Strict):
     """Authored package thermal facts handed to simulation-agent; nothing is estimated here.
 
@@ -198,6 +220,7 @@ class Thermal(_Strict):
     theta_sa: float | None = Field(default=None, ge=0)
     source: str = Field(min_length=1)
     response_path: str | None = Field(default=None, min_length=1)
+    estimate: PowerEstimate | None = None
 
     @model_validator(mode="after")
     def _theta_path(self) -> Thermal:

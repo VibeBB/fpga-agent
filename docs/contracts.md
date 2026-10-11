@@ -14,13 +14,20 @@ forbid[], timeout_s, waveform}]`, `formal [{id, mode, top, sources,
 parameters, timeout_s}]`, `circuit {connectivity, unused_pins[]}`,
 `programmer {board, cable, write_flash}`, `thermal {ambient_c, power_w,
 tj_max_c, derating_margin_c, theta_ja_c_per_w | theta_jc/theta_cs/theta_sa,
-source, response_path}` (authored package facts — `power_w` from the vendor
+source, response_path, estimate?}` (authored package facts — `power_w` from the vendor
 power estimator or a measurement named in `source`; `tj_max_c −
 derating_margin_c` must exceed `ambient_c`; `response_path` is relative to
 the contract). `clocks[].margin_pct` (default 0) is a corner guard band:
 nextpnr times a single corner of the profile speed grade, so `fpga.timing`
 requires `achieved ≥ frequency_mhz × (1 + margin_pct/100)` to cover the
-voltage, temperature and process corners it does not model.
+voltage, temperature and process corners it does not model. `thermal.estimate {static_w, toggle_rate, uw_per_mhz{cell:
+coefficient}, source}` adds gate `fpga.power` after place and route: the
+estimate `static_w + Σ used × uw_per_mhz × f × toggle_rate` (f = fastest
+contract clock, coefficients per used nextpnr cell type, copied from the
+vendor power calculator) must not exceed `power_w`; a used cell type
+without a coefficient, a missing utilization or no clock fails. nextpnr
+itself reports no power, so this is the cross-check that the power handed
+to simulation-agent is not understated.
 
 ## `*.thermal.sim.json` / `*.thermal.sim-request.json` / `*.thermal.sim-response.json`
 
