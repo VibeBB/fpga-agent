@@ -68,6 +68,7 @@ section hands it over:
 2. simulation-agent answers with `sim respond <request>`, writing
    `<name>.thermal.sim-response.json` beside the request and a hashed
    `sim-report.json`.
+   The response also needs simulation-agent's envelope v3 sidecar (`*.sim-response.provenance.json`): a tampered or foreign sidecar or a broken sim decision log adds a failing `provenance` finding, and a missing sidecar adds an `unknown` one.
 3. `fpga.sim_thermal` (every `check`/`gates` run) and `fpga sim-check` /
    `fpga_sim_thermal_check` read `thermal.response_path`:
    - request file changed, not an fpga/thermal request, request ID or brief
