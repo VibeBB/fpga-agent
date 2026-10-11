@@ -20,12 +20,14 @@ from typing import Any, Literal, cast
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
+from . import _vrp
 from .records import (
     decision_event_ids,
     impression_event_ids,
     sha256_file,
     tree_sha256,
 )
+from .records import records_dir as _heads_records_dir
 from .workspace import workspace_path, workspace_root
 
 SCHEMA_VERSION = 2
@@ -111,6 +113,7 @@ class UxResponse(_Strict):
     decision_refs: list[str] = Field(default_factory=list[str])
     impression_refs: list[str] = Field(default_factory=list[str])
     questions_for_user: list[str] = Field(default_factory=list[str])
+    records_heads: dict[str, str] = Field(default_factory=dict[str, str])
     responded_at: AwareDatetime
 
     @model_validator(mode="after")
@@ -254,6 +257,19 @@ def inbox(workspace: Path | str | None = None) -> dict[str, Any]:
     return {"verdict": "pass", "requests": requests, "malformed": malformed, "counts": counts}
 
 
+def _records_heads(root: Path) -> tuple[dict[str, str], list[str]]:
+    """Chain head per intact VRP log, plus the kinds whose chain is broken."""
+    heads: dict[str, str] = {}
+    broken: list[str] = []
+    for kind, filename in _vrp.LOG_FILES.items():
+        records, problems = _vrp.verify_log(_heads_records_dir(root) / filename, kind)
+        if problems:
+            broken.append(kind)
+        else:
+            heads[kind] = _vrp.chain_head(records)
+    return heads, broken
+
+
 def respond(
     workspace: Path | str | None,
     request_id: str,
@@ -361,6 +377,10 @@ def respond(
         else:
             warnings.append(f"input {item.path} is missing")
 
+    heads, broken_logs = _records_heads(root)
+    if status == "done" and broken_logs:
+        raise ValueError(f"refusing 'done': VRP logs fail integrity ({', '.join(broken_logs)})")
+
     response = UxResponse(
         request=request.id,
         responder="fpga",
@@ -372,6 +392,7 @@ def respond(
         decision_refs=decision_refs,
         impression_refs=impression_refs,
         questions_for_user=questions_for_user or [],
+        records_heads=heads,
         responded_at=datetime.now(UTC),
     )
     directory.mkdir(parents=True, exist_ok=True)
