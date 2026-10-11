@@ -83,6 +83,13 @@ class Library(_Strict):
 class Clock(_Strict):
     port: str = Field(pattern=PORT_BIT)
     frequency_mhz: float = Field(gt=0, le=1000)
+    # nextpnr times one corner of the profile speed grade; the guard band
+    # covers voltage/temperature/process corners it does not model.
+    margin_pct: float = Field(default=0, ge=0, lt=100)
+
+    @property
+    def required_mhz(self) -> float:
+        return round(self.frequency_mhz * (1 + self.margin_pct / 100), 9)
 
 
 class Pin(_Strict):

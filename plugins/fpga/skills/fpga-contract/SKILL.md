@@ -25,7 +25,7 @@ the contract (POSIX, no absolute paths).
   "top": "uart_echo",
   "sources": [{"path": "rtl/uart_echo.vhdl", "language": "vhdl"}],
   "libraries": [],
-  "clocks": [{"port": "clk", "frequency_mhz": 12}],
+  "clocks": [{"port": "clk", "frequency_mhz": 12, "margin_pct": 10}],
   "pins": [{"port": "clk", "package_pin": "35", "net": "CLK_12M"}],
   "build": {
     "dir": "build",
