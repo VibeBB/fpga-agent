@@ -88,7 +88,40 @@ def _impression(workspace: Path) -> str:
                 " that reuse elsewhere may want a second clock, which we should note"
                 " for the next revision before it becomes a rework. The next step is"
                 " to hand the pin map to the circuit plugin and record the decision."
+                " The module m declaration closes with endmodule as expected."
             ),
+            "facets": {
+                "observed": ["the design module is declared", "the module is closed"],
+                "works": ["the counter maps onto carry chains"],
+                "concerns": [
+                    {
+                        "id": "c1",
+                        "text": "reuse may need a second clock domain later",
+                        "severity": "info",
+                        "about": "self",
+                        "anchor": "module m",
+                    }
+                ],
+                "feelings": {
+                    "maker": "the pin map reads without surprises",
+                    "user": "the LEDs behave as the contract promised",
+                },
+                "next_actions": ["hand the pin map to the circuit plugin"],
+            },
+            "claims": [
+                {
+                    "text": "the design declares its top module",
+                    "anchor": "module m",
+                    "artifact": "out/design.v",
+                },
+                {
+                    "text": "the top module is closed",
+                    "anchor": "endmodule",
+                    "artifact": "out/design.v",
+                },
+            ],
+            "confidence": "medium",
+            "unknowns": [],
         },
         root=workspace,
     )

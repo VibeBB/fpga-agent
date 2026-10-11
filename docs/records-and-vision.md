@@ -1,6 +1,6 @@
 # Records and vision
 
-The VibeBB Record Protocol (VRP) v1 gives the agent an auditable,
+The VibeBB Record Protocol (VRP) v2 gives the agent an auditable,
 append-only evidence trail under `observations/fpga/`:
 
 - `decisions.jsonl` — why a non-trivial choice was made (device profile,
@@ -52,3 +52,39 @@ colour used.
 
 A render that contradicts the JSON report is a finding against the
 renderer — never a reason to change a verdict.
+
+## VRP v2 logs
+
+`observations/fpga/` holds `decisions.jsonl`, `impressions.jsonl`,
+`vision-reviews.jsonl`, `reconciles.jsonl`, `insights.jsonl`, `reads.jsonl`
+and `song-receipts.jsonl`. Every line carries `schema_version` 2, `sequence`,
+`prev_event_id`, `writer` and `event_id` (the SHA-256 of the canonical
+record). The writer verifies the chain before appending and refuses a log
+that was edited, truncated or reordered; readers report such a log under
+`integrity_problems` and never resolve references into it. A log written
+entirely by VRP v1 is renamed to `<name>.v1.jsonl` on the first v2 write.
+
+Impressions carry facets (`observed`, `works`, `concerns`, maker/user
+`feelings`, `next_actions`), two or more claims quoting exact tokens from the
+bound artifacts, and a confidence; a near copy of an earlier impression, or
+a concern a sister already disputed, is refused. Taking in a sister artifact
+needs a `fpga_record_read` receipt and an `upstream` entry.
+
+## Blind review
+
+`fpga-reports/*.png` renders are dual-review images (`dual_review_globs`
+in `records-policy.json`). After the primary review, `fpga-blind-review`
+reviews the same image without seeing it (`reviewer: "blind"`), and the
+caller records `fpga_record_reconcile` over `[primary, blind]`. A split goes
+to one tiebreak round (`[primary, blind, tiebreak]`); a split after the
+tiebreak stays `unknown` and never becomes pass.
+
+## Insights, songs, digest
+
+`fpga_record_insight` moves an insight through
+tried/adopted/rejected/deferred/superseded. fpga only receives bard songs:
+`fpga_record_song_receipt` records one receipt per
+`liaison/<id>.bard-song.json` (sha256-pinned, never a gate input, never a
+request for another song; the song file is protected from edits).
+`fpga_records_digest` and `fpga_records_search` read every plugin's
+impressions in the workspace.

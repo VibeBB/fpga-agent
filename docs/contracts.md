@@ -136,10 +136,13 @@ deferred|needs_info), `reason` (≥20 chars unless accepted/in_progress),
 Validators: `done` forbids fail/unknown verdicts; `needs_info` requires a
 question.
 
-## `observations/fpga/*.jsonl` — VRP v1 records (`src/fpga/records.py`)
+## `observations/fpga/*.jsonl` — VRP v2 records (`src/fpga/records.py`)
 
-Envelope: `schema_version 1`, `plugin: "fpga"`, `sequence`, `event_id`
-(sha256 of kind+sequence+body), `recorded_at`.
+Envelope: `schema_version 2`, `plugin: "fpga"`, `sequence`,
+`prev_event_id` (hash chain), `writer`, `event_id` (sha256 of the canonical
+record), `recorded_at`. v2 adds `reconciles.jsonl`, `insights.jsonl`,
+`reads.jsonl` and `song-receipts.jsonl`; impressions carry facets, claims
+and confidence ([records-and-vision.md](records-and-vision.md)).
 
 - `decisions.jsonl` — `id`, `stage`, `question`, `principles[]`, ≥2
   `options` with pros/cons, `chosen`, `rationale` (≥200 chars),
@@ -157,4 +160,4 @@ Envelope: `schema_version 1`, `plugin: "fpga"`, `sequence`, `event_id`
 ## `plugins/fpga/hooks/records-policy.json`
 
 `plugin`, `records_dir`, `artifact_globs`, `ignore_globs`,
-`max_stop_denials` — consumed by the shared `require_records.py` hook.
+`max_stop_denials`, `dual_review_globs` — consumed by the shared `require_records.py` hook.

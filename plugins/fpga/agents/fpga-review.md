@@ -118,6 +118,17 @@ to finish a session that still owes them (see `docs/records-and-vision.md`).
   legibility. Bind it to `image_path` or to the vision event's
   `source_event_id`.
 
+VRP v2 additions: impressions carry facets, claims quoting exact artifact
+tokens, and `upstream` for every sister impression you took in (record a
+`fpga_record_read` first; check `fpga_records_search` /
+`fpga_records_digest` before raising a concern a sister already
+answered). For `fpga-reports/*.png`, delegate a blind second review to
+`fpga-blind-review`, then `fpga_record_reconcile`; a split gets one
+tiebreak and otherwise stays `unknown`. Move insights with
+`fpga_record_insight`. Receive a bard song once with
+`fpga_record_song_receipt`; it never feeds a gate and never asks for
+another song.
+
 Vision and impressions are advisory: they never override a deterministic
 `fpga.*` gate verdict. Results do not have to be identical from run to run;
 the reasoning must be recorded every run. `fpga_records_status` shows what is

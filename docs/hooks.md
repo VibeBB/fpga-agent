@@ -25,7 +25,8 @@ unavailable there by design.
 
 | hook | matcher | behavior |
 | --- | --- | --- |
-| `protect-generated` | file_editor, apply_patch, terminal | denies hand edits of generated artifacts: `*.fpga.pcf/lpf/cst`, `*.fpga-pinmap.*`, `*.fpga-regmap.json`, `*_regs_pkg.vhd`, `*_regs.vh`, `*.fpga-production.json`, `*.fpga-report.*`, `sim-*.log`, `formal-*.log`, `observations/fpga/*.jsonl`, `records-status.json`, `liaison/*.ux-response.json`, `fpga-reports/*.png` |
+| `protect-generated` | file_editor, apply_patch, terminal | denies hand edits of generated artifacts: `*.fpga.pcf/lpf/cst`, `*.fpga-pinmap.*`, `*.fpga-regmap.json`, `*_regs_pkg.vhd`, `*_regs.vh`, `*.fpga-production.json`, `*.fpga-report.*`, `sim-*.log`, `formal-*.log`, `observations/fpga/*.jsonl`, `records-status.json`, `liaison/*.ux-response.json`, `liaison/*.bard-song.json`, `fpga-reports/*.png` |
+| `blind-guard` | file_editor, apply_patch, terminal, grep, glob (`fpga-blind-review` only) | denies reads of `observations/`, `*.advisory.json`, liaison answers and bard songs so the blind review stays independent (shared canonical hook) |
 | `safety-rail` | terminal | blocks destructive shell commands |
 | `deny-programming` | terminal | denies programmer invocations for agents |
 

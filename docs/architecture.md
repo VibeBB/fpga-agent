@@ -19,7 +19,8 @@ src/fpga/
 ├── gates.py       # authoritative gate checks + GateReport v2
 ├── render.py      # stdlib PNG renderer: pinmap/utilization/timing/
 │                  # floorplan/waveform/report views
-├── records.py     # VibeBB Record Protocol v1 writers and loaders
+├── records.py     # VibeBB Record Protocol v2 writers and loaders
+├── _vrp.py        # vendored VRP v2 core (mirror of the canonical _records.py hook)
 ├── liaison.py     # SLP v2 UX-creator request/response handling
 ├── requests.py    # outbound *.fpga-request.json (schema v2)
 ├── projections.py # constraint-file and pinmap text projections
@@ -119,7 +120,9 @@ Caps: `VCD_MAX_BYTES = 64 MiB`, `VCD_MAX_CHANGES = 2_000_000`,
 Models: `ArtifactRef`, `EvidenceRef`, `DecisionOption`, `EvidenceInput`,
 `DecisionInput`, `StageImpressionInput`, `VisionFinding`,
 `VisionReviewInput`, `DecisionRecord`, `StageImpression`, `VisionReview`.
-Writers: `record_decision`, `record_impression`, `record_vision_review`
+Writers: `record_decision`, `record_impression`, `record_vision_review`,
+`record_reconcile`, `record_insight`, `record_song_receipt`, `record_read`
+(VRP v2 via `_vrp.py`); readers `records_digest`, `records_search`
 (each `(payload, root=None)`), `RECORDERS`. Helpers: `sentence_count`,
 `impression_is_prose`, `sha256_file`, `tree_sha256`, `records_dir`,
 `decision_event_ids`, `impression_event_ids`, `records_summary`.

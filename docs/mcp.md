@@ -30,6 +30,12 @@ closed. Read-only tools set `readOnlyHint`.
 | `fpga_record_impression` | StageImpressionInput fields | appended impression record | prose check → `fail` |
 | `fpga_record_vision_review` | VisionReviewInput fields | appended vision-review record | needs image_path or source_event_id |
 | `fpga_records_status` | — | counts per log + last stop verdict | read-only |
+| `fpga_record_reconcile` | ReconcileInput fields | reconcile record over `[primary, blind]` or `[primary, blind, tiebreak]` | a round-2 split stays `unknown` |
+| `fpga_record_insight` | InsightStatusInput fields | insight lifecycle record | rejected needs revisits + new evidence |
+| `fpga_record_song_receipt` | SongReceiptInput fields | one receipt per `liaison/<id>.bard-song.json` | never a gate input |
+| `fpga_record_read` | ReadInput fields | read receipt for a sister artifact | sha256-pinned |
+| `fpga_records_digest` | — | family-wide integrity, open concerns, disputes, unanswered reads | read-only |
+| `fpga_records_search` | query, system, kind, stage, artifact, severity, open_only, limit | matching impressions | read-only |
 | `fpga_ux_inbox` | workspace | request states new/answered/stale/blocked, malformed files | read-only |
 | `fpga_ux_respond` | **request**, **status**, reason, artifacts, gate_verdicts, gate_report, decision_refs, impression_refs, questions_for_user, workspace | writes `liaison/<id>.ux-response.json` | every refusal rule → `fail` |
 

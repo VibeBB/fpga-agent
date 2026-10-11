@@ -1,6 +1,6 @@
 # Agents
 
-Three AgentDefinitions under `plugins/fpga/agents/`. All declare
+Four AgentDefinitions under `plugins/fpga/agents/`. All declare
 `terminal`, `file_editor`, `grep`, `glob`, `task_tracker` and
 `VisionInspectTool`, mount the `fpga` MCP server, and run the
 `protect-generated`, `safety-rail`, `deny-programming`,
@@ -39,3 +39,14 @@ render under `fpga-reports/` — a render that contradicts the JSON report
 is a finding against the renderer, not a reason to change the verdict —
 and verifies `fpga_records_status` owes nothing and answered UX requests
 are `answered`, not `stale`.
+
+## fpga-blind-review
+
+Independent second vision review of one `fpga-reports/*.png` render
+(`reviewer: "blind"` in round 1, `"tiebreak"` in round 2). The
+`blind-guard` hook denies reads of `observations/`, advisories, liaison
+answers and bard songs, so the first review cannot anchor it. It writes two
+or more exact-token claims with lookback checks through
+`fpga_record_vision_review`, replies with the event id only, and has no
+verdict authority; the caller reconciles, and a split after the tiebreak
+stays `unknown`. It declares no `task_tracker`.
