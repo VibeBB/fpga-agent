@@ -156,7 +156,11 @@ def test_round_trip_pass_and_gate(ulx3s: Path, monkeypatch: pytest.MonkeyPatch) 
     request = json.loads(path.with_name("blinky.thermal.sim-request.json").read_text("utf-8"))
     assert (request["from_system"], request["kind"]) == ("fpga", "thermal")
     assert request["brief_path"] == "examples/blinky-ulx3s/fpga-reports/blinky.thermal.sim.json"
-    assert _status(contract, path, root) == {"response": "pass", "U1.tj": "pass", "provenance": "pass"}
+    assert _status(contract, path, root) == {
+        "response": "pass",
+        "U1.tj": "pass",
+        "provenance": "pass",
+    }
     checks = [c for c in run_gates(ulx3s, root / "gates", full=False).checks]
     sim = [c for c in checks if c.id == "fpga.sim_thermal"]
     assert [c.status for c in sim] == ["pass", "pass", "pass"]
