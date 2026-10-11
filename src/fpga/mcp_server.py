@@ -22,11 +22,21 @@ from mcp.server.stdio import stdio_server
 from . import __version__, service
 from .records import (
     DecisionInput,
+    InsightStatusInput,
+    ReadInput,
+    ReconcileInput,
+    SongReceiptInput,
     StageImpressionInput,
     VisionReviewInput,
     record_decision,
     record_impression,
+    record_insight,
+    record_read,
+    record_reconcile,
+    record_song_receipt,
     record_vision_review,
+    records_digest,
+    records_search,
     records_summary,
 )
 from .workspace import workspace_path
@@ -166,6 +176,53 @@ TOOLS: dict[str, tuple[str, dict[str, object], bool]] = {
         "Counts of decision / impression / vision-review records and the last "
         "Stop-hook verdict listing records this session still owes",
         _schema({}, []),
+        True,
+    ),
+    "fpga_record_reconcile": (
+        "Compare independent reviews of one image: [primary, blind] (round 1) or "
+        "[primary, blind, tiebreak] (round 2, the last); a round-2 split stays unknown",
+        ReconcileInput.model_json_schema(),
+        False,
+    ),
+    "fpga_record_insight": (
+        "Move an impression insight through tried/adopted/rejected/deferred/superseded; "
+        "a rejected insight returns only with revisits and new evidence",
+        InsightStatusInput.model_json_schema(),
+        False,
+    ),
+    "fpga_record_song_receipt": (
+        "Receive a bard song addressed to fpga; a receipt never feeds a gate and "
+        "never asks bard for another song",
+        SongReceiptInput.model_json_schema(),
+        False,
+    ),
+    "fpga_record_read": (
+        "Record that a sister artifact was taken in; resolves the impressions bound to it",
+        ReadInput.model_json_schema(),
+        False,
+    ),
+    "fpga_records_digest": (
+        "Family-wide impression digest: integrity per plugin, open concerns, disputes, "
+        "unanswered reads, insights, split reviews and undelivered songs",
+        _schema({}, []),
+        True,
+    ),
+    "fpga_records_search": (
+        "Search every plugin's impressions by text, plugin, stage, artifact, severity or "
+        "open concerns; logs with broken integrity are listed separately",
+        _schema(
+            {
+                "query": {"type": "string"},
+                "system": {"type": "string"},
+                "kind": {"type": "string", "enum": ["stage_impression", "vision_review"]},
+                "stage": {"type": "string"},
+                "artifact": {"type": "string"},
+                "severity": {"type": "string", "enum": ["info", "warning", "error"]},
+                "open_only": {"type": "boolean"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 200},
+            },
+            [],
+        ),
         True,
     ),
     "fpga_ux_inbox": (
@@ -355,6 +412,12 @@ def dispatch(name: str, arguments: dict[str, object]) -> service.Json:
         "fpga_record_impression": lambda: record_impression(arguments),
         "fpga_record_vision_review": lambda: record_vision_review(arguments),
         "fpga_records_status": records_summary,
+        "fpga_record_reconcile": lambda: record_reconcile(arguments),
+        "fpga_record_insight": lambda: record_insight(arguments),
+        "fpga_record_song_receipt": lambda: record_song_receipt(arguments),
+        "fpga_record_read": lambda: record_read(arguments),
+        "fpga_records_digest": records_digest,
+        "fpga_records_search": lambda: records_search(arguments),
         "fpga_ux_inbox": lambda: service.ux_inbox_payload(_opt_path(arguments, "workspace")),
         "fpga_ux_respond": lambda: service.ux_respond_payload(
             _opt_path(arguments, "workspace"), arguments

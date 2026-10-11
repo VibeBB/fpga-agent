@@ -35,6 +35,7 @@ Start with the repository [README](../README.md) for the product overview.
 - [ADR-0010](adr/ADR-0010-records-vision-liaison.md) — VRP records, PNG renders, SLP v2, fail-closed launcher
 - [ADR-0011](adr/ADR-0011-structural-coverage.md) — structural coverage gate (C0, C1, C2, MC/DC, boundaries)
 - [ADR-0012](adr/ADR-0012-simulation-coverage.md) — line/branch coverage of product RTL simulations
+- [ADR-0013](adr/ADR-0013-vrp-v2-records.md) — VRP v2 records, blind render review and song receipts
 
 ## Skills
 

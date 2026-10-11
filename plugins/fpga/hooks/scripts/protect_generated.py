@@ -39,6 +39,7 @@ ARTIFACT_SUFFIXES = (
     ".fpga-production.json",
     ".fpga-report.json",
     ".fpga-report.md",
+    ".bard-song.json",
 )
 ARTIFACT_NAMES: tuple[str, ...] = (
     "decisions.jsonl",
@@ -270,7 +271,7 @@ def main() -> int:
         print(
             "generated FPGA artifacts (*.fpga.pcf/.lpf/.cst, *.fpga-pinmap.*, *.fpga-regmap.json,"
             " *_regs_pkg.vhd, *_regs.vh, *.fpga-production.json, *.fpga-report.*,"
-            " sim-*.log, formal-*.log, observations/fpga/*.jsonl,"
+            " sim-*.log, formal-*.log, liaison/*.bard-song.json, observations/fpga/*.jsonl,"
             " intake/attachments/manifest.jsonl) are generated records or projections"
             " and must not be edited directly; regenerate deterministic projections"
             " with `fpga constraints`, `fpga pinmap`, `fpga regmap`,"

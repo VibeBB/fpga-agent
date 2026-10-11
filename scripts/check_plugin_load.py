@@ -15,7 +15,7 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = REPO_ROOT / "plugins" / "fpga"
 
-EXPECTED_AGENTS = {"fpga-architect", "fpga-developer", "fpga-review"}
+EXPECTED_AGENTS = {"fpga-architect", "fpga-blind-review", "fpga-developer", "fpga-review"}
 EXPECTED_SKILLS = {
     "fpga-contract",
     "fpga-contract-rules",

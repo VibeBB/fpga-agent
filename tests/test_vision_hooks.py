@@ -325,7 +325,7 @@ def test_plugin_and_agent_vision_hooks_are_declared() -> None:
     for event, names in expected.items():
         actual = {hook["name"] for group in hooks[event] for hook in group["hooks"]}
         assert actual == names
-    for name in ("fpga-architect", "fpga-developer", "fpga-review"):
+    for name in ("fpga-architect", "fpga-blind-review", "fpga-developer", "fpga-review"):
         text = (plugin_root / "agents" / f"{name}.md").read_text(encoding="utf-8")
         assert "name: record-image-observation" in text
         assert "name: record-vision-tool-event" in text

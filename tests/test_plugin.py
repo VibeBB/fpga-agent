@@ -55,6 +55,12 @@ def test_mcp_tools_registered_without_program() -> None:
         "fpga_record_impression",
         "fpga_record_vision_review",
         "fpga_records_status",
+        "fpga_record_reconcile",
+        "fpga_record_insight",
+        "fpga_record_song_receipt",
+        "fpga_record_read",
+        "fpga_records_digest",
+        "fpga_records_search",
         "fpga_ux_inbox",
         "fpga_ux_respond",
     }
