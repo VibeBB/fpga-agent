@@ -142,6 +142,19 @@ class Build(_Strict):
         return value
 
 
+class SimCoverage(_Strict):
+    """Structural coverage floors for one simulation, measured on ``measure`` design sources.
+
+    Verilog runs are rebuilt with Verilator ``--coverage-line`` (Icarus has no
+    coverage); VHDL runs are elaborated with NVC ``--cover=statement,branch``.
+    """
+
+    measure: list[str] = Field(min_length=1)
+    min_line_pct: float = Field(ge=0, le=100)
+    min_branch_pct: float = Field(ge=0, le=100)
+    rationale: str = Field(min_length=12)
+
+
 class Simulation(_Strict):
     id: str = Field(pattern=IDENT)
     runner: Literal["nvc", "iverilog"]
@@ -152,6 +165,7 @@ class Simulation(_Strict):
     timeout_s: float = Field(default=120, gt=0, le=3600)
     waveform: bool = False
     stop_time: str | None = Field(default=None, pattern=r"^[0-9]+(fs|ps|ns|us|ms)$")
+    coverage: SimCoverage | None = None
 
 
 class Formal(_Strict):
@@ -380,6 +394,10 @@ class FpgaContract(_Strict):
                 raise ValueError(f"simulation {sim.id}: {family} designs run on {expected}")
             if any(_family(s.language) != family for s in sim.sources):
                 raise ValueError(f"simulation {sim.id}: testbench language differs from design")
+            if sim.coverage is not None:
+                stray = sorted(set(sim.coverage.measure) - {s.path for s in self.sources})
+                if stray:
+                    raise ValueError(f"simulation {sim.id}: coverage measures non-design {stray}")
         if self.registers is not None:
             package = self.registers.hdl_package
             suffixes = ("_regs_pkg.vhd",) if family == "vhdl" else ("_regs.vh",)

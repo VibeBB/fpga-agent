@@ -41,7 +41,9 @@ RUN for attempt in 1 2 3 4 5; do \
         && apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install --no-install-recommends -y \
             ca-certificates \
             curl \
+            g++ \
             git \
+            make \
         && rm -rf /var/lib/apt/lists/* \
         && break; \
         [ "$attempt" = 5 ] && exit 1; \

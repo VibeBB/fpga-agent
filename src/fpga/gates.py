@@ -3,7 +3,8 @@ agent's word.
 
 Static gates (no toolchain): ``fpga.contract``, ``fpga.provenance``,
 ``fpga.pins``, ``fpga.constraints``, ``fpga.netlist_match``.
-Toolchain gates: ``fpga.lint``, ``fpga.sim.<id>``, ``fpga.formal.<id>``,
+Toolchain gates: ``fpga.lint``, ``fpga.sim.<id>``, ``fpga.coverage.<id>``
+(when a simulation declares ``coverage``), ``fpga.formal.<id>``,
 ``fpga.synth``, ``fpga.pnr``, ``fpga.timing``, ``fpga.utilization``,
 ``fpga.power`` (when ``thermal.estimate`` is declared), ``fpga.bitstream``.
 """
@@ -19,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from . import flow
 from .contract import FpgaContract, library_files, load_contract, resolve
+from .coverage import run_coverage
 from .devices import DeviceProfile, load_profile
 from .formal import run_formal
 from .interchange import CircuitConnectivity, load_circuit, sha256_file
@@ -619,6 +621,16 @@ def simulation_checks(contract: FpgaContract, contract_path: Path, out_dir: Path
                 evidence,
             )
         )
+        if sim.coverage is not None:
+            cover = run_coverage(contract, contract_path, sim, out_dir)
+            checks.append(
+                _check(
+                    f"fpga.coverage.{sim.id}",
+                    f"line>={sim.coverage.min_line_pct}% branch>={sim.coverage.min_branch_pct}%",
+                    [] if cover.ok else [cover.detail],
+                    cover.evidence,
+                )
+            )
     return checks
 
 

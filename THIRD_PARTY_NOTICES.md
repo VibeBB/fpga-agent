@@ -25,7 +25,8 @@ Lattice, Gowin) tool or binary.
 | Z3 | 4.15.5 (suite) | MIT | Optional SMT solver |
 | Boolector | 3.2.4 (suite) | MIT | Optional SMT solver |
 | Icarus Verilog | 14.0-dev (suite) | GPL-2.0 | Verilog simulation |
-| Verilator | 5.053-dev (suite) | LGPL-3.0 or Artistic-2.0 | Verilog lint |
+| Verilator | 5.053-dev (suite) | LGPL-3.0 or Artistic-2.0 | Verilog lint and simulation coverage |
+| GCC (g++), GNU Make | Ubuntu 26.04 apt | GPL-3.0-or-later (runtime library exception) | Build Verilator coverage models |
 | openFPGALoader | 1.1.1 (suite) | Apache-2.0 | Host-only programming |
 | NVC | 1.23.0, asset `nvc_1.23.0-1_amd64_ubuntu-26.04.deb`, sha256 `deda7ffc97b04301f0dbf5e16614e0e6537ba8a292d3d11502675a3514ba995a` | GPL-3.0-or-later | VHDL analysis, lint and simulation |
 | coverage | `7.16.2` (dev group) | Apache-2.0 | Test coverage measurement |
