@@ -7,7 +7,7 @@ truth is the code.
 
 `name`, `description`, `device {profile, ref}`, `top`,
 `sources [{path, language}]`, `libraries [{name, repo, revision, license,
-files[]}]`, `clocks [{port, frequency_mhz}]`, `pins [{port, package_pin,
+files[]}]`, `clocks [{port, frequency_mhz, margin_pct}]`, `pins [{port, package_pin,
 net, io_standard, pull}]`, `build {dir, constraints, bitstream, budget,
 pnr_seed}`, `simulations [{id, runner(nvc|iverilog), top, files, expect[],
 forbid[], timeout_s, waveform}]`, `formal [{id, mode, top, sources,
@@ -17,7 +17,10 @@ tj_max_c, derating_margin_c, theta_ja_c_per_w | theta_jc/theta_cs/theta_sa,
 source, response_path}` (authored package facts — `power_w` from the vendor
 power estimator or a measurement named in `source`; `tj_max_c −
 derating_margin_c` must exceed `ambient_c`; `response_path` is relative to
-the contract).
+the contract). `clocks[].margin_pct` (default 0) is a corner guard band:
+nextpnr times a single corner of the profile speed grade, so `fpga.timing`
+requires `achieved ≥ frequency_mhz × (1 + margin_pct/100)` to cover the
+voltage, temperature and process corners it does not model.
 
 ## `*.thermal.sim.json` / `*.thermal.sim-request.json` / `*.thermal.sim-response.json`
 
