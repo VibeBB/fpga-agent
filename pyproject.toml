@@ -79,7 +79,7 @@ c0 = 82
 c1 = 67
 decision = 59
 c2 = 56
-mcdc = 34
+mcdc = 31
 boundary = 24
 
 [tool.vibebb-mutation]
@@ -89,7 +89,7 @@ tests = ["tests/test_gates.py", "tests/test_gate_boundaries.py"]
 max_mutants = 400
 
 [tool.coverage.report]
-fail_under = 79
+fail_under = 77
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

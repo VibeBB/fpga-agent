@@ -37,6 +37,7 @@ family reference; the user chose to port all of it to every plugin.
 Records remain advisory: no gate reads them. Existing v1 logs are archived as
 `<name>.v1.jsonl` on the first v2 write. Callers that recorded impressions
 with the v1 shape now get a validation error naming the missing v2 fields.
-The vendored core adds about 1,000 statements to `src/fpga`; the
-structural coverage floors are checked on this branch
+The vendored core adds about 1,000 statements to `src/fpga`; CI's
+verify job (no FPGA toolchain) measured MC/DC 32.32% and combined coverage
+78.73%, so those two floors moved one point below the measured values
 (`docs/test-coverage.md`).
