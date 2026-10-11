@@ -1,0 +1,10 @@
+{
+  "artifact": {
+    "name": "icebreaker.firmware.json",
+    "sha256": "937457e7dfed303e69bc49fc8283ad49c2086e180996e7f045661f643a07e7f0"
+  },
+  "decision_refs": [],
+  "envelope_version": 3,
+  "producer": "circuit",
+  "sources": []
+}
