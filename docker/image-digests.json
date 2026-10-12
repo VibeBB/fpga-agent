@@ -1,12 +1,12 @@
 {
   "fpga_tools": {
-    "attestation": "https://github.com/VibeBB/fpga-agent/attestations/53897451",
-    "digest": "sha256:530300d5434e709dc18c40f8135448dbf85229968b0177397cb8ed1501773a4f",
+    "attestation": "https://github.com/VibeBB/fpga-agent/attestations/55015998",
+    "digest": "sha256:1c8dcb87b030d0fe08b81c2193d4c4bccc77cdcf327852a4e22981e868ef0990",
     "dockerfile": "docker/fpga-tools.Dockerfile",
     "image": "ghcr.io/vibebb/fpga-tools",
-    "published_at": "2026-10-08T10:41:58Z",
-    "sbom_attestation": "https://github.com/VibeBB/fpga-agent/attestations/53897838",
-    "tag": "c2fda641a049a64f9f6587c1f6a1282b0c860581-tools",
+    "published_at": "2026-10-12T10:59:14Z",
+    "sbom_attestation": "https://github.com/VibeBB/fpga-agent/attestations/55016421",
+    "tag": "01570a7a42c6cbb9a4ed9982b5be1f308c7459a8-tools",
     "tools": {
       "boolector": "boolector --version: 3.2.4",
       "ecppack": "ecppack --help: Error: input file is mandatory.",
@@ -15,22 +15,22 @@
       "ghdl-yosys-plugin": "yosys -m ghdl -p help ghdl -q: /opt/oss-cad-suite/bin/yosys",
       "gowin_pack": "gowin_pack -h: /opt/oss-cad-suite/lib/python3.11/site-packages/apycula/bitmatrix.py:60: UserWarning: Numpy is not available, performance will be degraded.",
       "icepack": "icepack -h: /opt/oss-cad-suite/bin/icepack",
-      "iverilog": "iverilog -V: Icarus Verilog version 14.0 (devel) (s20260301-531-g633cc63a1-dirty)",
-      "nextpnr-ecp5": "nextpnr-ecp5 --version: \"nextpnr-ecp5\" -- Next Generation Place and Route (Version nextpnr-0.11.1-53-gf7f1c877)",
-      "nextpnr-himbaechel": "nextpnr-himbaechel --version: \"nextpnr-himbaechel\" -- Next Generation Place and Route (Version nextpnr-0.11.1-53-gf7f1c877)",
-      "nextpnr-ice40": "nextpnr-ice40 --version: \"nextpnr-ice40\" -- Next Generation Place and Route (Version nextpnr-0.11.1-53-gf7f1c877)",
+      "iverilog": "iverilog -V: Icarus Verilog version 14.0 (devel) (s20260301-564-gbe5984bb9-dirty)",
+      "nextpnr-ecp5": "nextpnr-ecp5 --version: \"nextpnr-ecp5\" -- Next Generation Place and Route (Version nextpnr-0.11.1-59-g837d0eed)",
+      "nextpnr-himbaechel": "nextpnr-himbaechel --version: \"nextpnr-himbaechel\" -- Next Generation Place and Route (Version nextpnr-0.11.1-59-g837d0eed)",
+      "nextpnr-ice40": "nextpnr-ice40 --version: \"nextpnr-ice40\" -- Next Generation Place and Route (Version nextpnr-0.11.1-59-g837d0eed)",
       "nvc": "nvc --version: nvc 1.23.0 (1.23.0.r0.gcba10a2) (Using LLVM 21.1.8)",
       "openFPGALoader": "openFPGALoader -V: openFPGALoader v1.1.1",
       "python": "python --version: Python 3.14.8",
       "sby": "sby --help: usage: sby [options] [<jobname>.sby [tasknames] | <dirname>]",
-      "uv": "uv --version: uv 0.12.23 (x86_64-unknown-linux-musl)",
-      "verilator": "verilator --version: Verilator 5.053 devel rev v5.052-319-g704ec556e (mod)",
-      "vvp": "vvp -V: Icarus Verilog runtime version 14.0 (devel) (s20260301-531-g633cc63a1-dirty)",
+      "uv": "uv --version: uv 0.13.0 (x86_64-unknown-linux-musl)",
+      "verilator": "verilator --version: Verilator 5.053 devel rev v5.052-379-g37301a1ba (mod)",
+      "vvp": "vvp -V: Icarus Verilog runtime version 14.0 (devel) (s20260301-564-gbe5984bb9-dirty)",
       "yices-smt2": "yices-smt2 --version: Yices 2.7.0",
-      "yosys": "yosys --version: Yosys 0.69+208 (git sha1 7b1913f4c, Release, Clang /usr/bin/clang++ 21.1.8)",
+      "yosys": "yosys --version: Yosys 0.69+276 (git sha1 e83399dcf, Release, Clang /usr/bin/clang++ 21.1.8)",
       "yosys-smtbmc": "yosys-smtbmc --help: yosys-smtbmc [options] <yosys_smt2_output>",
       "z3": "z3 --version: Z3 version 4.15.5 - 64 bit"
     },
-    "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/37764349372"
+    "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/38238516828"
   }
 }
