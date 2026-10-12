@@ -55,7 +55,7 @@ RUN for attempt in 1 2 3 4 5; do \
 # SymbiYosys, solvers, Icarus, Verilator, openFPGALoader). Every tool keeps
 # its own license under /opt/oss-cad-suite/license and runs as a subprocess.
 RUN curl --fail --location --silent --show-error \
-        --retry 5 --retry-delay 10 --retry-all-errors \
+        --retry 8 --retry-delay 20 --retry-max-time 600 --retry-all-errors \
         --output /tmp/oss-cad-suite.tgz \
         "https://github.com/YosysHQ/oss-cad-suite-build/releases/download/${OSS_CAD_SUITE_RELEASE}/${OSS_CAD_SUITE_ASSET}" \
     && echo "${OSS_CAD_SUITE_SHA256}  /tmp/oss-cad-suite.tgz" | sha256sum --check \
@@ -72,7 +72,7 @@ RUN curl --fail --location --silent --show-error \
 
 # NVC VHDL simulator, GPL-3.0-or-later, checksum-pinned Ubuntu 26.04 package.
 RUN curl --fail --location --silent --show-error \
-        --retry 5 --retry-delay 10 --retry-all-errors \
+        --retry 8 --retry-delay 20 --retry-max-time 600 --retry-all-errors \
         --output /tmp/nvc.deb \
         "https://github.com/nickg/nvc/releases/download/r${NVC_VERSION}/${NVC_ASSET}" \
     && echo "${NVC_SHA256}  /tmp/nvc.deb" | sha256sum --check \
