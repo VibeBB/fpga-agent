@@ -46,6 +46,20 @@ def fetch(name: str, url: str, revision: str, target: Path) -> str:
     head = _git(target, "rev-parse", "HEAD")
     if head != revision:
         raise RuntimeError(f"{name}: checkout is at {head}, expected {revision}")
+    if (target / ".gitmodules").exists():
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(target),
+                "submodule",
+                "update",
+                "--init",
+                "--recursive",
+                "--quiet",
+            ],
+            check=True,
+        )
     return f"{name} {head} at {target}"
 
 
