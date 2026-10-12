@@ -139,6 +139,35 @@ def test_verilog_filelist_and_modules(tmp_path: Path) -> None:
     assert [p.name for p in res.files] == ["axis_fifo.v", "axis_adapter.v"]
 
 
+def test_verilog_instantiation_expands_dependencies(tmp_path: Path) -> None:
+    root = tmp_path / "third_party" / "uart"
+    (root / "rtl").mkdir(parents=True)
+    (root / "rtl/uart_rx.v").write_text("module uart_rx();\nendmodule\n")
+    (root / "rtl/uart_tx.v").write_text("module uart_tx();\nendmodule\n")
+    (root / "rtl/uart.v").write_text(
+        "module uart();\n"
+        "uart_rx uart_rx_inst ();\n"
+        "uart_tx #(.WIDTH(8)) uart_tx_inst ();\n"
+        "endmodule\n"
+    )
+    lib = _lib(tmp_path, "uart", language="verilog", components=["uart"], files=[])
+    res = resolve_library(tmp_path / "x.fpga.json", lib, ["uart"])
+    assert res.problems == []
+    assert [p.name for p in res.files] == ["uart_rx.v", "uart_tx.v", "uart.v"]
+
+
+def test_index_records_unit_kinds(tmp_path: Path) -> None:
+    from fpga.libraries import scan_library
+
+    root = tmp_path / "third_party" / "lib"
+    _vhdl(root / "a/pkg.vhdl", "package pkg is\nend package;")
+    _vhdl(root / "a/pkg_body.vhdl", "package body pkg is\nend package body;")
+    _vhdl(root / "a/one.vhdl", "entity one is\nend entity;")
+    index = scan_library(root, "vhdl")
+    assert index.kinds["pkg"].startswith("package")
+    assert index.kinds["one"] == "entity"
+
+
 def test_files_still_appended(tmp_path: Path) -> None:
     root = tmp_path / "third_party" / "lib"
     extra = _vhdl(root / "extra/extra.vhdl", "entity extra is\nend entity;")

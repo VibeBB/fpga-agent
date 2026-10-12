@@ -83,6 +83,67 @@ license text that `fpga.provenance` verifies mentions the declared
 license). Colibri files carry their own SPDX headers; keep
 `license_file` set anyway for coverage of headerless helpers.
 
+## hdl-modules declaration order
+
+Each used module is its own `libraries[]` entry whose VHDL library name
+equals the module directory name. A `modules/<name>/src` tree holds the
+RTL (`rtl/` holds netlist-build wrappers, not the RTL). Declare
+dependencies before dependents:
+
+1. `math` (leaf)
+2. `common` — uses `resync` in `debounce`/`clock_counter`, and `resync`
+   uses `common` in several `resync_*` units: a file-level cycle between
+   the two libraries. Declaring both works only when the *resolved*
+   closure does not cross both directions (e.g. `common` packages +
+   `resync` units; avoid `debounce`/`clock_counter` together with
+   `resync` units that need `common` packages). The resolver reports the
+   violated direction.
+3. `resync`
+4. `axi`, `axi_lite`, `axi_stream`, `register_file`, `ring_buffer`,
+   `fifo`, `dma_axi_write_simple`, `hard_fifo`, `lfsr`,
+   `sine_generator` — depend on the layers above
+   (`fifo` → `common`, `math`, `resync`).
+
+`scripts/library_smoke.py` emits this order automatically; when unsure,
+run it (see below).
+
+## Units that do not synthesize via GHDL/Yosys for Gowin
+
+Verified by a `synth_gowin` sweep of every unreferenced unit. Expected
+misses — units requiring generics to elaborate (most `olo_fix_*`,
+colibri `stream_*`/`axi*`, parameterized `hdl-modules` entities) — are
+not listed; instantiate them inside a design instead.
+
+| Unit(s) | Library | Reason |
+|---|---|---|
+| `wb_ram`, `wb_to_pipelined_wb` | colibri | latch inference unsupported by GHDL |
+| `true_dpram` | colibri | base `true_dpram.vhdl` generate-instantiates the Xilinx variant whose code infers a latch; unusable via GHDL regardless of vendor selection |
+| `aurora*`, `avst_cdc`, `synchro_handshake` | colibri | Intel/Xilinx FF init values + async resets `synth_gowin` cannot legalize |
+| `hard_fifo` | hdl-modules | instantiates `unisim.vcomponents` primitives |
+| `olo_base_ram_tdp`, `olo_base_ram_sdp` | open-logic | `Mem_v` multiple-assignment analysis error in GHDL |
+| `olo_base_packet_fifo` | open-logic | `CONSTRAINT_ERROR` during analysis |
+| `olo_intf_spi_master`, `olo_intf_uart_*` | open-logic | integer literal out-of-range / elaboration limits in GHDL |
+| `dma_axi_write_simple` | hdl-modules | requires a generated register-record package not in the repo |
+| `pipeline_buffer`, `mmap_fifo`, `interleaver` | hdl-modules | GHDL analysis limits (reference-before-elab, no-choice-for, >120 s) |
+
+## Smoke-check a library set
+
+`scripts/library_smoke.py` sweeps every unit that nothing else
+references (the prospective tops) through `synth_<family>` inside the
+fpga-tools container:
+
+```bash
+docker run --rm -v "$PWD":/repo -v out:/out -w /repo fpga-tools:dev \
+    python3 scripts/library_smoke.py --family gowin --out /out/smoke
+```
+
+Options: `--libraries a,b` (sweep only those — dependencies are still
+declared), `--contract path/to/x.fpga.json` (sweep a real contract's
+libraries instead of the registry), `--family ice40|ecp5|gowin`,
+`--timeout SEC`. A `results.json` and per-unit `synth.log` land under
+`--out`. A `RESOLVE-FAIL` entry means `components`/`files` could not be
+mapped to a compile list — fix the contract, not the library.
+
 ## Colibri licensing
 
 Colibri is published under CERN-OHL-W-2.0 (a weakly reciprocal hardware

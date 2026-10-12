@@ -60,7 +60,7 @@ _SKIP_DIRS = frozenset(
 )
 
 _VHDL_DECL = re.compile(
-    r"^\s*(?:entity|package)\s+(body\s+)?([a-zA-Z][a-zA-Z0-9_]*)\s+is\b",
+    r"^\s*(entity|package)\s+(body\s+)?([a-zA-Z][a-zA-Z0-9_]*)\s+is\b",
     re.IGNORECASE | re.MULTILINE,
 )
 _VHDL_USE = re.compile(
@@ -68,10 +68,17 @@ _VHDL_USE = re.compile(
     re.IGNORECASE,
 )
 _VLOG_DECL = re.compile(
-    r"^\s*(?:module|macromodule|package)\s+([a-zA-Z_][a-zA-Z0-9_$]*)", re.MULTILINE
+    r"^\s*(module|macromodule|package)\s+([a-zA-Z_][a-zA-Z0-9_$]*)", re.MULTILINE
 )
 _VLOG_INCLUDE = re.compile(r'`include\s+"([^"]+)"')
 _VLOG_IMPORT = re.compile(r"\bimport\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*::")
+# Candidate direct instantiations: ``name inst(`` or ``name #(...) inst(``.
+# Matched names are kept only when they resolve to an indexed provider, so
+# keywords/primitives never become phantom dependencies.
+_VLOG_INST = re.compile(
+    r"\b([a-zA-Z_][a-zA-Z0-9_$]*)\s*(?:#\s*\((?:[^()]|\([^()]*\))*\)\s*)?"
+    r"[a-zA-Z_][a-zA-Z0-9_$]*\s*\("
+)
 _COMMENT_VHDL = re.compile(r"--.*$", re.MULTILINE)
 _COMMENT_VLOG_LINE = re.compile(r"//.*$", re.MULTILINE)
 _COMMENT_VLOG_BLOCK = re.compile(r"/\*.*?\*/", re.DOTALL)
@@ -100,6 +107,8 @@ class Index:
         self.bodies: dict[str, Path] = {}  # VHDL package bodies
         self.refs: dict[Path, set[Ref]] = {}
         self.filelists: dict[str, Path] = {}  # "<stem>.f" lists
+        self.kinds: dict[str, str] = {}  # unit -> entity/module/package/...
+        self.pending_insts: dict[Path, set[str]] = {}  # instantiation candidates
 
     @property
     def units(self) -> list[str]:
@@ -133,32 +142,43 @@ def scan_library(root: Path, language: str) -> Index:
             continue
         refs: set[Ref] = set()
         if language == "vhdl":
-            for body, name in _VHDL_DECL.findall(text):
+            for kind, body, name in _VHDL_DECL.findall(text):
                 key = name.lower()
                 if body:
                     index.bodies.setdefault(key, path)
+                    index.kinds.setdefault(key, f"{kind.lower()}_body")
                 elif key in index.providers and index.providers[key] != path:
                     index.ambiguous.setdefault(key, []).append(path)
                 else:
                     index.providers[key] = path
+                    index.kinds.setdefault(key, kind.lower())
             for lib, unit in _VHDL_USE.findall(text):
                 refs.add(Ref(lib.lower(), unit.lower()))
         else:
-            for name in _VLOG_DECL.findall(text):
+            for kind, name in _VLOG_DECL.findall(text):
                 key = name.lower()
                 if key in index.providers and index.providers[key] != path:
                     index.ambiguous.setdefault(key, []).append(path)
                 else:
                     index.providers[key] = path
+                    index.kinds.setdefault(
+                        key, "module" if kind.lower() == "macromodule" else kind.lower()
+                    )
             for inc in _VLOG_INCLUDE.findall(text):
                 refs.add(Ref("", inc))
             for pkg in _VLOG_IMPORT.findall(text):
                 refs.add(Ref("", pkg.lower()))
         index.refs[path] = refs
+        if language != "vhdl":
+            index.pending_insts[path] = {name.lower() for name in _VLOG_INST.findall(text)}
     if language != "vhdl":
         for path in root.rglob("*.f"):
             if not ({part.lower() for part in path.parts} & _SKIP_DIRS):
                 index.filelists[path.stem.lower()] = path
+        known = set(index.providers) | set(index.ambiguous)
+        for path, candidates in index.pending_insts.items():
+            index.refs[path] |= {Ref("", name) for name in candidates & known}
+        index.pending_insts.clear()
     return index
 
 
