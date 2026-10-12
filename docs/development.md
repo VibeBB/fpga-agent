@@ -4,7 +4,7 @@
 
 ```bash
 uv sync --locked
-python3 scripts/fetch_colibri.py   # pinned Colibri into third_party/ (gitignored)
+python3 scripts/fetch_hdl_libraries.py   # pinned HDL libraries into third_party/ (gitignored)
 ```
 
 ## Verify

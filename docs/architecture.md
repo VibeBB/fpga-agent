@@ -46,8 +46,9 @@ exception — it always execs on the host.
 ### contract.py
 `Device`, `Source`, `Library`, `Clock`, `Pin`, `Budget`, `Build`,
 `Simulation`, `Formal`, `CircuitLink`, `Programmer`, `FpgaContract`;
-`load_contract(path)`, `resolve(contract_path, relative)`,
-`library_files(contract_path, library)`.
+`load_contract(path)`, `resolve(contract_path, relative)`;
+`fpga.libraries` resolves `libraries[]` `files`/`components` to compile
+order via `scan_library`/`resolve_library`.
 
 ### devices.py
 `DevicePin`, `DeviceProfile`; `bundled_ids()`,

@@ -39,7 +39,7 @@ def test_locked_image_workflows_run_fpga_launcher() -> None:
         assert "plugins/fpga/scripts/fpga_launcher.py" in text
         assert ("FPGA_TOOLS_IMAGE" in text) == (name == "publish-fpga-images.yml")
         assert "FPGA_SRC" in text
-        assert "scripts/fetch_colibri.py" in text
+        assert "scripts/fetch_hdl_libraries.py" in text
         assert "examples/*/*.fpga.json" in text
         launcher = (REPO_ROOT / "plugins/fpga/scripts/fpga_launcher.py").read_text(encoding="utf-8")
         assert '"--network"' in launcher

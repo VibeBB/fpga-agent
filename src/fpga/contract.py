@@ -52,25 +52,44 @@ class Source(_Strict):
 class Library(_Strict):
     """An external HDL library used unmodified (e.g. Colibri).
 
-    Files are listed in compilation order, relative to ``root``. The
-    license, source URL and pinned revision are recorded so the obligation
-    each library carries is visible in every report.
+    ``files`` are listed in compilation order relative to ``root``.
+    ``components`` names design units (VHDL entities/packages, Verilog
+    modules, ``<name>.f`` file lists, or ``all``) resolved to ordered
+    files by scanning ``root``; both may be combined. ``license_file``
+    points at a root-relative license text covering files that carry no
+    SPDX header. The license, source URL and pinned revision are recorded
+    so the obligation each library carries is visible in every report.
     """
 
     name: str = Field(pattern=IDENT)
     root: str
     language: Language = "vhdl"
-    files: list[str] = Field(min_length=1)
+    files: list[str] = Field(default_factory=list[str])
+    components: list[str] = Field(default_factory=list[str])
     license: str = Field(min_length=2)
+    license_file: str | None = None
     source_url: str = Field(pattern=r"^https://")
     revision: str = Field(min_length=7)
 
     _root = field_validator("root")(_relative)
 
+    @field_validator("license_file")
+    @classmethod
+    def _license_file(cls, value: str | None) -> str | None:
+        return _relative(value) if value is not None else value
+
     @field_validator("files")
     @classmethod
     def _files(cls, value: list[str]) -> list[str]:
         return [_relative(item) for item in value]
+
+    @field_validator("components")
+    @classmethod
+    def _components(cls, value: list[str]) -> list[str]:
+        for item in value:
+            if not re.fullmatch(r"[a-zA-Z][a-zA-Z0-9_.$-]*", item):
+                raise ValueError(f"invalid component name {item!r}")
+        return value
 
     @field_validator("name")
     @classmethod
@@ -78,6 +97,12 @@ class Library(_Strict):
         if value in ("work", "std", "ieee"):
             raise ValueError(f"library name {value!r} is reserved")
         return value
+
+    @model_validator(mode="after")
+    def _some_input(self) -> Library:
+        if not self.files and not self.components:
+            raise ValueError(f"library {self.name}: declare files or components")
+        return self
 
 
 class Clock(_Strict):
@@ -439,8 +464,3 @@ def load_contract(path: Path) -> FpgaContract:
 
 def resolve(contract_path: Path, relative: str) -> Path:
     return (contract_path.parent / relative).resolve()
-
-
-def library_files(contract_path: Path, library: Library) -> list[Path]:
-    root = resolve(contract_path, library.root)
-    return [(root / item).resolve() for item in library.files]

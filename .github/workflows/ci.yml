@@ -132,9 +132,9 @@ jobs:
       - name: Sync dependencies
         id: sync-dependencies
         run: uv sync --locked
-      - name: Fetch Colibri
+      - name: Fetch HDL libraries
         id: fetch-colibri
-        run: python3 scripts/fetch_colibri.py
+        run: for c in examples/*/*.fpga.json; do python3 scripts/fetch_hdl_libraries.py --contract "$c"; done
       # The seven check legs only read the synced venv and the fetched
       # Colibri tree — no outputs cross legs — so each runs as a
       # background step (the ids stay top-level so actionlint still
@@ -214,10 +214,10 @@ jobs:
         id: sync-dependencies
         continue-on-error: true
         run: uv sync --locked
-      - name: Fetch Colibri
+      - name: Fetch HDL libraries
         id: fetch-colibri
         continue-on-error: true
-        run: python3 scripts/fetch_colibri.py
+        run: for c in examples/*/*.fpga.json; do python3 scripts/fetch_hdl_libraries.py --contract "$c"; done
       - name: Ruff
         id: ruff
         continue-on-error: true
@@ -342,8 +342,8 @@ jobs:
             ${{ steps.ghcr-login.outcome == 'success' && github.event_name != 'pull_request'
                 && format('type=registry,ref=ghcr.io/{0}/fpga-tools:buildcache,mode=max', env.IMAGE_OWNER)
                 || 'type=gha,mode=max,ignore-error=true' }}
-      - name: Fetch Colibri
-        run: python3 scripts/fetch_colibri.py
+      - name: Fetch HDL libraries
+        run: for c in examples/*/*.fpga.json; do python3 scripts/fetch_hdl_libraries.py --contract "$c"; done
       - name: Wait for the tools image
         wait: build-tools
       # The gates and the pytest tools leg both write
