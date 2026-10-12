@@ -62,7 +62,7 @@ def test_docker_args_report_fetch_failed_on_timeout():
 def test_docker_release_pins_use_upstream_latest_tags() -> None:
     def tags(url: str) -> list[str]:
         if url.endswith("astral-sh/uv"):
-            return ["0.12.23"]
+            return ["0.13.0"]
         if url.endswith("nickg/nvc"):
             return ["r1.23.0", "r1.24.0"]
         if url.endswith("YosysHQ/oss-cad-suite-build"):
@@ -74,8 +74,8 @@ def test_docker_release_pins_use_upstream_latest_tags() -> None:
     nvc_status = next(status for status in statuses if status.name == "NVC_VERSION")
     oss_status = next(status for status in statuses if status.name == "OSS_CAD_SUITE_RELEASE")
     assert (uv_status.current, uv_status.latest, uv_status.outdated) == (
-        "0.12.23",
-        "0.12.23",
+        "0.13.0",
+        "0.13.0",
         False,
     )
     assert (nvc_status.current, nvc_status.latest, nvc_status.outdated) == (
@@ -84,7 +84,7 @@ def test_docker_release_pins_use_upstream_latest_tags() -> None:
         True,
     )
     assert (oss_status.current, oss_status.latest, oss_status.outdated) == (
-        "2026-10-07",
+        "2026-10-12",
         "2026-12-01",
         True,
     )
@@ -92,11 +92,10 @@ def test_docker_release_pins_use_upstream_latest_tags() -> None:
 
 def test_subpath_actions_resolve_to_owner_repo() -> None:
     """uses: owner/repo/sub/path@sha pins track the owning repo's tags."""
-    tags = {"https://github.com/github/codeql-action": ["v4.38.2", "v4.38.3"]}
+    tags = {"https://github.com/github/codeql-action": ["v4.38.3", "v4.39.0"]}
     statuses = check_github_actions(ROOT, list_remote_tags=lambda url: tags.get(url, []))
     codeql = next(status for status in statuses if status.name == "github/codeql-action")
-    assert codeql.current == "v4.38.2"
-    assert codeql.latest == "v4.38.3"
+    assert codeql.latest == "v4.39.0"
     assert codeql.outdated is True
 
 

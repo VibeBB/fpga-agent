@@ -29,3 +29,13 @@ CVE-2025-47273 exp:2027-01-03
 # "Container hardening -> CIS baseline".
 AVD-DS-0002 exp:2027-01-04
 AVD-DS-0026 exp:2027-01-04
+
+# --- Vendored upstream payloads (no fix on our side) ----------------------
+# /usr/bin/pebble is the Ubuntu-archive pebble 2.6.0+ds1-1build1 binary,
+# built with Go 1.26.7; the resolute archive still ships the same build
+# (checked 2026-10-12) so the Go stdlib HIGHs are unfixable until Ubuntu
+# rebuilds against >=1.26.9. Re-verified on each base-digest bump (same
+# posture as circuit-agent's identical binary).
+CVE-2026-78667 exp:2027-01-12
+CVE-2026-78669 exp:2027-01-12
+CVE-2026-97031 exp:2027-01-12
