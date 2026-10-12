@@ -46,11 +46,27 @@ checksum and license in `/usr/share/doc/oss-cad-suite/SOURCE` and
 | Library | Revision | License | Use |
 |---|---|---|---|
 | [Colibri](https://gitlab.com/colibri-cern/colibri) (CERN) | `3fa784121ccea86d9e65b2e0dc08d2a3327f5f2f` | CERN-OHL-W-2.0 (some files Apache-2.0 / CC-BY-SA-4.0) | UART in `examples/uart-echo-icebreaker` |
+| [Open Logic](https://github.com/open-logic/open-logic) (PSI) | `d9f123aae1c6022288782668067311f9794da0a2` | LGPL-2.1-or-later WITH PSI HDL exception | `olo` VHDL library components |
+| [hdl-modules](https://github.com/hdl-modules/hdl-modules) | `8142d3a1d878651811427e609293946e699c5cb7` | BSD-3-Clause | per-module VHDL libraries (`common`, `fifo`, `math`, `bfm`, …) |
+| [verilog-axis](https://github.com/alexforencich/verilog-axis) | `48ff7a7e2ef782cf778d47910cf85835c64b1bce` | MIT | AXI-Stream components |
+| [verilog-uart](https://github.com/alexforencich/verilog-uart) | `1b867e53af738e4a8bc7c839ca2f1c07f40382dc` | MIT | minimal UART rx/tx |
+| [libfpga](https://github.com/libfpga/libfpga) | `a4ef4a3fa4ac1de6aa485baf3efc56f14a6df704` | MIT | uart/spi/i2c/fifo/cdc/arbiter/crc/lfsr/axi4lite |
 
-Colibri is fetched by `scripts/fetch_colibri.py` into `third_party/`
-(gitignored) and compiled unmodified into the `colibri` VHDL library.
-Anyone distributing a bitstream or product built from it must follow
-CERN-OHL-W-2.0 (keep notices; publish modifications to Colibri files).
+These libraries are fetched by `scripts/fetch_hdl_libraries.py` (registry:
+`scripts/hdl_libraries.json`) into `third_party/` (gitignored) and
+compiled unmodified into their own HDL libraries. `fpga.provenance`
+records the license, pinned revision and per-file license evidence in
+every gate report.
+
+Obligations when shipping bitstreams or products built from them:
+
+- Colibri: keep notices; publish modifications to Colibri files under
+  CERN-OHL-W-2.0.
+- Open Logic: the PSI HDL exception explicitly allows distributing
+  bitstreams under your own terms; source-level redistribution stays
+  LGPL-2.1-or-later.
+- hdl-modules, verilog-axis, verilog-uart, libfpga: permissive; keep
+  copyright notices.
 
 ## Device data
 

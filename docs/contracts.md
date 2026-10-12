@@ -6,8 +6,8 @@ truth is the code.
 ## `*.fpga.json` — FpgaContract (`src/fpga/contract.py`, schema_version 1)
 
 `name`, `description`, `device {profile, ref}`, `top`,
-`sources [{path, language}]`, `libraries [{name, repo, revision, license,
-files[]}]`, `clocks [{port, frequency_mhz, margin_pct}]`, `pins [{port, package_pin,
+`sources [{path, language}]`, `libraries [{name, root, language, files[],
+components[], license, license_file, source_url, revision}]`, `clocks [{port, frequency_mhz, margin_pct}]`, `pins [{port, package_pin,
 net, io_standard, pull}]`, `build {dir, constraints, bitstream, budget,
 pnr_seed}`, `simulations [{id, runner(nvc|iverilog), top, files, expect[],
 forbid[], timeout_s, waveform, coverage?}]`, `formal [{id, mode, top, sources,

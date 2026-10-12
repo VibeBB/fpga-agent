@@ -26,7 +26,7 @@ The launcher uses the image named by `FPGA_TOOLS_IMAGE`, or the pin in
 from the published image; do not record a local build digest. The build runs
 the ULX3S example's full gates offline as a smoke test. External HDL such as
 Colibri is not in the image; fetch it into the workspace with
-`scripts/fetch_colibri.py` before running the gates.
+`scripts/fetch_hdl_libraries.py` before running the gates.
 
 Each published image receives GitHub build provenance. The lock records its
 attestation URL, and locked-image checks verify it against this repository's

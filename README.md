@@ -77,7 +77,7 @@ Standalone quick start:
 
 ```bash
 uv sync --locked
-python3 scripts/fetch_colibri.py   # pinned Colibri into third_party/ (gitignored)
+python3 scripts/fetch_hdl_libraries.py   # pinned HDL libraries into third_party/ (gitignored)
 docker build -f docker/fpga-tools.Dockerfile -t fpga-tools:dev .
 export FPGA_TOOLS_IMAGE=fpga-tools:dev
 python3 plugins/fpga/scripts/fpga_launcher.py doctor

@@ -41,7 +41,7 @@ sibling in the VibeBB OpenHands plugin family.
 
 ```bash
 uv sync --locked
-python3 scripts/fetch_colibri.py
+python3 scripts/fetch_hdl_libraries.py
 uv run ruff check . && uv run ruff format --check .
 uv run pyright
 uv run pytest

@@ -432,6 +432,30 @@ def main() -> int:
         return 2
     plugin_root = Path(__file__).resolve().parents[1]
     source = resolve_source(plugin_root)
+    if argv[0] == "fetch":
+        # Fetch contract-declared HDL libraries on the host; the tools
+        # container runs with --network none so cloning cannot happen
+        # inside it. Usage: fpga_launcher.py fetch <contract.fpga.json>
+        if len(argv) != 2:
+            print("usage: fpga_launcher.py fetch <contract.fpga.json>", file=sys.stderr)
+            return 2
+        candidates = [plugin_root.parents[1]]
+        if source is not None:
+            candidates.append(source.parent)
+        script = next(
+            (
+                c / "scripts" / "fetch_hdl_libraries.py"
+                for c in candidates
+                if (c / "scripts" / "fetch_hdl_libraries.py").is_file()
+            ),
+            None,
+        )
+        if script is None:
+            return _warn_or_die("scripts/fetch_hdl_libraries.py not found", argv)
+        return subprocess.call(
+            [sys.executable, str(script), "--contract", argv[1]],
+            cwd=script.parents[1],
+        )
     if argv[0] == "program":
         # Programming is human-only and needs the USB programmer: it always
         # runs on the host interpreter, never inside the tools image.

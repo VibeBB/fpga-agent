@@ -13,6 +13,8 @@ on:
       - "uv.lock"
       - "scripts/measure_image_tools.py"
       - "scripts/fetch_colibri.py"
+      - "scripts/fetch_hdl_libraries.py"
+      - "scripts/hdl_libraries.json"
       - "scripts/print_locked_image.py"
       - "scripts/pull_locked_image.py"
       - "scripts/update_image_digest_lock.py"
@@ -268,7 +270,7 @@ jobs:
           export FPGA_TOOLS_IMAGE="$TOOLS_REF"
           export FPGA_SRC="$GITHUB_WORKSPACE/src"
           export OPENHANDS_PROJECT_DIR="$GITHUB_WORKSPACE"
-          python3 scripts/fetch_colibri.py
+          for c in examples/*/*.fpga.json; do python3 scripts/fetch_hdl_libraries.py --contract "$c"; done
           launcher=plugins/fpga/scripts/fpga_launcher.py
           python3 "$launcher" doctor | tee doctor.json
           for contract in examples/*/*.fpga.json; do

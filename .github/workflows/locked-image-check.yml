@@ -208,7 +208,7 @@ jobs:
           FPGA_VERIFY_ATTESTATION: ${{ needs.check-lock.outputs.attestation != '' && 'require' || 'auto' }}
         run: |
           set -euo pipefail
-          python3 scripts/fetch_colibri.py
+          for c in examples/*/*.fpga.json; do python3 scripts/fetch_hdl_libraries.py --contract "$c"; done
           launcher=plugins/fpga/scripts/fpga_launcher.py
           python3 "$launcher" prewarm
           python3 "$launcher" doctor | tee doctor.json

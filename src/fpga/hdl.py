@@ -11,7 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .contract import FpgaContract, ParamValue, Source, library_files, resolve
+from .contract import FpgaContract, ParamValue, Source, resolve
+from .libraries import resolve_contract_libraries
 
 
 @dataclass(frozen=True)
@@ -24,10 +25,13 @@ class Unit:
 def units(
     contract: FpgaContract, contract_path: Path, extra: list[Source] | None = None
 ) -> list[Unit]:
-    result: list[Unit] = [
-        Unit(lib.name, lib.language, tuple(library_files(contract_path, lib)))
-        for lib in contract.libraries
-    ]
+    resolved = resolve_contract_libraries(contract, contract_path)
+    result: list[Unit] = []
+    for lib in contract.libraries:
+        res = resolved[lib.name]
+        if res.problems:
+            raise ValueError("; ".join(res.problems))
+        result.append(Unit(lib.name, lib.language, tuple(res.files)))
     sources = [*contract.sources, *(extra or [])]
     order: list[str] = []
     for source in sources:

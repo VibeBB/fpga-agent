@@ -14,17 +14,19 @@ from __future__ import annotations
 import contextlib
 import json
 import re
+import subprocess
 from pathlib import Path
 from typing import Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from . import flow
-from .contract import FpgaContract, library_files, load_contract, resolve
+from .contract import FpgaContract, Library, load_contract, resolve
 from .coverage import run_coverage
 from .devices import DeviceProfile, load_profile
 from .formal import run_formal
 from .interchange import CircuitConnectivity, load_circuit, sha256_file
+from .libraries import Resolved, resolve_contract_libraries
 from .projections import (
     CONSTRAINT_SUFFIX,
     constraints_text,
@@ -99,12 +101,16 @@ def _run_check(check_id: str, subject: str, run: ToolRun, extra: list[str] | Non
     return _check(check_id, subject, [] if run.ok else [run.detail], evidence)
 
 
-def contract_files(contract: FpgaContract, contract_path: Path) -> list[tuple[str, Path]]:
+def contract_files(
+    contract: FpgaContract, contract_path: Path, resolved: dict[str, Resolved] | None = None
+) -> list[tuple[str, Path]]:
     files: list[tuple[str, Path]] = [
         (s.path, resolve(contract_path, s.path)) for s in contract.sources
     ]
+    if resolved is None:
+        resolved = resolve_contract_libraries(contract, contract_path)
     for lib in contract.libraries:
-        files += [(f"{lib.name}:{p.name}", p) for p in library_files(contract_path, lib)]
+        files += [(f"{lib.name}:{p.name}", p) for p in resolved[lib.name].files]
     for sim in contract.simulations:
         files += [(s.path, resolve(contract_path, s.path)) for s in sim.sources]
     for run in contract.formal:
@@ -113,13 +119,20 @@ def contract_files(contract: FpgaContract, contract_path: Path) -> list[tuple[st
 
 
 def check_contract(
-    contract: FpgaContract, contract_path: Path, profile: DeviceProfile, circuit_problem: str | None
+    contract: FpgaContract,
+    contract_path: Path,
+    profile: DeviceProfile,
+    circuit_problem: str | None,
+    resolved: dict[str, Resolved] | None = None,
 ) -> Check:
+    if resolved is None:
+        resolved = resolve_contract_libraries(contract, contract_path)
     problems = [
         f"{label}: missing ({path})"
-        for label, path in contract_files(contract, contract_path)
+        for label, path in contract_files(contract, contract_path, resolved)
         if not path.is_file()
     ]
+    problems += [p for r in resolved.values() for p in r.problems]
     expected = CONSTRAINT_SUFFIX[profile.family]
     if not contract.build.constraints.endswith(f".fpga{expected}"):
         problems.append(f"build.constraints must end with .fpga{expected} for {profile.family}")
@@ -176,20 +189,79 @@ def write_envelope_v3(artifact: Path, sources: list[Path]) -> None:
         raise
 
 
-def check_provenance(contract: FpgaContract, contract_path: Path) -> Check:
+LICENSE_PHRASES = {
+    "MIT": "Permission is hereby granted, free of charge",
+    "Apache-2.0": "Apache License",
+    "BSD-2-Clause": "Redistribution and use in source and binary forms",
+    "BSD-3-Clause": "Redistribution and use in source and binary forms",
+    "LGPL-2.1-only": "GNU Library General Public Licence",
+    "LGPL-2.1-or-later": "GNU Library General Public Licence",
+    "LGPL-3.0-only": "GNU Lesser General Public License",
+    "LGPL-3.0-or-later": "GNU Lesser General Public License",
+    "CERN-OHL-W-2.0": "CERN Open Hardware Licence",
+    "SHL-0.51": "SOLDERPAD HARDWARE LICENSE",
+    "CC0-1.0": "CC0",
+    "GPL-2.0-only": "GNU General Public License",
+    "GPL-3.0-only": "GNU General Public License",
+    "GPL-3.0-or-later": "GNU General Public License",
+}
+
+
+def license_file_check(contract_path: Path, lib: Library, declared: set[str]) -> tuple[str, str]:
+    """Verify ``lib.license_file`` exists and mentions the declared license.
+
+    Returns ``(status, detail)`` where status is ``ok``, ``unverified`` or
+    a problem description.
+    """
+    assert lib.license_file is not None
+    path = resolve(contract_path, lib.root) / lib.license_file
+    if not path.is_file():
+        return "missing", f"{lib.name}: license_file {lib.license_file} is missing"
+    text = path.read_text(encoding="utf-8", errors="replace")
+    known = {t for t in declared if t in LICENSE_PHRASES}
+    if not known:
+        return "unverified", "license ids not in phrase table"
+    if not any(LICENSE_PHRASES[t] in text for t in known):
+        return (
+            "missing",
+            f"{lib.name}: license_file {lib.license_file} does not mention {lib.license}",
+        )
+    return "ok", ""
+
+
+def check_provenance(
+    contract: FpgaContract, contract_path: Path, resolved: dict[str, Resolved] | None = None
+) -> Check:
     if not contract.libraries:
         return _check("fpga.provenance", contract.name, [], ["no external libraries"])
+    if resolved is None:
+        resolved = resolve_contract_libraries(contract, contract_path)
     problems: list[str] = []
     evidence: list[str] = []
     for lib in contract.libraries:
         declared = {t for t in SPDX_TOKEN.findall(lib.license) if t not in SPDX_OPERATORS}
+        res = resolved[lib.name]
+        problems += res.problems
+        files = res.files
         headed = 0
-        for path in library_files(contract_path, lib):
+        rooted = 0
+        license_state = "none"
+        if lib.license_file is not None:
+            state, detail = license_file_check(contract_path, lib, declared)
+            license_state = state
+            if state == "missing":
+                problems.append(detail)
+        for path in files:
             if not path.is_file():
                 problems.append(f"{lib.name}:{path.as_posix()} is missing")
                 continue
             ids = spdx_ids(path)
             if not ids:
+                if license_state == "ok" or (
+                    license_state == "unverified" and lib.license_file is not None
+                ):
+                    rooted += 1
+                    continue
                 problems.append(f"{lib.name}:{path.name} has no SPDX-License-Identifier header")
                 continue
             headed += 1
@@ -199,9 +271,30 @@ def check_provenance(contract: FpgaContract, contract_path: Path) -> Check:
                     f"{lib.name}:{path.name} is {', '.join(undeclared)}, "
                     f"library declares {lib.license}"
                 )
+        git_dir = resolve(contract_path, lib.root) / ".git"
+        revision_state = "unchecked"
+        if git_dir.is_dir() or git_dir.is_file():
+            try:
+                head = subprocess.run(
+                    ["git", "-C", str(resolve(contract_path, lib.root)), "rev-parse", "HEAD"],
+                    capture_output=True,
+                    text=True,
+                ).stdout.strip()
+            except OSError:
+                head = ""
+            if head == lib.revision:
+                revision_state = f"pinned {head[:12]}"
+            else:
+                problems.append(
+                    f"{lib.name}: checkout is at {head[:12] or 'unknown'}, "
+                    f"contract pins {lib.revision}"
+                )
+                revision_state = f"mismatch {head[:12]}"
         evidence.append(
             f"{lib.name}: {lib.license} @ {lib.revision} ({lib.source_url}); "
-            f"SPDX headers {headed}/{len(lib.files)}"
+            f"coverage spdx={headed} root={rooted}/{len(files)}"
+            + (f", license_file {lib.license_file}={license_state}" if lib.license_file else "")
+            + f", revision {revision_state}"
         )
     return _check("fpga.provenance", contract.name, problems, evidence)
 
@@ -539,9 +632,10 @@ def run_gates(
             checks=[Check(id="fpga.contract", status="fail", detail=str(exc))],
         )
     out_dir.mkdir(parents=True, exist_ok=True)
+    resolved = resolve_contract_libraries(contract, contract_path)
     checks = [
-        check_contract(contract, contract_path, profile, circuit_problem),
-        check_provenance(contract, contract_path),
+        check_contract(contract, contract_path, profile, circuit_problem, resolved),
+        check_provenance(contract, contract_path, resolved),
         check_pins(contract, profile),
         check_constraints(contract, profile, contract_path),
     ]

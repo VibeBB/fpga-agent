@@ -1,0 +1,26 @@
+{
+  "colibri": {
+    "url": "https://gitlab.com/colibri-cern/colibri.git",
+    "revision": "3fa784121ccea86d9e65b2e0dc08d2a3327f5f2f"
+  },
+  "open-logic": {
+    "url": "https://github.com/open-logic/open-logic.git",
+    "revision": "d9f123aae1c6022288782668067311f9794da0a2"
+  },
+  "hdl-modules": {
+    "url": "https://github.com/hdl-modules/hdl-modules.git",
+    "revision": "8142d3a1d878651811427e609293946e699c5cb7"
+  },
+  "verilog-axis": {
+    "url": "https://github.com/alexforencich/verilog-axis.git",
+    "revision": "48ff7a7e2ef782cf778d47910cf85835c64b1bce"
+  },
+  "verilog-uart": {
+    "url": "https://github.com/alexforencich/verilog-uart.git",
+    "revision": "1b867e53af738e4a8bc7c839ca2f1c07f40382dc"
+  },
+  "libfpga": {
+    "url": "https://github.com/libfpga/libfpga.git",
+    "revision": "a4ef4a3fa4ac1de6aa485baf3efc56f14a6df704"
+  }
+}

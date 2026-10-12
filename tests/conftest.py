@@ -9,8 +9,19 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "examples"
-COLIBRI = ROOT / "third_party" / "colibri"
+THIRD_PARTY = ROOT / "third_party"
 TOOLS = ("yosys", "nvc", "nextpnr-ice40", "nextpnr-ecp5", "nextpnr-himbaechel", "sby")
+
+
+def link_third_party(tmp_path: Path, *names: str) -> None:
+    """Symlink the named fetched libraries into ``tmp_path/third_party``."""
+    target = tmp_path / "third_party"
+    target.mkdir(exist_ok=True)
+    for name in names:
+        source = THIRD_PARTY / name
+        if not source.is_dir():
+            pytest.skip(f"{name} not fetched; run scripts/fetch_hdl_libraries.py")
+        (target / name).symlink_to(source)
 
 
 def tools_available() -> bool:
@@ -50,10 +61,7 @@ def tangprimer20k(tmp_path: Path) -> Path:
 @pytest.fixture
 def uart_echo(tmp_path: Path) -> Path:
     """Copy of the iCEBreaker UART echo example with Colibri linked beside it."""
-    if not (COLIBRI / "src" / "io" / "uart" / "uart.vhdl").is_file():
-        pytest.skip("Colibri not fetched; run scripts/fetch_colibri.py")
-    (tmp_path / "third_party").mkdir()
-    (tmp_path / "third_party" / "colibri").symlink_to(COLIBRI)
+    link_third_party(tmp_path, "colibri")
     return _copy(tmp_path, "uart-echo-icebreaker", "uart-echo.fpga.json")
 
 
