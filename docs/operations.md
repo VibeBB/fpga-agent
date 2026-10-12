@@ -77,6 +77,13 @@ nothing in the image invokes Flask/Werkzeug or the vendored
 pip/setuptools; the IDs carry `.trivyignore` waivers expiring 2027-01-03
 and are re-verified by the publish-gate Trivy scan on every suite bump
 (see `scripts/dependency_update_deferrals.json`).
+
+The 2026-10-12 publish-gate reproduction also surfaced `/usr/bin/pebble`
+(Ubuntu archive 2.6.0+ds1-1build1 built with Go 1.26.7) carrying
+CVE-2026-78667/78669/97031 — the resolute archive still ships that build,
+so the stdlib HIGHs are unfixable until Ubuntu rebuilds against Go
+>=1.26.9. Waived to 2027-01-12 (same posture as circuit-agent's identical
+binary) and re-verified on each `ubuntu:26.04` base-digest bump.
 fpga-tools is the only published image — there is no second image left
 unscanned.
 
