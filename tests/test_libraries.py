@@ -84,6 +84,16 @@ def test_all_component_selects_everything(tmp_path: Path) -> None:
     assert len(res.files) == 2
 
 
+def test_example_dirs_are_skipped(tmp_path: Path) -> None:
+    root = tmp_path / "third_party" / "lib"
+    _vhdl(root / "a/one.vhdl", "entity one is\nend entity;")
+    _vhdl(root / "example/demo.vhdl", "entity demo is\nend entity;")
+    lib = _lib(tmp_path, "lib", components=["all"], files=[])
+    res = resolve_library(tmp_path / "x.fpga.json", lib, ["lib"])
+    assert res.problems == []
+    assert len(res.files) == 1
+
+
 def test_unknown_component_reports_unit_names(tmp_path: Path) -> None:
     root = tmp_path / "third_party" / "lib"
     _vhdl(root / "a/one.vhdl", "entity one is\nend entity;")
