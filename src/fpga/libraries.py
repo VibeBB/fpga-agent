@@ -43,6 +43,7 @@ _SKIP_DIRS = frozenset(
         "tb",
         "doc",
         "docs",
+        "example",
         "examples",
         "formal",
         "fv",
