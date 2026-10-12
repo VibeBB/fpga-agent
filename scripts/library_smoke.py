@@ -30,7 +30,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from fpga.contract import Language, Library
+from fpga.contract import Language, Library, resolve
 from fpga.flow import SYNTH
 from fpga.libraries import resolve_library, scan_library
 
@@ -39,11 +39,12 @@ REPO = Path(__file__).resolve().parents[1]
 BUILTIN = {"ieee", "ieee_proposed", "std", "work"}
 
 
-def _lib(name: str, root: str, language: Language) -> Library:
+def _lib(name: str, root: str, language: Language, exclude: list[str] | None = None) -> Library:
     return Library(
         name=name.replace("-", "_"),
         root=root,
         language=language,
+        exclude=exclude or [],
         license="smoke",
         source_url="https://smoke.invalid",
         revision="smoke00",
@@ -90,6 +91,24 @@ def registry_libraries() -> list[Library]:
         root = f"third_party/{name}"
         if name == "open-logic":
             libs.append(_lib("olo", root, "vhdl"))
+        elif name == "serv":
+            libs.append(_lib(name, root, "verilog", ["bench/**", "servant/**", "data/**"]))
+        elif name == "picorv32":
+            libs.append(_lib(name, root, "verilog", ["scripts/**", "picosoc/**", "testbench*.v"]))
+        elif name == "neorv32":
+            libs.append(
+                _lib(name, root, "vhdl", ["rtl/test_setups/**", "rtl/system_integration/**"])
+            )
+        elif name == "hazard3":
+            libs.append(_lib(name, f"{root}/hdl", "verilog"))
+        elif name == "vexriscv-pydata":
+            libs.append(
+                _lib(
+                    "vexriscv",
+                    f"{root}/pythondata_cpu_vexriscv/verilog",
+                    "verilog",
+                )
+            )
         elif (REPO / root / "rtl").is_dir():
             libs.append(_lib(name, f"{root}/rtl", "verilog"))
         else:
@@ -102,9 +121,9 @@ def contract_libraries(contract_path: Path) -> list[Library]:
     return [Library(**entry) for entry in contract.get("libraries", [])]
 
 
-def entity_tops(root: Path, language: str) -> list[str]:
+def entity_tops(lib: Library, root: Path, language: str) -> list[str]:
     """Units nothing in the library references (entities/modules only)."""
-    index = scan_library(root, language)
+    index = scan_library(root, language, lib.exclude)
     kind_ok = {"entity"} if language == "vhdl" else {"module"}
     referenced = {ref.unit for refs in index.refs.values() for ref in refs}
     return sorted(
@@ -130,6 +149,16 @@ def closure_groups(
     """
     probe = lib.model_copy(update={"components": [top]})
     res = resolve_library(contract_path, probe, declared)
+    if res.problems and any("ambiguous" in p for p in res.problems):
+        # Variant libraries (e.g. pythondata-cpu-vexriscv: every file declares
+        # `module VexRiscv`) are selected by file, not by unit name.
+        root = resolve(contract_path, lib.root)
+        index = scan_library(root, lib.language, lib.exclude)
+        cands = index.ambiguous.get(top.lower()) or []
+        if cands:
+            rel = str(cands[0].resolve().relative_to(root))
+            probe = lib.model_copy(update={"components": [], "files": [rel]})
+            res = resolve_library(contract_path, probe, declared)
     if res.problems:
         return [], res.problems
     groups = [(lib.name, res.files)]
@@ -164,6 +193,7 @@ def synth_unit(
     workdir: Path,
     log: Path,
     timeout: int,
+    contract_path: Path,
 ) -> dict[str, object]:
     workdir.mkdir(parents=True, exist_ok=True)
     if lib.language == "vhdl":
@@ -174,10 +204,18 @@ def synth_unit(
         synth = f"{SYNTH[family]} -top {top}"
     else:
         flat = [p for _, lfiles in res_files for p in lfiles]
-        inc = " ".join(f"-I{p.parent}" for p in flat)
+        root_dir = resolve(contract_path, lib.root)
+        incdirs = {root_dir, *(p.parent for p in flat)}
+        inc = " ".join(f"-I{p}" for p in sorted(incdirs))
+        real_top = top
+        for path in flat:
+            names = re.findall(r"^\s*module\s+([a-zA-Z_][a-zA-Z0-9_$]*)", path.read_text(), re.M)
+            if any(n.lower() == top for n in names):
+                real_top = next(n for n in names if n.lower() == top)
+                break
         read = f"read_verilog {inc} " + " ".join(p.as_posix() for p in flat)
-        read += f"; hierarchy -check -top {top}"
-        synth = f"{SYNTH[family]} -top {top}"
+        read += f"; hierarchy -check -top {real_top}"
+        synth = f"{SYNTH[family]} -top {real_top}"
     script = workdir / "synth.ys"
     script.write_text(f"{read}; {synth}; stat\n", encoding="utf-8")
     argv = ["yosys", "-s", "synth.ys"]
@@ -232,7 +270,7 @@ def main(argv: list[str] | None = None) -> int:
         if not root.is_dir():
             print(f"## {lib.name}: root {root} missing — run fetch_hdl_libraries.py")
             continue
-        tops = entity_tops(root, lib.language)
+        tops = entity_tops(lib, root, lib.language)
         print(f"## {lib.name}: {len(tops)} tops")
         for top in tops:
             groups, problems = closure_groups(contract_path, lib, top, declared, libs_by_name)
@@ -260,6 +298,7 @@ def main(argv: list[str] | None = None) -> int:
                 workdir,
                 workdir / "synth.log",
                 args.timeout,
+                contract_path,
             )
             results.append(row)
             status = "OK" if row["ok"] else "FAIL"

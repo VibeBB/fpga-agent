@@ -51,6 +51,11 @@ checksum and license in `/usr/share/doc/oss-cad-suite/SOURCE` and
 | [verilog-axis](https://github.com/alexforencich/verilog-axis) | `48ff7a7e2ef782cf778d47910cf85835c64b1bce` | MIT | AXI-Stream components |
 | [verilog-uart](https://github.com/alexforencich/verilog-uart) | `1b867e53af738e4a8bc7c839ca2f1c07f40382dc` | MIT | minimal UART rx/tx |
 | [libfpga](https://github.com/libfpga/libfpga) | `a4ef4a3fa4ac1de6aa485baf3efc56f14a6df704` | MIT | uart/spi/i2c/fifo/cdc/arbiter/crc/lfsr/axi4lite |
+| [SERV](https://github.com/olofk/serv) | `f200eb2ed7b69ac1c6b8eddd47654522aeee5ce8` | ISC | bit-serial RV32I core (`serv_rf_top`/`serving`) |
+| [PicoRV32](https://github.com/YosysHQ/picorv32) | `ef203c2b0a3fb793280f5114941416c425c5b461` | ISC | RV32IMC core (`picorv32`/`picorv32_axi`/`picorv32_wb`) |
+| [NEORV32](https://github.com/stnolting/neorv32) | `84743cdbeefccb531f836d66933c8478f1d9bf71` | BSD-3-Clause | VHDL RISC-V MCU SoC (`neorv32_top`) |
+| [Hazard3](https://github.com/Wren6991/Hazard3) | `8af992930f71a69b0e06c38734c1094f41a05ca0` | Apache-2.0 | RV32IMACZb core (`hazard3_cpu_1port`/`2port`; also on RP2350) |
+| [pythondata-cpu-vexriscv](https://github.com/litex-hub/pythondata-cpu-vexriscv) | `642ecfed1c84460555d6d803d660cc60cfc1ecb6` | MIT | prebuilt VexRiscv variants (select via `files`, e.g. `VexRiscv_Lite.v`) |
 
 These libraries are fetched by `scripts/fetch_hdl_libraries.py` (registry:
 `scripts/hdl_libraries.json`) into `third_party/` (gitignored) and

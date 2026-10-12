@@ -22,5 +22,25 @@
   "libfpga": {
     "url": "https://github.com/libfpga/libfpga.git",
     "revision": "a4ef4a3fa4ac1de6aa485baf3efc56f14a6df704"
+  },
+  "serv": {
+    "url": "https://github.com/olofk/serv.git",
+    "revision": "f200eb2ed7b69ac1c6b8eddd47654522aeee5ce8"
+  },
+  "picorv32": {
+    "url": "https://github.com/YosysHQ/picorv32.git",
+    "revision": "ef203c2b0a3fb793280f5114941416c425c5b461"
+  },
+  "neorv32": {
+    "url": "https://github.com/stnolting/neorv32.git",
+    "revision": "84743cdbeefccb531f836d66933c8478f1d9bf71"
+  },
+  "hazard3": {
+    "url": "https://github.com/Wren6991/Hazard3.git",
+    "revision": "8af992930f71a69b0e06c38734c1094f41a05ca0"
+  },
+  "vexriscv-pydata": {
+    "url": "https://github.com/litex-hub/pythondata-cpu-vexriscv.git",
+    "revision": "642ecfed1c84460555d6d803d660cc60cfc1ecb6"
   }
 }

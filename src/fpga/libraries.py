@@ -109,19 +109,22 @@ class Index:
         self.filelists: dict[str, Path] = {}  # "<stem>.f" lists
         self.kinds: dict[str, str] = {}  # unit -> entity/module/package/...
         self.pending_insts: dict[Path, set[str]] = {}  # instantiation candidates
+        self.cond_includes: dict[Path, set[str]] = {}  # `ifdef`-guarded `include`s
+        self.root: Path | None = None  # include search fallback
 
     @property
     def units(self) -> list[str]:
         return sorted(self.providers)
 
 
-def _hdl_files(root: Path, language: str) -> list[Path]:
+def _hdl_files(root: Path, language: str, exclude: list[str] | None = None) -> list[Path]:
     suffixes = _HDL_SUFFIXES[language]
     return sorted(
         path
         for path in root.rglob("*")
         if path.suffix.lower() in suffixes
         and not ({part.lower() for part in path.parts} & _SKIP_DIRS)
+        and not any(path.relative_to(root).match(pattern) for pattern in (exclude or []))
     )
 
 
@@ -132,10 +135,11 @@ def _strip_comments(text: str, language: str) -> str:
     return _COMMENT_VLOG_LINE.sub("", text)
 
 
-def scan_library(root: Path, language: str) -> Index:
+def scan_library(root: Path, language: str, exclude: list[str] | None = None) -> Index:
     """Index every design unit declared under ``root``."""
     index = Index()
-    for path in _hdl_files(root, language):
+    index.root = root
+    for path in _hdl_files(root, language, exclude):
         try:
             text = _strip_comments(path.read_text(encoding="utf-8", errors="replace"), language)
         except OSError:
@@ -164,17 +168,34 @@ def scan_library(root: Path, language: str) -> Index:
                     index.kinds.setdefault(
                         key, "module" if kind.lower() == "macromodule" else kind.lower()
                     )
-            for inc in _VLOG_INCLUDE.findall(text):
-                refs.add(Ref("", inc))
+            depth = 0
+            cond: set[str] = set()
+            for line in text.splitlines():
+                stripped = line.strip()
+                if re.match(r"`ifn?def\b", stripped):
+                    depth += 1
+                elif stripped.startswith("`endif"):
+                    depth = max(0, depth - 1)
+                    continue
+                match = _VLOG_INCLUDE.search(stripped)
+                if match:
+                    if depth:
+                        cond.add(match.group(1))
+                    else:
+                        refs.add(Ref("", match.group(1)))
+            if cond:
+                index.cond_includes[path] = cond
             for pkg in _VLOG_IMPORT.findall(text):
                 refs.add(Ref("", pkg.lower()))
         index.refs[path] = refs
         if language != "vhdl":
             index.pending_insts[path] = {name.lower() for name in _VLOG_INST.findall(text)}
+    for path in root.rglob("*.f"):
+        if not ({part.lower() for part in path.parts} & _SKIP_DIRS) and not any(
+            path.relative_to(root).match(pattern) for pattern in (exclude or [])
+        ):
+            index.filelists[path.stem.lower()] = path
     if language != "vhdl":
-        for path in root.rglob("*.f"):
-            if not ({part.lower() for part in path.parts} & _SKIP_DIRS):
-                index.filelists[path.stem.lower()] = path
         known = set(index.providers) | set(index.ambiguous)
         for path, candidates in index.pending_insts.items():
             index.refs[path] |= {Ref("", name) for name in candidates & known}
@@ -182,12 +203,21 @@ def scan_library(root: Path, language: str) -> Index:
     return index
 
 
-def _filelist_entries(path: Path) -> list[Path]:
+def _filelist_entries(path: Path, root: Path | None = None) -> list[Path]:
     entries: list[Path] = []
     for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
         line = line.split("#", 1)[0].split("//", 1)[0].strip()
-        if line:
-            entries.append((path.parent / line).resolve())
+        if not line:
+            continue
+        # Some lists carry per-entry keywords (e.g. hazard3's ``file <path>``)
+        # or env-style root prefixes (e.g. neorv32's ``$NEORV32_HOME/...``).
+        tokens = line.split()
+        entry = tokens[-1]
+        if entry.startswith("$") and root is not None:
+            entry = str(root / entry.split("/", 1)[-1])
+        else:
+            entry = str(path.parent / entry)
+        entries.append(Path(entry).resolve())
     return entries
 
 
@@ -196,6 +226,7 @@ class Resolved:
 
     def __init__(self) -> None:
         self.files: list[Path] = []
+        self.includes: set[Path] = set()  # dirs of `include`d header files
         self.problems: list[str] = []
         self.external: set[str] = set()  # earlier libraries it needs
 
@@ -213,6 +244,8 @@ def _include_file(index: Index, path: Path) -> None:
         for ref in list(refs):
             if ref.library == "" and ref.unit.endswith((".v", ".vh", ".sv", ".svh")):
                 target = (current.parent / ref.unit).resolve()
+                if not target.is_file() and index.root is not None:
+                    target = (index.root / ref.unit).resolve()
                 if target.is_file() and target not in index.refs:
                     queue.append(target)
 
@@ -231,21 +264,22 @@ def resolve_library(contract_path: Path, lib: Library, declared: list[str]) -> R
         result.problems.append(f"{lib.name}: root {lib.root} does not exist")
         return result
 
-    index = scan_library(root, lib.language)
+    index = scan_library(root, lib.language, lib.exclude)
     seeds: list[Path] = []
     for component in lib.components:
-        filelist = component.removesuffix(".f")
+        filelist = component.lower().removesuffix(".f")
+        key = component.lower()
         if component == "all":
             seeds += list(index.refs)
         elif filelist in index.filelists:
-            seeds += _filelist_entries(index.filelists[filelist])
-        elif component in index.ambiguous:
-            choices = ", ".join(p.name for p in index.ambiguous[component])
+            seeds += _filelist_entries(index.filelists[filelist], index.root)
+        elif key in index.ambiguous:
+            choices = ", ".join(p.name for p in index.ambiguous[key])
             result.problems.append(
                 f"{lib.name}: component {component!r} is ambiguous ({choices}); use files"
             )
-        elif component in index.providers:
-            seeds.append(index.providers[component])
+        elif key in index.providers:
+            seeds.append(index.providers[key])
         elif (root / component).is_dir():
             seeds += [
                 path
@@ -275,9 +309,15 @@ def resolve_library(contract_path: Path, lib: Library, declared: list[str]) -> R
                 continue
             if ref.library == "" and ref.unit.endswith((".v", ".vh", ".sv", ".svh")):
                 target = (path.parent / ref.unit).resolve()
+                if not target.is_file() and index.root is not None:
+                    target = (index.root / ref.unit).resolve()
                 if not target.is_file():
-                    result.problems.append(f"{lib.name}: {path.name} includes missing {ref.unit}")
+                    if ref.unit not in index.cond_includes.get(path, set()):
+                        result.problems.append(
+                            f"{lib.name}: {path.name} includes missing {ref.unit}"
+                        )
                     continue
+                result.includes.add(target.parent)
                 _include_file(index, target)
                 visit(target, path.name)
                 continue
@@ -291,7 +331,8 @@ def resolve_library(contract_path: Path, lib: Library, declared: list[str]) -> R
                             f"(no declaration found under {lib.root})"
                         )
                     continue
-                visit(provider, path.name)
+                if provider != path:
+                    visit(provider, path.name)
                 body = index.bodies.get(ref.unit)
                 if body is not None and body != provider:
                     visit(body, path.name)
@@ -309,7 +350,7 @@ def resolve_library(contract_path: Path, lib: Library, declared: list[str]) -> R
                 else:
                     result.external.add(ref.library)
         state[path] = "done"
-        if path not in ordered:
+        if path not in ordered and path.suffix.lower() not in {".vh", ".svh"}:
             ordered.append(path)
         # A VHDL package body of a unit declared here compiles after the
         # spec — emit it now that the spec is ordered.

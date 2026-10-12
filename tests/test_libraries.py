@@ -156,6 +156,59 @@ def test_verilog_instantiation_expands_dependencies(tmp_path: Path) -> None:
     assert [p.name for p in res.files] == ["uart_rx.v", "uart_tx.v", "uart.v"]
 
 
+def test_exclude_globs_drop_paths(tmp_path: Path) -> None:
+    root = tmp_path / "third_party" / "lib"
+    (root / "rtl").mkdir(parents=True)
+    (root / "rtl/good.v").write_text("module good();\nendmodule\n")
+    (root / "bench").mkdir()
+    (root / "bench/tb.v").write_text("module tb();\nendmodule\n")
+    lib = _lib(
+        tmp_path,
+        "lib",
+        language="verilog",
+        components=["all"],
+        files=[],
+        exclude=["bench/**"],
+    )
+    res = resolve_library(tmp_path / "x.fpga.json", lib, ["lib"])
+    assert res.problems == []
+    assert [p.name for p in res.files] == ["good.v"]
+
+
+def test_self_reference_and_header_includes(tmp_path: Path) -> None:
+    root = tmp_path / "third_party" / "lib"
+    (root / "hdl").mkdir(parents=True)
+    (root / "hdl/cfg.vh").write_text("`define W 8\n")
+    (root / "hdl/core.v").write_text(
+        '`include "cfg.vh"\n'
+        "module core();\n"
+        "core_sub u0 ();\n"
+        "`ifdef FORMAL\n"
+        '`include "formal_only.vh"\n'
+        "`endif\n"
+        "endmodule\n"
+        "module core_sub();\nendmodule\n"
+    )
+    lib = _lib(tmp_path, "lib", language="verilog", components=["core"], files=[])
+    res = resolve_library(tmp_path / "x.fpga.json", lib, ["lib"])
+    # Instantiating a unit declared in the same file is not a cycle; the
+    # ifdef-guarded include is skipped, cfg.vh lands in include dirs only.
+    assert res.problems == []
+    assert [p.name for p in res.files] == ["core.v"]
+    assert res.includes == {(root / "hdl").resolve()}
+
+
+def test_filelist_keywords_and_env_prefix(tmp_path: Path) -> None:
+    root = tmp_path / "third_party" / "lib"
+    (root / "rtl").mkdir(parents=True)
+    (root / "rtl/a.vhdl").write_text("entity a is\nend entity;")
+    (root / "rtl/all.f").write_text("file $LIB_HOME/rtl/a.vhdl\n")
+    lib = _lib(tmp_path, "lib", components=["all.f"], files=[])
+    res = resolve_library(tmp_path / "x.fpga.json", lib, ["lib"])
+    assert res.problems == []
+    assert [p.name for p in res.files] == ["a.vhdl"]
+
+
 def test_index_records_unit_kinds(tmp_path: Path) -> None:
     from fpga.libraries import scan_library
 
