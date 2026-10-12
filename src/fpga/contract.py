@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 import re
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -55,7 +55,10 @@ class Library(_Strict):
     ``files`` are listed in compilation order relative to ``root``.
     ``components`` names design units (VHDL entities/packages, Verilog
     modules, ``<name>.f`` file lists, or ``all``) resolved to ordered
-    files by scanning ``root``; both may be combined. ``license_file``
+    files by scanning ``root``; both may be combined. ``exclude`` lists
+    root-relative glob patterns skipped while scanning (e.g. upstream
+    test setups that are not part of the synthesizable library).
+    ``license_file``
     points at a root-relative license text covering files that carry no
     SPDX header. The license, source URL and pinned revision are recorded
     so the obligation each library carries is visible in every report.
@@ -66,6 +69,7 @@ class Library(_Strict):
     language: Language = "vhdl"
     files: list[str] = Field(default_factory=list[str])
     components: list[str] = Field(default_factory=list[str])
+    exclude: list[str] = Field(default_factory=list[str])
     license: str = Field(min_length=2)
     license_file: str | None = None
     source_url: str = Field(pattern=r"^https://")
@@ -82,6 +86,14 @@ class Library(_Strict):
     @classmethod
     def _files(cls, value: list[str]) -> list[str]:
         return [_relative(item) for item in value]
+
+    @field_validator("exclude")
+    @classmethod
+    def _exclude(cls, value: list[str]) -> list[str]:
+        for item in value:
+            if item.startswith("/") or ".." in PurePosixPath(item).parts:
+                raise ValueError(f"invalid exclude pattern {item!r}")
+        return value
 
     @field_validator("components")
     @classmethod

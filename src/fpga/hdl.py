@@ -51,10 +51,13 @@ def include_dirs(contract: FpgaContract, contract_path: Path) -> list[Path]:
     Only the generated register-constants header is included today; it is
     never a source, so its directory has to be on every tool's search path.
     """
+    dirs: list[Path] = []
     regs = contract.registers
-    if regs is None or contract.design_language == "vhdl":
-        return []
-    return [resolve(contract_path, regs.hdl_package).parent]
+    if regs is not None and contract.design_language != "vhdl":
+        dirs.append(resolve(contract_path, regs.hdl_package).parent)
+    for res in resolve_contract_libraries(contract, contract_path).values():
+        dirs += sorted(res.includes)
+    return dirs
 
 
 def all_files(unit_list: list[Unit]) -> list[Path]:

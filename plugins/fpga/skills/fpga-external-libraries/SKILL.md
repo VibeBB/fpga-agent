@@ -83,6 +83,28 @@ license text that `fpga.provenance` verifies mentions the declared
 license). Colibri files carry their own SPDX headers; keep
 `license_file` set anyway for coverage of headerless helpers.
 
+## CPU cores
+
+| Core | Lib name | Language | License | Top module / selection |
+|---|---|---|---|---|
+| SERV | `serv` | Verilog | ISC | `components: ["serv_rf_top"]` (or `serving` — the full SoC wrapper); exclude `bench/**`, `servant/**`, `data/**` |
+| PicoRV32 | `picorv32` | Verilog | ISC | `components: ["picorv32"]` — `picorv32_axi`/`picorv32_wb` variants in the same file; exclude `scripts/**`, `picosoc/**`, `testbench*.v` |
+| NEORV32 | `neorv32` | VHDL | BSD-3 | `components: ["neorv32_top"]` or `["file_list_core.f"]`; exclude `rtl/test_setups/**`, `rtl/system_integration/**`; instantiate `entity neorv32.neorv32_top` |
+| Hazard3 | `hazard3` | Verilog | Apache-2.0 | root = `hdl`; `components: ["hazard3_cpu_1port"]` (single-ported, SoC-friendly) or `["hazard3.f"]` |
+| VexRiscv | `vexriscv` | Verilog | MIT | root = `pythondata_cpu_vexriscv/verilog`; every variant declares `module VexRiscv` — select with `files: ["VexRiscv_Lite.v"]` etc., not `components` |
+
+Peripheral attach: SERV exposes a simple SRAM bus (`wb_*`/`mem_*`), PicoRV32
+has native/WB/AXI-Lite variants, NEORV32 offers Wishbone+optional AXI4/XBUS,
+Hazard3 uses AHB5, VexRiscv uses AXI4. Firmware (boot ROM/`$readmemh`
+images) is out of scope for the contract's `libraries[]` — supply it via
+`files:`-style design sources or a sibling firmware flow.
+
+Units not usable via GHDL/Yosys/Gowin (verified by sweep): `serv/cv_96`
+(Intel HPS), `neorv32 dmem/imem/cache_ram/imem_rom` (GHDL elaboration
+limits — they synthesize inside `neorv32_top`), `neotrng` (ring-oscillator
+latches), `neorv32_verilog_wrapper` (mixed-language helper),
+`hazard3_ecp5_jtag_dtm`/`xilinx7_jtag_dtm` (vendor JTAGG/BSCANE2 cells).
+
 ## hdl-modules declaration order
 
 Each used module is its own `libraries[]` entry whose VHDL library name
