@@ -73,7 +73,7 @@ requirements). `requires-python >=3.12` unchanged.
 | zizmor wheel 1.30.1 -> 1.31.1 | Adds an `issue_comment` trigger audit and root-aware input collection, plus a cache mode. A local `uvx --from <wheel> zizmor .github/workflows` run was executed against the updated workflows; no new findings. |
 | trivy-action `version:` v0.75.0 -> v0.76.0 | Adds CBOM generation and Echo/RapidFort image sources. New detectors may surface additional findings on the next scheduled container audit; the pin itself is input-compatible. |
 | astral-sh/setup-uv `version:` 0.13.0 -> 0.13.1 (dashboard ci.yml) | Keeps the workflow-installed uv in lockstep with `required-version`. |
-| OSS CAD Suite 2026-10-12 -> 2026-10-18 | Weekly toolchain bundle; release/asset/sha256 re-pinned in fpga-tools.Dockerfile. |
+| OSS CAD Suite 2026-10-12 -> 2026-10-18 | Deferred: the 2026-10-18 nightly's ghdl-yosys-plugin fails to load (undefined symbol against its yosys build, same class as upstream ghdl-yosys-plugin#229); pin stays on 2026-10-12, re-adopt on a fixed nightly. |
 
 ## Deferrals kept
 

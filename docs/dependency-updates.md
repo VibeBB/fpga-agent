@@ -109,7 +109,7 @@ just the step summary. Dependabot groups
 GitHub Actions updates and applies a seven-day cooldown to Actions and Docker
 updates.
 
-## Decisions — 2026-10-18 round (SDK 1.55.1, OSS CAD Suite 2026-10-18)
+## Decisions — 2026-10-18 round (SDK 1.55.1; OSS CAD Suite 2026-10-18 deferred)
 
 sdk `==1.54.0` -> `==1.55.1` (sdk + tools), uv `==0.13.0` -> `==0.13.1`,
 zizmor `1.30.1` -> `1.31.1`, trivy `v0.75.0` -> `v0.76.0`, codeql-action
@@ -118,4 +118,4 @@ v4.38.3 -> v4.39.0. Full changelog review:
 Deferrals unchanged (mcp 2.x, Python 3.15 default, Tauri 3.0.0-alpha where
 applicable); reasons refreshed to cite SDK 1.55.1.
 
-OSS CAD Suite `2026-10-12` -> `2026-10-18` (sha256 re-verified from the downloaded tarball; the six vendored-interpreter `.trivyignore` waivers stay).
+OSS CAD Suite `2026-10-18` downloaded and sha256-verified, but its `share/yosys/plugins/ghdl.so` cannot load under the bundled yosys (`undefined symbol: _ZN5Yosys5RTLIL6Module6derive` — the same upstream ABI-break class as ghdl-yosys-plugin#229), so the pin stays at `2026-10-12` and the bump is deferred to a fixed nightly. The six vendored-interpreter `.trivyignore` waivers stay.
