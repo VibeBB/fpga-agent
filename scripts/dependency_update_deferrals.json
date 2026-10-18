@@ -5,14 +5,14 @@
       "name": "mcp",
       "latest": "2.3.0",
       "review_by": "2027-04-01",
-      "reason": "openhands-sdk 1.54.0 requires fastmcp>=3.2.0,<4, which requires mcp<2.0. Defer MCP 2.x until a supported SDK/fastmcp release removes that constraint."
+      "reason": "openhands-sdk 1.55.1 requires fastmcp>=3.2.0,<4, which requires mcp<2.0. Defer MCP 2.x until a supported SDK/fastmcp release removes that constraint."
     },
     {
       "surface": "docker-arg",
       "name": "OSS_CAD_SUITE_RELEASE",
-      "latest": "2026-10-12",
+      "latest": "2026-10-18",
       "review_by": "2027-01-03",
-      "reason": "The pinned suite tarball (now 2026-10-12) vendors python2.7/python3.11 site-packages carrying 6 upstream-borne CVEs (9 Trivy findings) that no in-repo change can fix; they are waived in .trivyignore until 2027-01-03. Adopt newest dated release each sweep and re-scan."
+      "reason": "OSS CAD Suite 2026-10-18 is deferred: its ghdl-yosys-plugin (share/yosys/plugins/ghdl.so) fails to load with 'undefined symbol: _ZN5Yosys5RTLIL6Module6derive' \u2014 the plugin .so was built against older yosys headers (same upstream issue class as ghdl-yosys-plugin#229). Pin stays at 2026-10-12; re-adopt on the next nightly once ghdl.so loads again. The vendored python site-packages CVE findings stay waived in .trivyignore until 2027-01-03."
     },
     {
       "surface": "python-version",
