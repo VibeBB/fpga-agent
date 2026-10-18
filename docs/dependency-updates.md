@@ -48,7 +48,7 @@ an owner to revisit it by the listed date.
 | Surface | Name | Latest | Re-check | Reason |
 | --- | --- | --- | --- | --- |
 | pypi | mcp | 2.3.0 | 2027-04-01 | `openhands-sdk` 1.54.0 -> `fastmcp<4` -> `fastmcp-slim` requires `mcp>=1.24.0,<2.0`; mcp 2.x cannot coexist with the SDK pin. |
-| docker-arg | OSS_CAD_SUITE_RELEASE | 2026-10-12 | 2027-01-03 | Vendored python2.7/3.11 site-packages carry 6 upstream CVEs waived in `.trivyignore`; re-scan on every suite bump. |
+| docker-arg | OSS_CAD_SUITE_RELEASE | 2026-10-18 | 2027-01-03 | Vendored python2.7/3.11 site-packages carry 6 upstream CVEs waived in `.trivyignore`; re-scan on every suite bump. |
 | python-version | Python version (all surfaces) | 3.15 | 2027-01-08 | `openhands-sdk->litellm->fastuuid 0.14.0` (sdist only, PyO3 fails on 3.15); sole remaining blocker after pydantic-core 2.50.1 shipped cp315 wheels. |
 
 ## Decisions — 2026-10-03 round
@@ -108,3 +108,14 @@ nonzero; a clean run edits/closes an existing issue and otherwise writes
 just the step summary. Dependabot groups
 GitHub Actions updates and applies a seven-day cooldown to Actions and Docker
 updates.
+
+## Decisions — 2026-10-18 round (SDK 1.55.1, OSS CAD Suite 2026-10-18)
+
+sdk `==1.54.0` -> `==1.55.1` (sdk + tools), uv `==0.13.0` -> `==0.13.1`,
+zizmor `1.30.1` -> `1.31.1`, trivy `v0.75.0` -> `v0.76.0`, codeql-action
+v4.38.3 -> v4.39.0. Full changelog review:
+[SDK v1.55.1 feature evaluation](research/sdk-v1.55.1-feature-evaluation.md).
+Deferrals unchanged (mcp 2.x, Python 3.15 default, Tauri 3.0.0-alpha where
+applicable); reasons refreshed to cite SDK 1.55.1.
+
+OSS CAD Suite `2026-10-12` -> `2026-10-18` (sha256 re-verified from the downloaded tarball; the six vendored-interpreter `.trivyignore` waivers stay).

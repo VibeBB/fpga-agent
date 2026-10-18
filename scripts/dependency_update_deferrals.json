@@ -10,9 +10,9 @@
     {
       "surface": "docker-arg",
       "name": "OSS_CAD_SUITE_RELEASE",
-      "latest": "2026-10-12",
+      "latest": "2026-10-18",
       "review_by": "2027-01-03",
-      "reason": "The pinned suite tarball (now 2026-10-12) vendors python2.7/python3.11 site-packages carrying 6 upstream-borne CVEs (9 Trivy findings) that no in-repo change can fix; they are waived in .trivyignore until 2027-01-03. Adopt newest dated release each sweep and re-scan."
+      "reason": "The pinned suite tarball (now 2026-10-18) vendors python2.7/python3.11 site-packages carrying 6 upstream-borne CVEs (9 Trivy findings) that no in-repo change can fix; they are waived in .trivyignore until 2027-01-03. Adopt newest dated release each sweep and re-scan."
     },
     {
       "surface": "python-version",
