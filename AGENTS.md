@@ -29,6 +29,9 @@ sibling in the VibeBB OpenHands plugin family.
   `THIRD_PARTY_NOTICES.md`.
 - Programming hardware is host-only and human-confirmed; it is never a
   gate or MCP tool; the `deny-programming` hook denies it for agents.
+- Version expectations and pins in source code must derive from files
+  the dependency-update checker covers (pyproject pins, lockfiles,
+  Dockerfiles, workflow pins); do not hardcode a second copy.
 - New dependencies or tools need an ADR under `docs/adr/`.
 
 ## Voice and commit policy
