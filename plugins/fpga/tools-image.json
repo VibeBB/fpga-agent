@@ -1,11 +1,11 @@
 {
-  "attestation": "https://github.com/VibeBB/fpga-agent/attestations/55064414",
-  "digest": "sha256:ad5f1930b211b51ac2f8d70770275874885fab9e980e9c9b1c14b98775b82d5f",
+  "attestation": "https://github.com/VibeBB/fpga-agent/attestations/57121403",
+  "digest": "sha256:bb57abc76a7204897353acf7a9bf226f1bb643ffef768dddc20c81b41857f1fb",
   "dockerfile": "docker/fpga-tools.Dockerfile",
   "image": "ghcr.io/vibebb/fpga-tools",
-  "published_at": "2026-10-12T13:40:29Z",
-  "sbom_attestation": "https://github.com/VibeBB/fpga-agent/attestations/55064763",
-  "tag": "700ee460ac8cb4d75049b9241031be792aa436f8-tools",
+  "published_at": "2026-10-18T12:11:29Z",
+  "sbom_attestation": "https://github.com/VibeBB/fpga-agent/attestations/57121510",
+  "tag": "d16f8c44bdc7431bacc55f7b4541261d4fd8db2c-tools",
   "tools": {
     "boolector": "boolector --version: 3.2.4",
     "ecppack": "ecppack --help: Error: input file is mandatory.",
@@ -22,7 +22,7 @@
     "openFPGALoader": "openFPGALoader -V: openFPGALoader v1.1.1",
     "python": "python --version: Python 3.14.8",
     "sby": "sby --help: usage: sby [options] [<jobname>.sby [tasknames] | <dirname>]",
-    "uv": "uv --version: uv 0.13.0 (x86_64-unknown-linux-musl)",
+    "uv": "uv --version: uv 0.13.1 (x86_64-unknown-linux-musl)",
     "verilator": "verilator --version: Verilator 5.053 devel rev v5.052-379-g37301a1ba (mod)",
     "vvp": "vvp -V: Icarus Verilog runtime version 14.0 (devel) (s20260301-564-gbe5984bb9-dirty)",
     "yices-smt2": "yices-smt2 --version: Yices 2.7.0",
@@ -30,5 +30,5 @@
     "yosys-smtbmc": "yosys-smtbmc --help: yosys-smtbmc [options] <yosys_smt2_output>",
     "z3": "z3 --version: Z3 version 4.15.5 - 64 bit"
   },
-  "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/38256602893"
+  "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/39125512598"
 }
