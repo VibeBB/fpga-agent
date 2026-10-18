@@ -84,7 +84,7 @@ def test_docker_release_pins_use_upstream_latest_tags() -> None:
         True,
     )
     assert (oss_status.current, oss_status.latest, oss_status.outdated) == (
-        "2026-10-12",
+        "2026-10-18",
         "2026-12-01",
         True,
     )
@@ -92,10 +92,10 @@ def test_docker_release_pins_use_upstream_latest_tags() -> None:
 
 def test_subpath_actions_resolve_to_owner_repo() -> None:
     """uses: owner/repo/sub/path@sha pins track the owning repo's tags."""
-    tags = {"https://github.com/github/codeql-action": ["v4.38.3", "v4.39.0"]}
+    tags = {"https://github.com/github/codeql-action": ["v4.39.0", "v4.40.0"]}
     statuses = check_github_actions(ROOT, list_remote_tags=lambda url: tags.get(url, []))
     codeql = next(status for status in statuses if status.name == "github/codeql-action")
-    assert codeql.latest == "v4.39.0"
+    assert codeql.latest == "v4.40.0"
     assert codeql.outdated is True
 
 
@@ -108,7 +108,7 @@ def test_wheel_download_pin_parsed() -> None:
     )
     zizmor = next(status for status in statuses if status.name == "zizmor")
     assert zizmor.surface == "workflow-download"
-    assert zizmor.current == "1.30.1"
+    assert zizmor.current == "1.31.1"
     assert zizmor.latest == "1.31.0"
     assert zizmor.outdated is True
 
@@ -129,10 +129,10 @@ def test_release_download_pin_parsed() -> None:
 
 def test_trivy_version_input_parsed() -> None:
     """trivy `version:` inputs on aquasecurity actions track trivy releases."""
-    statuses = check_action_inputs(ROOT, list_remote_tags=lambda url: ["v0.75.0", "v0.76.0"])
+    statuses = check_action_inputs(ROOT, list_remote_tags=lambda url: ["v0.76.0", "v0.77.0"])
     trivy = next(status for status in statuses if status.name == "aquasecurity/trivy")
     assert trivy.surface == "action-input"
-    assert trivy.current == "v0.75.0"
+    assert trivy.current == "v0.76.0"
     assert trivy.latest == "v0.76.0"
     assert trivy.outdated is True
     assert "container-audit.yml" in trivy.source
