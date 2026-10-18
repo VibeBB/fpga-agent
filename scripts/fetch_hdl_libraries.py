@@ -37,17 +37,21 @@ def _git(target: Path, *args: str) -> str:
 def fetch(name: str, url: str, revision: str, target: Path) -> str:
     if not (target / ".git").exists():
         target.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(["git", "clone", "--quiet", url, str(target)], check=True)
+        _run_retry(
+            ["git", "clone", "--quiet", url, str(target)],
+            what=f"clone {name}",
+        )
     if _git(target, "rev-parse", "HEAD") != revision:
-        subprocess.run(
-            ["git", "-C", str(target), "fetch", "--quiet", "origin", revision], check=True
+        _run_retry(
+            ["git", "-C", str(target), "fetch", "--quiet", "origin", revision],
+            what=f"fetch {name}",
         )
         _git(target, "checkout", "--quiet", "--detach", revision)
     head = _git(target, "rev-parse", "HEAD")
     if head != revision:
         raise RuntimeError(f"{name}: checkout is at {head}, expected {revision}")
     if (target / ".gitmodules").exists():
-        subprocess.run(
+        _run_retry(
             [
                 "git",
                 "-C",
@@ -58,9 +62,23 @@ def fetch(name: str, url: str, revision: str, target: Path) -> str:
                 "--recursive",
                 "--quiet",
             ],
-            check=True,
+            what=f"submodules {name}",
         )
     return f"{name} {head} at {target}"
+
+
+def _run_retry(argv: list[str], *, what: str, attempts: int = 3) -> None:
+    """Retry git subprocesses: upstream hosts (e.g. gitlab.cern.ch) flake."""
+    import time
+
+    for attempt in range(1, attempts + 1):
+        result = subprocess.run(argv, check=False)
+        if result.returncode == 0:
+            return
+        if attempt == attempts:
+            raise subprocess.CalledProcessError(result.returncode, argv)
+        print(f"{what}: attempt {attempt} failed; retrying", flush=True)
+        time.sleep(attempt * 10)
 
 
 def _load_registry() -> dict[str, dict[str, str]]:

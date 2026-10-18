@@ -35,7 +35,9 @@ COPY --from=uv /uv /uvx /usr/local/bin/
 
 # apt resilience: Acquire::Retries covers single fetches, not a mirror that
 # is down for minutes (archive.ubuntu.com outage killed several builds).
-# Retry the whole update+install round with bounded backoff.
+# Retry the whole update+install round with bounded backoff. The blanket
+# upgrade applies every Debian security fix published after the pinned
+# base digest so the publish Trivy gate cannot trip on fixable findings.
 RUN for attempt in 1 2 3 4 5; do \
         apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update \
         && apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install --no-install-recommends -y \
@@ -44,6 +46,7 @@ RUN for attempt in 1 2 3 4 5; do \
             g++ \
             git \
             make \
+        && apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 upgrade -y --no-install-recommends \
         && rm -rf /var/lib/apt/lists/* \
         && break; \
         [ "$attempt" = 5 ] && exit 1; \
