@@ -119,3 +119,23 @@ Deferrals unchanged (mcp 2.x, Python 3.15 default, Tauri 3.0.0-alpha where
 applicable); reasons refreshed to cite SDK 1.55.1.
 
 OSS CAD Suite `2026-10-18` downloaded and sha256-verified, but its `share/yosys/plugins/ghdl.so` cannot load under the bundled yosys (`undefined symbol: _ZN5Yosys5RTLIL6Module6derive` — the same upstream ABI-break class as ghdl-yosys-plugin#229), so the pin stays at `2026-10-12` and the bump is deferred to a fixed nightly. The six vendored-interpreter `.trivyignore` waivers stay.
+
+## Decisions — 2026-10-29 round (SDK 1.59.0; NVC r1.23.1)
+
+sdk `==1.55.1` -> `==1.59.0` (sdk + tools), uv `==0.13.1` -> `==0.13.6`,
+pytest `9.1.1` -> `9.2.0`, ruff `0.17.x` -> `0.17.3` (lock), trivy
+`v0.76.0` -> `v0.76.1`, codeql-action v4.39.0 -> v4.39.1, harden-runner
+v2.22.1 -> v2.22.3, setup-uv v10.3.0 -> v10.3.3, docker/login-action
+v4.6.0 -> v4.7.0. Full changelog review:
+[SDK v1.59.0 feature evaluation](research/sdk-v1.59.0-feature-evaluation.md).
+Deferrals unchanged (mcp 2.x, Python 3.15 default); the mcp deferral
+reason now cites SDK 1.59.0.
+
+NVC `1.23.0` -> `r1.23.1` (Ubuntu 26.04 deb downloaded and sha256-verified).
+
+OSS CAD Suite: 2026-10-29 was downloaded, sha256-verified and re-tested
+for the ghdl.so ABI break that deferred 2026-10-18. The plugin still fails
+to load under the bundled yosys in a `ubuntu:26.04` container
+(`undefined symbol: _ZN5Yosys7autoidxE`), so the pin stays at `2026-10-12`
+and the deferral is renewed with the new evidence (review_by 2027-01-12).
+Base image `ubuntu:26.04` digest re-pinned.

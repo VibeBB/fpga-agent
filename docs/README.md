@@ -57,4 +57,5 @@ The workflow and field references live in the plugin skills:
 - [SDK v1.53.0 feature evaluation](research/sdk-v1.53.0-feature-evaluation.md) — OpenHands SDK/tools adoption decisions
 - [SDK v1.54.0 feature evaluation](research/sdk-v1.54.0-feature-evaluation.md) — OpenHands SDK/tools adoption decisions
 - [SDK v1.55.1 feature evaluation](research/sdk-v1.55.1-feature-evaluation.md) — OpenHands SDK/tools adoption decisions
+- [SDK v1.59.0 feature evaluation](research/sdk-v1.59.0-feature-evaluation.md) — OpenHands SDK/tools adoption decisions
 - [SDK v1.50.1 feature evaluation](research/sdk-v1.50.1-feature-evaluation.md) — previous round's adoption decisions

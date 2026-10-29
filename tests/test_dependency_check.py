@@ -62,7 +62,7 @@ def test_docker_args_report_fetch_failed_on_timeout():
 def test_docker_release_pins_use_upstream_latest_tags() -> None:
     def tags(url: str) -> list[str]:
         if url.endswith("astral-sh/uv"):
-            return ["0.13.1"]
+            return ["0.13.6"]
         if url.endswith("nickg/nvc"):
             return ["r1.23.0", "r1.24.0"]
         if url.endswith("YosysHQ/oss-cad-suite-build"):
@@ -74,12 +74,12 @@ def test_docker_release_pins_use_upstream_latest_tags() -> None:
     nvc_status = next(status for status in statuses if status.name == "NVC_VERSION")
     oss_status = next(status for status in statuses if status.name == "OSS_CAD_SUITE_RELEASE")
     assert (uv_status.current, uv_status.latest, uv_status.outdated) == (
-        "0.13.1",
-        "0.13.1",
+        "0.13.6",
+        "0.13.6",
         False,
     )
     assert (nvc_status.current, nvc_status.latest, nvc_status.outdated) == (
-        "1.23.0",
+        "1.23.1",
         "r1.24.0",
         True,
     )
@@ -132,7 +132,7 @@ def test_trivy_version_input_parsed() -> None:
     statuses = check_action_inputs(ROOT, list_remote_tags=lambda url: ["v0.76.0", "v0.77.0"])
     trivy = next(status for status in statuses if status.name == "aquasecurity/trivy")
     assert trivy.surface == "action-input"
-    assert trivy.current == "v0.76.0"
+    assert trivy.current == "v0.76.1"
     assert trivy.latest == "v0.77.0"
     assert trivy.outdated is True
     assert "container-audit.yml" in trivy.source
