@@ -1,11 +1,11 @@
 {
-  "attestation": "https://github.com/VibeBB/fpga-agent/attestations/57140647",
-  "digest": "sha256:7bce3b30a106f9bbbdbb8be615a4aea7faa7af0b1baa53cb9670b23db10dcba5",
+  "attestation": "https://github.com/VibeBB/fpga-agent/attestations/61333867",
+  "digest": "sha256:d586f79ff31501926f541d00e75cac967e9914d0ad94cee95539ad2a1774539d",
   "dockerfile": "docker/fpga-tools.Dockerfile",
   "image": "ghcr.io/vibebb/fpga-tools",
-  "published_at": "2026-10-18T14:51:24Z",
-  "sbom_attestation": "https://github.com/VibeBB/fpga-agent/attestations/57140991",
-  "tag": "414d926d2cd66d21a7c4d61484ca45e2b304d009-tools",
+  "published_at": "2026-10-29T14:37:32Z",
+  "sbom_attestation": "https://github.com/VibeBB/fpga-agent/attestations/61335088",
+  "tag": "4805e54a1dfcbd831fc53d07c979c740fa2e7d1e-tools",
   "tools": {
     "boolector": "boolector --version: 3.2.4",
     "ecppack": "ecppack --help: Error: input file is mandatory.",
@@ -18,11 +18,11 @@
     "nextpnr-ecp5": "nextpnr-ecp5 --version: \"nextpnr-ecp5\" -- Next Generation Place and Route (Version nextpnr-0.11.1-59-g837d0eed)",
     "nextpnr-himbaechel": "nextpnr-himbaechel --version: \"nextpnr-himbaechel\" -- Next Generation Place and Route (Version nextpnr-0.11.1-59-g837d0eed)",
     "nextpnr-ice40": "nextpnr-ice40 --version: \"nextpnr-ice40\" -- Next Generation Place and Route (Version nextpnr-0.11.1-59-g837d0eed)",
-    "nvc": "nvc --version: nvc 1.23.0 (1.23.0.r0.gcba10a2) (Using LLVM 21.1.8)",
+    "nvc": "nvc --version: nvc 1.23.1 (1.23.1.r0.gfab54a9) (Using LLVM 21.1.8)",
     "openFPGALoader": "openFPGALoader -V: openFPGALoader v1.1.1",
-    "python": "python --version: Python 3.14.8",
+    "python": "python --version: Python 3.14.10",
     "sby": "sby --help: usage: sby [options] [<jobname>.sby [tasknames] | <dirname>]",
-    "uv": "uv --version: uv 0.13.1 (x86_64-unknown-linux-musl)",
+    "uv": "uv --version: uv 0.13.6 (x86_64-unknown-linux-musl)",
     "verilator": "verilator --version: Verilator 5.053 devel rev v5.052-379-g37301a1ba (mod)",
     "vvp": "vvp -V: Icarus Verilog runtime version 14.0 (devel) (s20260301-564-gbe5984bb9-dirty)",
     "yices-smt2": "yices-smt2 --version: Yices 2.7.0",
@@ -30,5 +30,5 @@
     "yosys-smtbmc": "yosys-smtbmc --help: yosys-smtbmc [options] <yosys_smt2_output>",
     "z3": "z3 --version: Z3 version 4.15.5 - 64 bit"
   },
-  "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/39137122586"
+  "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/40891649839"
 }
