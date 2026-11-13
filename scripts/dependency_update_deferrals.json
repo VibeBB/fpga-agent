@@ -1,20 +1,6 @@
 {
   "deferrals": [
     {
-      "surface": "pypi",
-      "name": "mcp",
-      "latest": "2.3.0",
-      "review_by": "2027-04-01",
-      "reason": "openhands-sdk 1.59.0 requires fastmcp>=3.2.0,<4, which requires mcp<2.0. Defer MCP 2.x until a supported SDK/fastmcp release removes that constraint."
-    },
-    {
-      "surface": "docker-arg",
-      "name": "OSS_CAD_SUITE_RELEASE",
-      "latest": "2026-10-29",
-      "review_by": "2027-01-12",
-      "reason": "OSS CAD Suite is deferred: its ghdl-yosys plugin (share/yosys/plugins/ghdl.so) fails to load under the bundled yosys (2026-10-29: undefined symbol _ZN5Yosys7autoidxE; verified in a ubuntu:26.04 container). Stay on 2026-10-12 until a nightly ships a working ghdl plugin."
-    },
-    {
       "surface": "python-version",
       "name": "*",
       "latest": "3.15",

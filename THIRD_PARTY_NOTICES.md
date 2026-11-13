@@ -32,8 +32,9 @@ Lattice, Gowin) tool or binary.
 | coverage | `7.16.2` (dev group) | Apache-2.0 | Test coverage measurement |
 | pytest-cov | `7.1.0` (dev group) | MIT | Pytest coverage integration |
 | pydantic | `>=2` via `uv.lock` | MIT | Contract models |
-| mcp | `>=1.29,<2` via `uv.lock` | MIT | MCP server |
-| openhands-sdk / openhands-tools | `1.59.0` (sdk-check group) | MIT | Plugin-load verification |
+| mcp | `>=2` via `uv.lock` | MIT | MCP server |
+| jsonschema | `>=4` via `uv.lock` | MIT | MCP tool input validation |
+| openhands-sdk / openhands-tools | `1.62.0` (sdk-check group) | MIT | Plugin-load verification |
 
 Sources: OSS CAD Suite <https://github.com/YosysHQ/oss-cad-suite-build>
 (each tool's upstream revision is recorded in its license file); NVC

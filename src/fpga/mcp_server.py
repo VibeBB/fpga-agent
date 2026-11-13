@@ -13,8 +13,9 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, cast
 
+from jsonschema import Draft202012Validator
 from mcp import types
-from mcp.server import Server
+from mcp.server import Server, ServerRequestContext
 from mcp.server.lowlevel import NotificationOptions
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
@@ -40,8 +41,6 @@ from .records import (
     records_summary,
 )
 from .workspace import workspace_path
-
-server: Server = Server(f"fpga-mcp/{__version__}")
 
 _CONTRACT = {"contract_path": {"type": "string"}}
 _OUT = {"out_dir": {"type": "string"}}
@@ -307,16 +306,17 @@ def tool_specs() -> list[types.Tool]:
         types.Tool(
             name=name,
             description=description,
-            inputSchema=schema,
-            annotations=types.ToolAnnotations(readOnlyHint=read_only),
+            input_schema=schema,
+            annotations=types.ToolAnnotations(read_only_hint=read_only),
         )
         for name, (description, schema, read_only) in TOOLS.items()
     ]
 
 
-@server.list_tools()
-async def list_tools() -> list[types.Tool]:
-    return tool_specs()
+async def list_tools(
+    ctx: ServerRequestContext | None, params: types.PaginatedRequestParams | None
+) -> types.ListToolsResult:
+    return types.ListToolsResult(tools=tool_specs())
 
 
 def _str(arguments: dict[str, object], key: str) -> str:
@@ -453,7 +453,7 @@ def _image_contents(payload: dict[str, object]) -> list[types.ImageContent]:
             types.ImageContent(
                 type="image",
                 data=base64.b64encode(data).decode("ascii"),
-                mimeType="image/png",
+                mime_type="image/png",
             )
         )
     if notes:
@@ -461,8 +461,26 @@ def _image_contents(payload: dict[str, object]) -> list[types.ImageContent]:
     return contents
 
 
-@server.call_tool()
-async def call_tool(name: str, arguments: dict[str, object]) -> types.CallToolResult:
+async def call_tool(
+    ctx: ServerRequestContext | None, params: types.CallToolRequestParams
+) -> types.CallToolResult:
+    name, arguments = params.name, params.arguments or {}
+    spec = next((tool for tool in tool_specs() if tool.name == name), None)
+    if spec is not None:
+        errors = sorted(
+            Draft202012Validator(spec.input_schema).iter_errors(  # pyright: ignore[reportUnknownMemberType]
+                arguments
+            ),
+            key=lambda error: list(error.absolute_path),
+        )
+        if errors:
+            first = errors[0]
+            key = ".".join(str(part) for part in first.absolute_path)
+            message = first.message if not key else f"'{key}': {first.message}"
+            return types.CallToolResult(
+                content=[types.TextContent(type="text", text=f"Input validation error: {message}")],
+                is_error=True,
+            )
     is_error = False
     payload: dict[str, object]
     try:
@@ -482,7 +500,7 @@ async def call_tool(name: str, arguments: dict[str, object]) -> types.CallToolRe
         types.TextContent(type="text", text=json.dumps(payload, ensure_ascii=False, indent=2)),
         *images,
     ]
-    return types.CallToolResult(content=content, isError=is_error)
+    return types.CallToolResult(content=content, is_error=is_error)
 
 
 async def _run() -> None:
@@ -507,3 +525,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+server: Server = Server(f"fpga-mcp/{__version__}", on_list_tools=list_tools, on_call_tool=call_tool)
