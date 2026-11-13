@@ -228,6 +228,19 @@ def test_utilization_gate(ulx3s: Path) -> None:
         ("ecp5", b"\xff\x00" + b"\xff\xff\xbd\xb3" + bytes(2048), True),
         ("ecp5", bytes(4096), False),
         ("gowin", b"\n".join([b"1" * 16, b"1010010111000011", b"0" * 4096]), True),
+        (
+            "gowin",
+            b"\n".join(
+                [
+                    b"//CheckSum: 0x925D",
+                    b"//UserCode: 0x0000925D",
+                    b"1" * 16,
+                    b"1010010111000011",
+                    b"0" * 4096,
+                ]
+            ),
+            True,
+        ),
         ("gowin", b"hello\n" * 400, False),
         ("ice40", b"\x7e\xaa\x99\x7e", False),
     ],

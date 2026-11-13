@@ -275,3 +275,10 @@ its ghdl-yosys plugin now loads cleanly under the bundled yosys
 (`plugin -i ghdl` verified in a ubuntu:26.04 container; the 2026-10-29
 `undefined symbol _ZN5Yosys7autoidxE` break is gone). Full changelog
 review: `docs/research/sdk-v1.62.0-feature-evaluation.md`.
+
+CI e2e then surfaced one behavioral change in the 2026-11-12 suite:
+`gowin_pack` (apycula) now prepends `//CheckSum:`/`//UserCode:` comment
+lines to the ASCII `.fs` bitstream before the 0/1 body. The bitstream
+structure gate (`flow.bitstream_problems`) now skips `//` comment lines
+instead of rejecting them; verified end-to-end on all five examples
+with the pinned suite.
