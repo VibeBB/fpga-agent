@@ -14,7 +14,7 @@ mcp_config:
     command: sh
     args:
       - -c
-      - 'p=$(for c in "${PLUGIN_ROOT:-}" "${FPGA_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/scripts/fpga_launcher.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || { echo "fpga plugin root unresolved" >&2; exit 2; }; exec python3 "$p/scripts/fpga_launcher.py" mcp_server'
+      - 'p=$(for c in "${FPGA_PLUGIN_ROOT:-}" "${PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/scripts/fpga_launcher.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || { echo "fpga plugin root unresolved" >&2; exit 2; }; exec python3 "$p/scripts/fpga_launcher.py" mcp_server'
 max_iteration_per_run: 24
 max_budget_per_run: 3.0
 when_to_use_examples:
@@ -27,26 +27,26 @@ hooks:
       hooks:
         - type: command
           name: protect-generated
-          command: 'p=$(for c in "${PLUGIN_ROOT:-}" "${FPGA_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/hooks/scripts/protect_generated.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || { echo "fpga plugin root unresolved" >&2; exit 2; }; exec python3 "$p/hooks/scripts/protect_generated.py"'
+          command: 'p=$(for c in "${FPGA_PLUGIN_ROOT:-}" "${PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/hooks/scripts/protect_generated.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || { echo "fpga plugin root unresolved" >&2; exit 2; }; exec python3 "$p/hooks/scripts/protect_generated.py"'
     - matcher: terminal
       hooks:
         - type: command
           name: safety-rail
-          command: 'p=$(for c in "${PLUGIN_ROOT:-}" "${FPGA_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/hooks/scripts/safety_rail.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/safety_rail.py"'
+          command: 'p=$(for c in "${FPGA_PLUGIN_ROOT:-}" "${PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/hooks/scripts/safety_rail.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/safety_rail.py"'
         - type: command
           name: deny-programming
-          command: 'p=$(for c in "${PLUGIN_ROOT:-}" "${FPGA_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/hooks/scripts/deny_programming.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/deny_programming.py"'
+          command: 'p=$(for c in "${FPGA_PLUGIN_ROOT:-}" "${PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/hooks/scripts/deny_programming.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/deny_programming.py"'
   post_tool_use:
     - matcher: inspect_image_with_vision
       hooks:
         - type: command
           name: record-vision-tool-event
-          command: 'p=$(for c in "${PLUGIN_ROOT:-}" "${FPGA_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/hooks/scripts/record_vision_tool_event.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/record_vision_tool_event.py"'
+          command: 'p=$(for c in "${FPGA_PLUGIN_ROOT:-}" "${PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/hooks/scripts/record_vision_tool_event.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/record_vision_tool_event.py"'
     - matcher: file_editor
       hooks:
         - type: command
           name: record-image-observation
-          command: 'p=$(for c in "${PLUGIN_ROOT:-}" "${FPGA_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/hooks/scripts/record_image_observation.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/record_image_observation.py"'
+          command: 'p=$(for c in "${FPGA_PLUGIN_ROOT:-}" "${PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/hooks/scripts/record_image_observation.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/record_image_observation.py"'
 permission_mode: never_confirm
 ---
 

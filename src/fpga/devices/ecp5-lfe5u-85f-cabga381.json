@@ -12,7 +12,7 @@
     "ULX3S (85F)",
     "OrangeCrab 85F"
   ],
-  "source": "Project Trellis LFE5U-85F/iodb.json (OSS CAD Suite 2026-09-30)",
+  "source": "Project Trellis LFE5U-85F/iodb.json (OSS CAD Suite 2026-11-12)",
   "nextpnr_args": [
     "--85k",
     "--package",
@@ -60,7 +60,9 @@
     "JTAGG": "other",
     "OSCG": "other",
     "SEDGA": "other",
-    "USRMCLK": "other"
+    "USRMCLK": "other",
+    "GND": "other",
+    "VCC": "other"
   },
   "pins": [
     {

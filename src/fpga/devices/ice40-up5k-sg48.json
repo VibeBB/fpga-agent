@@ -11,7 +11,7 @@
     "iCEBreaker",
     "UPduino v3"
   ],
-  "source": "Project IceStorm chipdb-5k.txt (OSS CAD Suite 2026-09-30)",
+  "source": "Project IceStorm chipdb-5k.txt (OSS CAD Suite 2026-11-12)",
   "nextpnr_args": [
     "--up5k",
     "--package",
@@ -35,7 +35,9 @@
     "SB_LEDDA_IP": "other",
     "SB_RGBA_DRV": "other",
     "SB_WARMBOOT": "other",
-    "IO_I3C": "other"
+    "IO_I3C": "other",
+    "GND": "other",
+    "VCC": "other"
   },
   "pins": [
     {

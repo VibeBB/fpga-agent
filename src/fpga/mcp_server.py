@@ -523,7 +523,7 @@ def main() -> None:
     asyncio.run(_run())
 
 
+server: Server = Server(f"fpga-mcp/{__version__}", on_list_tools=list_tools, on_call_tool=call_tool)
+
 if __name__ == "__main__":
     main()
-
-server: Server = Server(f"fpga-mcp/{__version__}", on_list_tools=list_tools, on_call_tool=call_tool)

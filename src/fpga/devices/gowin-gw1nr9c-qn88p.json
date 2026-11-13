@@ -11,7 +11,7 @@
   "boards": [
     "Sipeed Tang Nano 9K"
   ],
-  "source": "Project Apicula GW1N-9C chipdb, GW1NR-9C QFN88P (OSS CAD Suite 2026-09-30)",
+  "source": "Project Apicula GW1N-9C chipdb, GW1NR-9C QFN88P (OSS CAD Suite 2026-11-12)",
   "synth_args": [
     "-family",
     "gw1n"

@@ -12,7 +12,7 @@ Lattice, Gowin) tool or binary.
 | Ubuntu 26.04 | `ubuntu:26.04@sha256:da6fc2be…` | various | Base image |
 | uv | `ghcr.io/astral-sh/uv:0.12.23` | Apache-2.0 / MIT | Python and package manager |
 | CPython | 3.14.x via uv | PSF-2.0 | Runtime |
-| OSS CAD Suite | release `2026-10-12`, asset `oss-cad-suite-linux-x64-20261012.tgz`, sha256 `2eb5c50cc03fa817f0fa9b8cccbfef9584528433a13e693792514326b63451de` | bundle of the tools below; each keeps its license in `/opt/oss-cad-suite/license` | Toolchain bundle |
+| OSS CAD Suite | release `2026-11-12`, asset `oss-cad-suite-linux-x64-20261112.tgz`, sha256 `346499255e3e5e6e9bf67e1d378a4e6bc249abd3de3b0caf5b57604bc8ba1752` | bundle of the tools below; each keeps its license in `/opt/oss-cad-suite/license` | Toolchain bundle |
 | Yosys (+ ABC) | 0.69+158 (suite) | ISC (ABC: BSD-style) | Synthesis |
 | GHDL Yosys plugin | suite | GPL-3.0 | VHDL front end for synthesis and formal |
 | GHDL | 7.0.0-dev (suite) | GPL-2.0 | Optional VHDL tool |
