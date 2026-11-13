@@ -276,9 +276,14 @@ its ghdl-yosys plugin now loads cleanly under the bundled yosys
 `undefined symbol _ZN5Yosys7autoidxE` break is gone). Full changelog
 review: `docs/research/sdk-v1.62.0-feature-evaluation.md`.
 
-CI e2e then surfaced one behavioral change in the 2026-11-12 suite:
-`gowin_pack` (apycula) now prepends `//CheckSum:`/`//UserCode:` comment
-lines to the ASCII `.fs` bitstream before the 0/1 body. The bitstream
-structure gate (`flow.bitstream_problems`) now skips `//` comment lines
-instead of rejecting them; verified end-to-end on all five examples
-with the pinned suite.
+CI e2e then surfaced two behavioral changes in the 2026-11-12 suite:
+
+- `gowin_pack` (apycula) now prepends `//CheckSum:`/`//UserCode:` comment
+  lines to the ASCII `.fs` bitstream before the 0/1 body. The bitstream
+  structure gate (`flow.bitstream_problems`) now skips `//` comment lines
+  instead of rejecting them; verified end-to-end on all five examples
+  with the pinned suite.
+- Verilator 5.055 split branch coverage out of `--coverage-line` into
+  `--coverage-branch`; without it `coverage.dat` carries no `t=branch`
+  points and if/else misses surface as line-coverage gaps instead.
+  `coverage.py` now passes both flags.
