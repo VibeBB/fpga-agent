@@ -16,7 +16,7 @@ their own RTL (C0 line, C1 branch) without new dependencies.
   without it are unchanged.
 - Verilog: Icarus has no coverage, so the testbench is rebuilt with the
   Verilator already shipped in OSS CAD Suite (`--binary --timing
-  --coverage-line`) and `coverage.dat` is parsed (`t=line`, `t=branch`).
+  --coverage-line --coverage-branch`) and `coverage.dat` is parsed (`t=line`, `t=branch`).
   The tools image gains `g++` and `make`, which Verilator needs to build
   the model.
 - VHDL: NVC elaborates with `--cover=statement,branch`; the database is

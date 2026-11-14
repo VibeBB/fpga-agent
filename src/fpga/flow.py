@@ -279,9 +279,10 @@ def bitstream_problems(family: str, data: bytes) -> list[str]:
         return ["ECP5 preamble FFFFBDB3 not found"]
     if family == "gowin":
         head = data[:4096].decode("ascii", "replace").splitlines()
-        if any(set(line) - {"0", "1"} for line in head[:-1]):
+        body = [line for line in head if not line.startswith("//")]
+        if any(set(line) - {"0", "1"} for line in body[:-1]):
             return ["Gowin .fs is not a 0/1 text bitstream"]
-        if "1010010111000011" not in head[:8]:
+        if "1010010111000011" not in body[:8]:
             return ["Gowin preamble A5C3 not found"]
     return []
 

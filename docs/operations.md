@@ -247,6 +247,43 @@ When sweeping dependencies to latest releases:
 
 - 2026-10-29: Added a `pull_request` dry-run rehearsal to
   `publish-fpga-images.yml` and `scripts/trivy_gate_triage.py`.
-- 2026-10-29: Added `scripts/lint_workflows_local.sh`, which runs
-  the same pinned actionlint + zizmor checks as workflow-lint.yml locally
-  before pushing workflow edits.
+- 2026-11-14: Added `jsonschema>=4` as a runtime dependency.
+  `src/fpga/mcp_server.py` uses `Draft202012Validator` to restore the
+  mcp 1.x request-layer inputSchema validation that mcp 2.x dropped —
+  `call_tool` validates `arguments` against the tool's `input_schema`
+  and returns an `Input validation error` `CallToolResult` on failure.
+  The checker covers it as a direct PyPI dependency; no checker change
+  needed (ADR-0016).
+- 2026-11-14: `OSS_CAD_SUITE_RELEASE` 2026-10-12 → 2026-11-12; the
+  ghdl-yosys plugin load break that forced the 2026-10-29 deferral is
+  fixed upstream, so the deferral entry is removed.
+
+### 2026-11-14 dependency sweep
+
+`openhands-sdk`/`openhands-tools` `==1.59.0` → `==1.62.0`; `mcp`
+`>=1.29,<2` → `>=2` (forced — SDK 1.62.0 requires `fastmcp>=4`, whose
+slim client extra pins `mcp>=2`); `jsonschema>=4` added (ADR-0016 —
+restores the mcp 1.x inputSchema validation mcp 2.x dropped); uv
+`0.13.6` → `0.13.8`; ruff → `0.17.5`; pydantic → `2.14.3`; zizmor
+`1.32.0`, trivy `0.76.2`; harden-runner v2.22.4; docker/login-action
+v4.8.0; codeql-action v4.39.3. `src/fpga/mcp_server.py` migrated to
+the mcp 2.x API (`on_list_tools`/`on_call_tool`, snake_case params) and
+validates `arguments` against each tool's `input_schema` before
+dispatch. `OSS_CAD_SUITE_RELEASE` `2026-10-12` → `2026-11-12` (asset
+re-pinned, sha256 verified by download); the prior deferral is lifted —
+its ghdl-yosys plugin now loads cleanly under the bundled yosys
+(`plugin -i ghdl` verified in a ubuntu:26.04 container; the 2026-10-29
+`undefined symbol _ZN5Yosys7autoidxE` break is gone). Full changelog
+review: `docs/research/sdk-v1.62.0-feature-evaluation.md`.
+
+CI e2e then surfaced two behavioral changes in the 2026-11-12 suite:
+
+- `gowin_pack` (apycula) now prepends `//CheckSum:`/`//UserCode:` comment
+  lines to the ASCII `.fs` bitstream before the 0/1 body. The bitstream
+  structure gate (`flow.bitstream_problems`) now skips `//` comment lines
+  instead of rejecting them; verified end-to-end on all five examples
+  with the pinned suite.
+- Verilator 5.055 split branch coverage out of `--coverage-line` into
+  `--coverage-branch`; without it `coverage.dat` carries no `t=branch`
+  points and if/else misses surface as line-coverage gaps instead.
+  `coverage.py` now passes both flags.

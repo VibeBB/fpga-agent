@@ -13,7 +13,9 @@ from fpga import mcp_server, service
 
 def _call_result(name: str, arguments: dict[str, object]) -> mcp.types.CallToolResult:
     async def invoke() -> mcp.types.CallToolResult:
-        result = await mcp_server.call_tool(name, arguments)
+        result = await mcp_server.call_tool(
+            None, mcp.types.CallToolRequestParams(name=name, arguments=arguments)
+        )
         assert isinstance(result, mcp.types.CallToolResult)
         return result
 
@@ -28,7 +30,7 @@ def _payload(result: mcp.types.CallToolResult) -> dict[str, Any]:
 
 def test_unknown_tool_returns_transport_error() -> None:
     result = _call_result("fpga_missing", {})
-    assert result.isError is True
+    assert result.is_error is True
     assert _payload(result) == {
         "verdict": "fail",
         "detail": "unknown tool fpga_missing",
@@ -42,7 +44,7 @@ def test_handler_exception_returns_transport_error(monkeypatch: pytest.MonkeyPat
 
     monkeypatch.setattr(service, "doctor_payload", fail_doctor)
     result = _call_result("fpga_doctor", {})
-    assert result.isError is True
+    assert result.is_error is True
     assert _payload(result) == {
         "verdict": "fail",
         "detail": "fpga_doctor error: handler failed",
@@ -61,7 +63,7 @@ def test_gate_verdicts_are_not_transport_errors(
 
     monkeypatch.setattr(service, "validate_payload", gate_result)
     result = _call_result("fpga_validate", {"contract_path": "design.fpga.json"})
-    assert result.isError is False
+    assert result.is_error is False
     assert _payload(result)["verdict"] == verdict
 
 
@@ -80,7 +82,7 @@ def test_mcp_contains_relative_paths(monkeypatch: pytest.MonkeyPatch, tmp_path: 
         "fpga_check",
         {"contract_path": "contracts/device.fpga.json", "out_dir": "reports"},
     )
-    assert result.isError is False
+    assert result.is_error is False
     assert captured == {
         "contract_path": tmp_path / "contracts" / "device.fpga.json",
         "out_dir": tmp_path / "reports",
@@ -100,7 +102,7 @@ def test_mcp_accepts_absolute_contract_inside_workspace(
     monkeypatch.setattr(service, "validate_payload", capture_validate)
     contract_path = tmp_path / "contracts" / "device.fpga.json"
     result = _call_result("fpga_validate", {"contract_path": str(contract_path)})
-    assert result.isError is False
+    assert result.is_error is False
     assert captured == {"contract_path": contract_path}
 
 
@@ -110,7 +112,7 @@ def test_mcp_rejects_contract_outside_workspace(
 ) -> None:
     monkeypatch.setenv("OPENHANDS_PROJECT_DIR", str(tmp_path))
     result = _call_result("fpga_validate", {"contract_path": contract_path})
-    assert result.isError is True
+    assert result.is_error is True
     assert _payload(result)["error_type"] == "ValueError"
     assert "path is outside the workspace" in _payload(result)["detail"]
 
@@ -126,6 +128,6 @@ def test_mcp_rejects_out_dir_outside_workspace(
             "out_dir": str(tmp_path.parent / "outside-reports"),
         },
     )
-    assert result.isError is True
+    assert result.is_error is True
     assert _payload(result)["error_type"] == "ValueError"
     assert "path is outside the workspace" in _payload(result)["detail"]

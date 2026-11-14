@@ -22,7 +22,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "src" / "fpga" / "devices"
 DEFAULT_SUITE = Path(os.environ.get("OSS_CAD_SUITE", "/opt/oss-cad-suite"))
-SUITE_RELEASE = "2026-09-30"
+SUITE_RELEASE = "2026-11-12"
 
 VCCIO_MAX_V = 3.465
 LVCMOS = ["LVCMOS33", "LVCMOS25", "LVCMOS18", "LVCMOS15", "LVCMOS12"]
@@ -43,6 +43,8 @@ ICE40_RESOURCES = {
     "SB_RGBA_DRV": "other",
     "SB_WARMBOOT": "other",
     "IO_I3C": "other",
+    "GND": "other",
+    "VCC": "other",
 }
 ECP5_RESOURCES = {
     "TRELLIS_COMB": "logic",
@@ -73,17 +75,24 @@ ECP5_RESOURCES = {
     "OSCG": "other",
     "SEDGA": "other",
     "USRMCLK": "other",
+    "GND": "other",
+    "VCC": "other",
 }
 GOWIN_RESOURCES = {
     "LUT4": "logic",
     "DFF": "logic",
     "ALU": "logic",
+    "LUT1": "logic",
+    "LUT2": "logic",
+    "LUT3": "logic",
     "MUX2_LUT5": "logic",
     "MUX2_LUT6": "logic",
     "MUX2_LUT7": "logic",
     "MUX2_LUT8": "logic",
     "BSRAM": "ram",
     "RAM16SDP4": "ram",
+    "DPB": "ram",
+    "SDPB": "ram",
     "MULT9X9": "dsp",
     "MULT18X18": "dsp",
     "MULT36X36": "dsp",
@@ -100,6 +109,10 @@ GOWIN_RESOURCES = {
     "OSER16": "io",
     "MIPI_IBUF": "io",
     "MIPI_OBUF": "io",
+    "IBUF": "io",
+    "OBUF": "io",
+    "TBUF": "io",
+    "IOBUF": "io",
     "BUFG": "clock",
     "DCS": "clock",
     "DQCE": "clock",
@@ -107,7 +120,9 @@ GOWIN_RESOURCES = {
     "CLKDIV": "clock",
     "CLKDIV2": "clock",
     "rPLL": "pll",
-    "OSC": "other",
+    "PLLVR": "pll",
+    "OSC": "clock",
+    "OSCZ": "clock",
     "FLASH608K": "other",
     "GSR": "other",
     "GND": "other",

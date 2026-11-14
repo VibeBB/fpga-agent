@@ -11,7 +11,7 @@
   "boards": [
     "Sipeed Tang Nano 20K"
   ],
-  "source": "Project Apicula GW2A-18C chipdb, GW2AR-18C QFN88P (OSS CAD Suite 2026-09-30)",
+  "source": "Project Apicula GW2A-18C chipdb, GW2AR-18C QFN88P (OSS CAD Suite 2026-11-12)",
   "synth_args": [
     "-family",
     "gw2a"

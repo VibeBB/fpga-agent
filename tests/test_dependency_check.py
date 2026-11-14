@@ -62,7 +62,7 @@ def test_docker_args_report_fetch_failed_on_timeout():
 def test_docker_release_pins_use_upstream_latest_tags() -> None:
     def tags(url: str) -> list[str]:
         if url.endswith("astral-sh/uv"):
-            return ["0.13.6"]
+            return ["0.13.8"]
         if url.endswith("nickg/nvc"):
             return ["r1.23.0", "r1.24.0"]
         if url.endswith("YosysHQ/oss-cad-suite-build"):
@@ -74,8 +74,8 @@ def test_docker_release_pins_use_upstream_latest_tags() -> None:
     nvc_status = next(status for status in statuses if status.name == "NVC_VERSION")
     oss_status = next(status for status in statuses if status.name == "OSS_CAD_SUITE_RELEASE")
     assert (uv_status.current, uv_status.latest, uv_status.outdated) == (
-        "0.13.6",
-        "0.13.6",
+        "0.13.8",
+        "0.13.8",
         False,
     )
     assert (nvc_status.current, nvc_status.latest, nvc_status.outdated) == (
@@ -84,7 +84,7 @@ def test_docker_release_pins_use_upstream_latest_tags() -> None:
         True,
     )
     assert (oss_status.current, oss_status.latest, oss_status.outdated) == (
-        "2026-10-12",
+        "2026-11-12",
         "2026-12-01",
         True,
     )
@@ -108,7 +108,7 @@ def test_wheel_download_pin_parsed() -> None:
     )
     zizmor = next(status for status in statuses if status.name == "zizmor")
     assert zizmor.surface == "workflow-download"
-    assert zizmor.current == "1.31.1"
+    assert zizmor.current == "1.32.0"
     assert zizmor.latest == "1.31.0"
     assert zizmor.outdated is True
 
@@ -132,7 +132,7 @@ def test_trivy_version_input_parsed() -> None:
     statuses = check_action_inputs(ROOT, list_remote_tags=lambda url: ["v0.76.0", "v0.77.0"])
     trivy = next(status for status in statuses if status.name == "aquasecurity/trivy")
     assert trivy.surface == "action-input"
-    assert trivy.current == "v0.76.1"
+    assert trivy.current == "v0.76.2"
     assert trivy.latest == "v0.77.0"
     assert trivy.outdated is True
     assert "container-audit.yml" in trivy.source

@@ -29,7 +29,7 @@ without a coefficient, a missing utilization or no clock fails. nextpnr
 itself reports no power, so this is the cross-check that the power handed
 to simulation-agent is not understated. `simulations[].coverage {measure[],
 min_line_pct, min_branch_pct, rationale}` adds gate `fpga.coverage.<id>`:
-the testbench is re-run with coverage (Verilator `--coverage-line` for
+the testbench is re-run with coverage (Verilator `--coverage-line --coverage-branch` for
 Verilog, NVC `--cover=statement,branch` for VHDL) and the line (C0) and
 branch (C1) percentages over the `measure` files — design sources only,
 never testbench code — must reach the floors. Verilator counts each

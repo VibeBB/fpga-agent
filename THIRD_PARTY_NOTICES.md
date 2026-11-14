@@ -12,7 +12,7 @@ Lattice, Gowin) tool or binary.
 | Ubuntu 26.04 | `ubuntu:26.04@sha256:da6fc2be…` | various | Base image |
 | uv | `ghcr.io/astral-sh/uv:0.12.23` | Apache-2.0 / MIT | Python and package manager |
 | CPython | 3.14.x via uv | PSF-2.0 | Runtime |
-| OSS CAD Suite | release `2026-10-12`, asset `oss-cad-suite-linux-x64-20261012.tgz`, sha256 `2eb5c50cc03fa817f0fa9b8cccbfef9584528433a13e693792514326b63451de` | bundle of the tools below; each keeps its license in `/opt/oss-cad-suite/license` | Toolchain bundle |
+| OSS CAD Suite | release `2026-11-12`, asset `oss-cad-suite-linux-x64-20261112.tgz`, sha256 `346499255e3e5e6e9bf67e1d378a4e6bc249abd3de3b0caf5b57604bc8ba1752` | bundle of the tools below; each keeps its license in `/opt/oss-cad-suite/license` | Toolchain bundle |
 | Yosys (+ ABC) | 0.69+158 (suite) | ISC (ABC: BSD-style) | Synthesis |
 | GHDL Yosys plugin | suite | GPL-3.0 | VHDL front end for synthesis and formal |
 | GHDL | 7.0.0-dev (suite) | GPL-2.0 | Optional VHDL tool |
@@ -32,8 +32,9 @@ Lattice, Gowin) tool or binary.
 | coverage | `7.16.2` (dev group) | Apache-2.0 | Test coverage measurement |
 | pytest-cov | `7.1.0` (dev group) | MIT | Pytest coverage integration |
 | pydantic | `>=2` via `uv.lock` | MIT | Contract models |
-| mcp | `>=1.29,<2` via `uv.lock` | MIT | MCP server |
-| openhands-sdk / openhands-tools | `1.59.0` (sdk-check group) | MIT | Plugin-load verification |
+| mcp | `>=2` via `uv.lock` | MIT | MCP server |
+| jsonschema | `>=4` via `uv.lock` | MIT | MCP tool input validation |
+| openhands-sdk / openhands-tools | `1.62.0` (sdk-check group) | MIT | Plugin-load verification |
 
 Sources: OSS CAD Suite <https://github.com/YosysHQ/oss-cad-suite-build>
 (each tool's upstream revision is recorded in its license file); NVC

@@ -11,7 +11,7 @@
   "boards": [
     "ULX3S (25F)"
   ],
-  "source": "Project Trellis LFE5U-25F/iodb.json (OSS CAD Suite 2026-09-30)",
+  "source": "Project Trellis LFE5U-25F/iodb.json (OSS CAD Suite 2026-11-12)",
   "nextpnr_args": [
     "--25k",
     "--package",
@@ -59,7 +59,9 @@
     "JTAGG": "other",
     "OSCG": "other",
     "SEDGA": "other",
-    "USRMCLK": "other"
+    "USRMCLK": "other",
+    "GND": "other",
+    "VCC": "other"
   },
   "pins": [
     {

@@ -449,16 +449,22 @@ def test_mcp_call_returns_image_content(tmp_path: Path, monkeypatch: pytest.Monk
 
     async def invoke() -> mcp.types.CallToolResult:
         result = await mcp_server.call_tool(
-            "fpga_render",
-            {"contract_path": str(work / "uart-echo.fpga.json"), "view": "pinmap"},
+            None,
+            mcp.types.CallToolRequestParams(
+                name="fpga_render",
+                arguments={
+                    "contract_path": str(work / "uart-echo.fpga.json"),
+                    "view": "pinmap",
+                },
+            ),
         )
         assert isinstance(result, mcp.types.CallToolResult)
         return result
 
     result = asyncio.run(invoke())
-    assert result.isError is False
+    assert result.is_error is False
     images = [c for c in result.content if isinstance(c, mcp.types.ImageContent)]
-    assert images and images[0].mimeType == "image/png"
+    assert images and images[0].mime_type == "image/png"
     _png_check(base64.b64decode(images[0].data))
 
 

@@ -1,8 +1,10 @@
 """Structural coverage of RTL simulations against authored line/branch floors.
 
 Verilog testbenches are rebuilt with Verilator ``--binary --timing
---coverage-line``: ``line`` points are executed blocks and ``branch`` points
-are if/else and case arms. VHDL runs are elaborated with NVC
+--coverage-line --coverage-branch``: ``line`` points are executed blocks
+and ``branch`` points are if/else and case arms (verilator 5.055 split
+branch coverage out of ``--coverage-line`` into its own flag). VHDL
+runs are elaborated with NVC
 ``--cover=statement,branch`` and exported as Cobertura XML: a branch is a
 decision, covered only when every outcome was taken. Only points in the
 ``measure`` design sources count; testbench code never inflates the figure.
@@ -103,6 +105,7 @@ def _verilator(
         "--binary",
         "--timing",
         "--coverage-line",
+        "--coverage-branch",
         "-Wno-fatal",
         *(["-sv"] if is_systemverilog(unit_list) else []),
         "--top-module",
