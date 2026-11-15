@@ -56,6 +56,13 @@ hooks:
         - type: command
           name: record-image-observation
           command: 'p=$(for c in "${FPGA_PLUGIN_ROOT:-}" "${PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga" "${HOME:-}/.agents/plugins/fpga" "${HOME:-}/.openhands/plugins/installed/fpga"; do [ -f "$c/hooks/scripts/record_image_observation.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/record_image_observation.py"'
+  stop:
+    - matcher: "*"
+      hooks:
+        - type: command
+          name: require-records
+          command: "p=$(for c in \"${FPGA_PLUGIN_ROOT:-}\" \"${PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga\" \"${HOME:-}/.agents/plugins/fpga\" \"${HOME:-}/.openhands/plugins/installed/fpga\" \"${HOME:-}/plugins/installed/fpga\" \"${OH_PERSISTENCE_DIR:-/nonexistent}/plugins/installed/fpga\"; do [ -f \"$c/hooks/scripts/require_records.py\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || exit 0; exec python3 \"$p/hooks/scripts/require_records.py\" stop"
+
 permission_mode: never_confirm
 ---
 
