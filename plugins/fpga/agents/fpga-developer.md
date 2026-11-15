@@ -22,6 +22,12 @@ when_to_use_examples:
   - Fix a failing simulation, proof or timing check
   - RTL を実装してビットストリームまで通す
 hooks:
+  session_start:
+    - matcher: "*"
+      hooks:
+        - type: command
+          name: require-records
+          command: "p=$(for c in \"${FPGA_PLUGIN_ROOT:-}\" \"${PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/fpga\" \"${HOME:-}/.agents/plugins/fpga\" \"${HOME:-}/.openhands/plugins/installed/fpga\" \"${HOME:-}/plugins/installed/fpga\" \"${OH_PERSISTENCE_DIR:-/nonexistent}/plugins/installed/fpga\"; do [ -f \"$c/hooks/scripts/require_records.py\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || exit 0; exec python3 \"$p/hooks/scripts/require_records.py\" session-start"
   pre_tool_use:
     - matcher: file_editor|apply_patch|terminal
       hooks:
@@ -142,3 +148,11 @@ not look, and decide from the JSON report alone.
 | `<name>.fpga-timing.png` | slack per clock, the worst path's start and end, whether the margin survives temperature, voltage and the next feature |
 | `<name>.fpga-wave-<sim>.png` | protocol timing (start/stop bits, handshakes, reset release) matches the spec, no `x`/`z` after reset, the testbench really exercises what its `expect` line claims |
 | `<name>.fpga-report.png` | the overall verdict and which stage a failure points back to |
+
+
+Use the native `session_id` supplied by your SessionStart record context for VRP
+writes. For an independent blind/tiebreak review, pass `primary_event_id` from
+the delegation brief; the writer binds it to the same image path and SHA-256.
+When delegating, provide only that opaque ID, the image identity and task facts;
+never disclose the earlier review prose. Each reviewer keeps its own native
+session ID, and the primary's session performs reconciliation.
