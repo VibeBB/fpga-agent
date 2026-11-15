@@ -1,7 +1,7 @@
 ---
 name: fpga-workflow
 description: End-to-end FPGA workflow — contract first, circuit-matched pin map, generated constraints, lint, NVC/Icarus simulation, SymbiYosys formal, Yosys synthesis, nextpnr place-and-route, timing, utilization and bitstream — with deterministic fpga.* gates.
-version: 0.1.0
+version: 1.0.0
 license: BSD-3-Clause
 triggers:
   - fpga

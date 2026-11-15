@@ -1,7 +1,7 @@
 ---
 name: fpga-verification
 description: Verifying HDL — self-checking NVC and Icarus Verilog testbenches, PSL and SVA properties proven with SymbiYosys, and reading timing and utilization reports.
-version: 0.1.0
+version: 1.0.0
 license: BSD-3-Clause
 triggers:
   - testbench

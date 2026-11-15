@@ -1,6 +1,6 @@
 [project]
 name = "fpga-agent"
-version = "0.1.0"
+version = "1.0.0"
 description = "OpenHands plugin for FPGA development (HDL/RTL, simulation, formal, synthesis, place-and-route, bitstream) gated by deterministic open-source toolchain checks"
 license = "BSD-3-Clause"
 requires-python = ">=3.12"

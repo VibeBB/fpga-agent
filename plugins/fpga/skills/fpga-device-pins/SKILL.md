@@ -1,7 +1,7 @@
 ---
 name: fpga-device-pins
 description: Choosing FPGA device profiles and package pins — bundled iCE40/ECP5/Gowin profiles, clock-capable pins, configuration and JTAG pins, I/O standards, and custom profiles.
-version: 0.1.0
+version: 1.0.0
 license: BSD-3-Clause
 triggers:
   - package pin
