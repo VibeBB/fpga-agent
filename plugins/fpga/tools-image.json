@@ -1,15 +1,15 @@
 {
-  "attestation": "https://github.com/VibeBB/fpga-agent/attestations/67721828",
-  "digest": "sha256:4da9441f3153f0a346ce93d00d9303200d576dfa5e1b02de32ccab5983a739e8",
+  "attestation": "https://github.com/VibeBB/fpga-agent/attestations/67766415",
+  "digest": "sha256:28f184cf5334111a00872b82a2a018ef15700a0c3992409576a9441665a35972",
   "dockerfile": "docker/fpga-tools.Dockerfile",
   "image": "ghcr.io/vibebb/fpga-tools",
-  "published_at": "2026-11-15T06:08:00Z",
-  "sbom_attestation": "https://github.com/VibeBB/fpga-agent/attestations/67722254",
-  "tag": "33f0fa56a72360dead97f6efe727eac083a2b1ab-tools",
+  "published_at": "2026-11-15T10:39:10Z",
+  "sbom_attestation": "https://github.com/VibeBB/fpga-agent/attestations/67766724",
+  "tag": "7fc430b6c6f5e0c9b9981203fcd9e479e2c7f19e-tools",
   "tools": {
     "boolector": "boolector --version: 3.2.4",
     "ecppack": "ecppack --help: Error: input file is mandatory.",
-    "fpga-agent": "python -c import importlib.metadata as m; print(m.version('fpga-agent')): 0.1.0",
+    "fpga-agent": "python -c import importlib.metadata as m; print(m.version('fpga-agent')): 1.0.0",
     "ghdl": "ghdl --version: GHDL 7.0.0-dev (6.0.0.r729.g8e642a9a5.dirty) [Dunoon edition]",
     "ghdl-yosys-plugin": "yosys -m ghdl -p help ghdl -q: /opt/oss-cad-suite/bin/yosys",
     "gowin_pack": "gowin_pack -h: /opt/oss-cad-suite/lib/python3.11/site-packages/apycula/bitmatrix.py:60: UserWarning: Numpy is not available, performance will be degraded.",
@@ -30,5 +30,5 @@
     "yosys-smtbmc": "yosys-smtbmc --help: yosys-smtbmc [options] <yosys_smt2_output>",
     "z3": "z3 --version: Z3 version 4.15.5 - 64 bit"
   },
-  "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/43682846516"
+  "workflow_run": "https://github.com/VibeBB/fpga-agent/actions/runs/43704302505"
 }
