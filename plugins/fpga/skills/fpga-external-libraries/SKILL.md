@@ -1,7 +1,7 @@
 ---
 name: fpga-external-libraries
 description: Using third-party HDL libraries (Colibri, Open Logic, hdl-modules, verilog-axis, verilog-uart, libfpga) — pinned checkouts, contract library declarations, component resolution, and license obligations.
-version: 0.2.0
+version: 0.1.0
 license: BSD-3-Clause
 triggers:
   - colibri
