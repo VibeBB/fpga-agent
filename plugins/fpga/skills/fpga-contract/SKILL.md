@@ -1,7 +1,7 @@
 ---
 name: fpga-contract
 description: Authoring <name>.fpga.json — device profile, sources and VHDL libraries, clocks, pins, build outputs and budgets, simulations, formal runs, circuit link and programmer.
-version: 0.1.0
+version: 1.0.0
 license: BSD-3-Clause
 triggers:
   - fpga.json

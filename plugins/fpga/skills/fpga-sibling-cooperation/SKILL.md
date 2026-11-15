@@ -1,7 +1,7 @@
 ---
 name: fpga-sibling-cooperation
 description: How the FPGA plugin exchanges JSON artifacts with sibling plugins — circuit connectivity in, fpga-pinmap out, and fpga-request change proposals.
-version: 0.1.0
+version: 1.0.0
 license: BSD-3-Clause
 triggers:
   - circuit
