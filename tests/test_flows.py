@@ -69,6 +69,19 @@ def test_simulation_missing_expectation_fails(ulx3s: Path) -> None:
     assert payload["missing"] == ["NEVER PRINTED"]
 
 
+def test_nvc_waveform_uses_workspace_relative_output(
+    tangnano: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    out = Path("reports")
+    out.mkdir()
+    payload = service.sim_payload(tangnano, "count", out)
+    assert payload["verdict"] == "pass", payload
+    waveform = out / "sim-count.vcd"
+    assert waveform.is_file()
+    assert "$enddefinitions" in waveform.read_text(encoding="utf-8")
+
+
 def test_formal_counterexample_fails(ulx3s: Path) -> None:
     rtl = ulx3s.parent / "rtl" / "blinky.v"
     source = rtl.read_text(encoding="utf-8")
