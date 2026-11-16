@@ -58,7 +58,7 @@ def run_simulation(
             argv.append(f"--stop-time={sim.stop_time}")
         if sim.waveform:
             waveform = out_dir / f"sim-{sim.id}.vcd"
-            argv += [f"--wave={waveform.as_posix()}", "--format=vcd"]
+            argv += [f"--wave={waveform.resolve().as_posix()}", "--format=vcd"]
     else:
         work.mkdir(parents=True, exist_ok=True)
         image = work / f"{sim.top}.vvp"
