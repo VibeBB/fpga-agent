@@ -84,7 +84,7 @@ def test_docker_release_pins_use_upstream_latest_tags() -> None:
         True,
     )
     assert (oss_status.current, oss_status.latest, oss_status.outdated) == (
-        "2026-11-12",
+        "2026-11-16",
         "2026-12-01",
         True,
     )
