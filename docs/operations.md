@@ -257,6 +257,13 @@ When sweeping dependencies to latest releases:
 - 2026-11-14: `OSS_CAD_SUITE_RELEASE` 2026-10-12 → 2026-11-12; the
   ghdl-yosys plugin load break that forced the 2026-10-29 deferral is
   fixed upstream, so the deferral entry is removed.
+- 2026-11-17: `OSS_CAD_SUITE_RELEASE` 2026-11-12 → 2026-11-16 (asset
+  sha256 re-verified by download); ghdl-yosys plugin load re-verified
+  in a ubuntu:26.04 container and inside the rebuilt `fpga-tools:dev`
+  image. Bundled tool versions now recorded in
+  `THIRD_PARTY_NOTICES.md` (Yosys 0.71+34, nextpnr 0.11.1-92,
+  Verilator 5.055-dev, openFPGALoader 1.2.0); stale `uv` and `NVC`
+  entries corrected to the Dockerfile pins (0.13.8, 1.23.1).
 
 ### 2026-11-14 dependency sweep
 
@@ -287,3 +294,32 @@ CI e2e then surfaced two behavioral changes in the 2026-11-12 suite:
   `--coverage-branch`; without it `coverage.dat` carries no `t=branch`
   points and if/else misses surface as line-coverage gaps instead.
   `coverage.py` now passes both flags.
+
+### 2026-11-17 dependency sweep
+
+`OSS_CAD_SUITE_RELEASE` `2026-11-12` → `2026-11-16` (asset
+`oss-cad-suite-linux-x64-20261116.tgz`, sha256 re-verified by
+download). This is the only candidate the checker surfaced; every other
+surface (uv pin, PyPI direct/transitive, GitHub Actions SHA pins, uvx
+and workflow download pins, Docker ARGs, NVC) already matched upstream.
+`THIRD_PARTY_NOTICES.md` version strings refreshed against the
+extracted bundle (Yosys 0.71+34, nextpnr 0.11.1-92, Verilator
+5.055-dev, Icarus 14.0 s20260301-1123, GHDL 7.0.0-dev, Yices 2.7.0,
+Z3 4.15.5, Boolector 3.2.4, openFPGALoader 1.2.0) and the stale `uv`
+(0.12.23 → 0.13.8) and `NVC` (1.23.0 → 1.23.1, sha256) entries
+corrected to the Dockerfile pins.
+
+Changelog review: the suite is a rolling bundle, so per-tool upstream
+changes were reviewed per tool. No behavioral changes affecting the
+gates were found between the two releases: Yosys 0.69+158 → 0.71+34
+(synth/techmap improvements, no JSON surface change), nextpnr
+0.11.1-40 → 0.11.1-92 (place-and-route fixes), Verilator 5.053 →
+5.055 (the `--coverage-branch` split already handled in the 2026-11-12
+adoption), apycula/gowin_pack unchanged since the `//CheckSum` comment
+handling landed. The 2026-10-29 ghdl-yosys ABI break stays fixed —
+`plugin -i ghdl` loads cleanly under the bundled Yosys.
+
+Verification: `fpga-tools:dev` rebuilt (in-image `fpga doctor` verdict
+pass, ghdl-yosys-plugin ok); all five example contracts pass their full
+gate sets inside the image; `pytest -m tools` in the image passes.
+Deferrals unchanged: Python minor still deferred (3.15 canary only).

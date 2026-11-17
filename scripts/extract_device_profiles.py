@@ -22,7 +22,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "src" / "fpga" / "devices"
 DEFAULT_SUITE = Path(os.environ.get("OSS_CAD_SUITE", "/opt/oss-cad-suite"))
-SUITE_RELEASE = "2026-11-12"
+SUITE_RELEASE = "2026-11-16"
 
 VCCIO_MAX_V = 3.465
 LVCMOS = ["LVCMOS33", "LVCMOS25", "LVCMOS18", "LVCMOS15", "LVCMOS12"]

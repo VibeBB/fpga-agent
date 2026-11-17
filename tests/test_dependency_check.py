@@ -46,6 +46,14 @@ def test_github_latest_date_tag_ignores_non_date_tags():
     assert _github_latest_date_tag("YosysHQ/oss-cad-suite-build", tags) == "2026-09-30"
 
 
+def _dockerfile_arg(name: str) -> str:
+    dockerfile = (ROOT / "docker" / "fpga-tools.Dockerfile").read_text(encoding="utf-8")
+    for line in dockerfile.splitlines():
+        if line.startswith(f"ARG {name}="):
+            return line.split("=", 1)[1].strip()
+    raise AssertionError(f"ARG {name} not found in fpga-tools.Dockerfile")
+
+
 def test_docker_args_report_fetch_failed_on_timeout():
     def timed_out(url: str) -> list[str]:
         raise subprocess.TimeoutExpired(["git", "ls-remote", "--tags", url], 1)
@@ -74,17 +82,17 @@ def test_docker_release_pins_use_upstream_latest_tags() -> None:
     nvc_status = next(status for status in statuses if status.name == "NVC_VERSION")
     oss_status = next(status for status in statuses if status.name == "OSS_CAD_SUITE_RELEASE")
     assert (uv_status.current, uv_status.latest, uv_status.outdated) == (
-        "0.13.8",
+        _dockerfile_arg("UV_VERSION"),
         "0.13.8",
         False,
     )
     assert (nvc_status.current, nvc_status.latest, nvc_status.outdated) == (
-        "1.23.1",
+        _dockerfile_arg("NVC_VERSION"),
         "r1.24.0",
         True,
     )
     assert (oss_status.current, oss_status.latest, oss_status.outdated) == (
-        "2026-11-12",
+        _dockerfile_arg("OSS_CAD_SUITE_RELEASE"),
         "2026-12-01",
         True,
     )

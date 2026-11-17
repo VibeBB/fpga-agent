@@ -10,13 +10,13 @@ Lattice, Gowin) tool or binary.
 | Component | Version pin | License | Use |
 |---|---|---|---|
 | Ubuntu 26.04 | `ubuntu:26.04@sha256:da6fc2be…` | various | Base image |
-| uv | `ghcr.io/astral-sh/uv:0.12.23` | Apache-2.0 / MIT | Python and package manager |
+| uv | `ghcr.io/astral-sh/uv:0.13.8` | Apache-2.0 / MIT | Python and package manager |
 | CPython | 3.14.x via uv | PSF-2.0 | Runtime |
-| OSS CAD Suite | release `2026-11-12`, asset `oss-cad-suite-linux-x64-20261112.tgz`, sha256 `346499255e3e5e6e9bf67e1d378a4e6bc249abd3de3b0caf5b57604bc8ba1752` | bundle of the tools below; each keeps its license in `/opt/oss-cad-suite/license` | Toolchain bundle |
-| Yosys (+ ABC) | 0.69+158 (suite) | ISC (ABC: BSD-style) | Synthesis |
+| OSS CAD Suite | release `2026-11-16`, asset `oss-cad-suite-linux-x64-20261116.tgz`, sha256 `ce7ae7e795440f7709025b589bd907950a409b4155b0be5828afb82d41e32d22` | bundle of the tools below; each keeps its license in `/opt/oss-cad-suite/license` | Toolchain bundle |
+| Yosys (+ ABC) | 0.71+34 (suite) | ISC (ABC: BSD-style) | Synthesis |
 | GHDL Yosys plugin | suite | GPL-3.0 | VHDL front end for synthesis and formal |
 | GHDL | 7.0.0-dev (suite) | GPL-2.0 | Optional VHDL tool |
-| nextpnr (ice40, ecp5, himbaechel) | 0.11.1-40 (suite) | ISC | Place and route |
+| nextpnr (ice40, ecp5, himbaechel) | 0.11.1-92 (suite) | ISC | Place and route |
 | Project IceStorm | suite | ISC | iCE40 database and `icepack` |
 | Project Trellis | suite | ISC | ECP5 database and `ecppack` |
 | Apicula | suite | MIT | Gowin database and `gowin_pack` |
@@ -25,10 +25,10 @@ Lattice, Gowin) tool or binary.
 | Z3 | 4.15.5 (suite) | MIT | Optional SMT solver |
 | Boolector | 3.2.4 (suite) | MIT | Optional SMT solver |
 | Icarus Verilog | 14.0-dev (suite) | GPL-2.0 | Verilog simulation |
-| Verilator | 5.053-dev (suite) | LGPL-3.0 or Artistic-2.0 | Verilog lint and simulation coverage |
+| Verilator | 5.055-dev (suite) | LGPL-3.0 or Artistic-2.0 | Verilog lint and simulation coverage |
 | GCC (g++), GNU Make | Ubuntu 26.04 apt | GPL-3.0-or-later (runtime library exception) | Build Verilator coverage models |
-| openFPGALoader | 1.1.1 (suite) | Apache-2.0 | Host-only programming |
-| NVC | 1.23.0, asset `nvc_1.23.0-1_amd64_ubuntu-26.04.deb`, sha256 `deda7ffc97b04301f0dbf5e16614e0e6537ba8a292d3d11502675a3514ba995a` | GPL-3.0-or-later | VHDL analysis, lint and simulation |
+| openFPGALoader | 1.2.0 (suite) | Apache-2.0 | Host-only programming |
+| NVC | 1.23.1, asset `nvc_1.23.1-1_amd64_ubuntu-26.04.deb`, sha256 `ea4f2b691788deb71c51ad4b850d6512970dd2b9bb73c1826684752d2f6082d5` | GPL-3.0-or-later | VHDL analysis, lint and simulation |
 | coverage | `7.16.2` (dev group) | Apache-2.0 | Test coverage measurement |
 | pytest-cov | `7.1.0` (dev group) | MIT | Pytest coverage integration |
 | pydantic | `>=2` via `uv.lock` | MIT | Contract models |

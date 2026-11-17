@@ -11,7 +11,7 @@
   "boards": [
     "ULX3S (25F)"
   ],
-  "source": "Project Trellis LFE5U-25F/iodb.json (OSS CAD Suite 2026-11-12)",
+  "source": "Project Trellis LFE5U-25F/iodb.json (OSS CAD Suite 2026-11-16)",
   "nextpnr_args": [
     "--25k",
     "--package",
