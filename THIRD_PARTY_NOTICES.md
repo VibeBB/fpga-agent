@@ -10,9 +10,9 @@ Lattice, Gowin) tool or binary.
 | Component | Version pin | License | Use |
 |---|---|---|---|
 | Ubuntu 26.04 | `ubuntu:26.04@sha256:da6fc2be…` | various | Base image |
-| uv | `ghcr.io/astral-sh/uv:0.13.8` | Apache-2.0 / MIT | Python and package manager |
+| uv | `ghcr.io/astral-sh/uv:0.13.9` | Apache-2.0 / MIT | Python and package manager |
 | CPython | 3.14.x via uv | PSF-2.0 | Runtime |
-| OSS CAD Suite | release `2026-11-16`, asset `oss-cad-suite-linux-x64-20261116.tgz`, sha256 `ce7ae7e795440f7709025b589bd907950a409b4155b0be5828afb82d41e32d22` | bundle of the tools below; each keeps its license in `/opt/oss-cad-suite/license` | Toolchain bundle |
+| OSS CAD Suite | release `2026-11-20`, asset `oss-cad-suite-linux-x64-20261120.tgz`, sha256 `6e200a57cb7cc47a8a1a4772e3feda3777917edcb3fa5e8ee5743d962d265a7e` | bundle of the tools below; each keeps its license in `/opt/oss-cad-suite/license` | Toolchain bundle |
 | Yosys (+ ABC) | 0.71+34 (suite) | ISC (ABC: BSD-style) | Synthesis |
 | GHDL Yosys plugin | suite | GPL-3.0 | VHDL front end for synthesis and formal |
 | GHDL | 7.0.0-dev (suite) | GPL-2.0 | Optional VHDL tool |
@@ -34,7 +34,7 @@ Lattice, Gowin) tool or binary.
 | pydantic | `>=2` via `uv.lock` | MIT | Contract models |
 | mcp | `>=2` via `uv.lock` | MIT | MCP server |
 | jsonschema | `>=4` via `uv.lock` | MIT | MCP tool input validation |
-| openhands-sdk / openhands-tools | `1.62.0` (sdk-check group) | MIT | Plugin-load verification |
+| openhands-sdk / openhands-tools | `1.63.1` (sdk-check group) | MIT | Plugin-load verification |
 
 Sources: OSS CAD Suite <https://github.com/YosysHQ/oss-cad-suite-build>
 (each tool's upstream revision is recorded in its license file); NVC
